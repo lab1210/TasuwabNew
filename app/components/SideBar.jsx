@@ -199,6 +199,7 @@ const SideBar = () => {
               label: "Approved Loan Transactions",
               href: "/Approved/Loan-Transactions",
               privilege: "ViewApprovedTransactions",
+              comment: "Coming soon!",
             },
           ],
           privilege: "ViewApprovedTransactions",
@@ -212,12 +213,14 @@ const SideBar = () => {
               label: "Pending Loan Applications",
               href: "/Pending/Loans",
               privilege: "SelectApprovedLoans",
+              comment: "Coming soon!",
             },
 
             {
               label: "Pending Loan Transactions",
               href: "/Pending/Loan-Transactions",
               privilege: "ViewApprovedTransactions",
+              comment: "Coming soon!",
             },
           ],
           privilege: "ViewApprovedTransactions",
@@ -231,12 +234,14 @@ const SideBar = () => {
               label: "Client Deposit  History",
               href: "/History/Deposit",
               privilege: "ViewAllTransactionHistory",
+              comment: "Coming soon!",
             },
 
             {
               label: "Loan Transaction History",
               href: "/History/Loan",
               privilege: "ViewAllTransactionHistory",
+              comment: "Coming soon",
             },
           ],
           privilege: "ViewAllTransactionHistory",
@@ -251,26 +256,31 @@ const SideBar = () => {
               label: "Client Statement of Account",
               href: "/Enquiries/Statement-of-account",
               privilege: "ViewEnquiry",
+              comment: "Coming soon",
             },
             {
               label: "Client Loan Enquiry",
               href: "/Enquiries/loan",
               privilege: "ViewEnquiry",
+              comment: "Coming soon",
             },
             {
               label: "Client Deposit Enquiry",
               href: "/Enquiries/Deposit",
               privilege: "ViewEnquiry",
+              comment: "Coming soon",
             },
             {
               label: "Loan Interest Income Enquiry",
               href: "/Enquiries/Loan-Interest-Income",
               privilege: "ViewEnquiry",
+              comment: "Coming soon",
             },
             {
               label: "Deposit Interest Expense Enquiry",
               href: "/Enquiries/Deposit-Interest-Expense",
               privilege: "ViewEnquiry",
+              comment: "Coming soon",
             },
           ],
           privilege: "ViewEnquiry",
@@ -284,6 +294,7 @@ const SideBar = () => {
             {
               label: "Pricing Model Calculator",
               href: "/Pricing",
+              comment: "Coming soon",
             },
           ],
         },
@@ -296,11 +307,13 @@ const SideBar = () => {
               label: "Loan Application Approver Assignment",
               href: "/Approver/Loan-Application",
               privilege: "AssignApprovalRights",
+              comment: "Coming soon",
             },
             {
               label: "Loan Transaction Approver Assignment",
               href: "/Approver/Loan-Transaction",
               privilege: "AssignApprovalRights",
+              comment: "Coming soon",
             },
           ],
           privilege: "AssignApprovalRights",
@@ -376,6 +389,9 @@ const SideBar = () => {
                         key={subItem.label}
                       >
                         <Link href={subItem.href}>{subItem.label}</Link>
+                        <p className="text-xs font-bold text-red-500">
+                          {subItem.comment}
+                        </p>
                       </li>
                     ))}
                   </ul>
