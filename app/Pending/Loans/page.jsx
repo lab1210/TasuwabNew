@@ -1,65 +1,29 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import Layout from "../components/Layout";
-import { useAuth } from "@/Services/authService";
-import { useRouter } from "next/navigation";
-import dummyLoans from "./DummyLoan";
-import roleService from "@/Services/roleService";
-import LargeModal from "../components/LargeModal";
-import AddLoan from "./AddLoan";
-import { Tooltip } from "react-tooltip";
-import { FaEye, FaPlus } from "react-icons/fa";
-import LoanInfo from "./LoanInfo";
-import dummyClients from "./DummyClient";
-import Modal from "../components/Modal";
+import { FaExchangeAlt, FaEye, FaPlus } from "react-icons/fa";
+import LoanInfo from "@/app/Loan/LoanInfo";
+import dummyClients from "@/app/Loan/DummyClient";
+import dummyLoans from "@/app/Loan/DummyLoan";
+import Layout from "@/app/components/Layout";
 
 const ITEMS_PER_PAGE = 2;
 
-const Loans = () => {
-  const { user } = useAuth();
-  const [addModalOpen, setAddModalOpen] = useState(false);
+const PendingLoans = () => {
   const [loans, setLoans] = useState([]);
   const [filterText, setFilterText] = useState("");
   const [filteredLoans, setFilteredLoans] = useState([]);
-  const [rolePrivileges, setRolePrivileges] = useState([]);
-  const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
-  const [loadingPrivileges, setLoadingPrivileges] = useState(true);
   const [selectedLoan, setSelectedLoan] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const handleAddLoan = (newLoan) => {
-    setLoans((prevLoans) => [...prevLoans, newLoan]);
-  };
   useEffect(() => {
-    setLoans(dummyLoans);
+    const pending = dummyLoans.filter((loan) => loan.status === "Pending");
+    setLoans(pending);
     setLoading(false);
   }, []);
-
-  useEffect(() => {
-    const fetchPrivileges = async () => {
-      if (user?.role) {
-        setLoadingPrivileges(true);
-        try {
-          const role = await roleService.getRoleById(user.role);
-          setRolePrivileges(role?.privileges?.map((p) => p.name) || []);
-        } catch (error) {
-          console.error("Error fetching role by ID:", error);
-          setRolePrivileges([]);
-        } finally {
-          setLoadingPrivileges(false);
-        }
-      } else {
-        setRolePrivileges([]);
-        setLoadingPrivileges(false);
-      }
-    };
-
-    fetchPrivileges();
-  }, [user?.role]);
 
   useEffect(() => {
     const handleFilter = () => {
@@ -84,11 +48,7 @@ const Loans = () => {
 
   const totalPages = Math.ceil(filteredLoans.length / ITEMS_PER_PAGE);
 
-  const hasPrivilege = (privilegeName) => {
-    return !loadingPrivileges && rolePrivileges.includes(privilegeName);
-  };
-
-  if (loading || loadingPrivileges) {
+  if (loading) {
     return (
       <Layout>
         <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
@@ -117,35 +77,16 @@ const Loans = () => {
       <div className="w-full">
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-4xl font-extrabold">Loans</p>
+            <p className="text-4xl font-extrabold">Pending Loans</p>
             <p className="text-sm text-gray-600">
-              View all of your loan applications.
+              These are loans that are pending for approval.
             </p>
           </div>
-          {hasPrivilege("CreateLoanApplication") && (
-            <div
-              onClick={() => setAddModalOpen(true)}
-              id="add-loan-icon"
-              className="w-7 h-7 rounded-full cursor-pointer hover:bg-gray-100 p-1"
-            >
-              <FaPlus className="text-[#3D873B] w-full h-full" />
-            </div>
-          )}
-          <Tooltip
-            anchorId="add-loan-icon"
-            content="Add Loan"
-            place="top"
-            style={{
-              backgroundColor: "#3D873B",
-              fontSize: "12px",
-              borderRadius: "6px",
-            }}
-          />
         </div>
         <div className="mt-4 mb-5">
           <input
             type="text"
-            placeholder="Search Loans..."
+            placeholder="Search Pending Loans..."
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
             className="placeholder:text-sm border p-2 w-full rounded-md border-gray-300 outline-none shadow-sm"
@@ -175,7 +116,6 @@ const Loans = () => {
                     dummyClients.find((c) => c.clientId === loan.clientId)) ||
                   null;
 
-                // Safely display the client's full name
                 const clientName = client
                   ? `${client.firstName} ${client.lastName}`
                   : "Client Not Found";
@@ -187,37 +127,30 @@ const Loans = () => {
                     <td className="py-3 px-4">{clientName}</td>
 
                     <td className="py-3 px-4">{loan.bank}</td>
-                    <td className="py-3 px-4">{loan.loanAmount}</td>
+                    <td className="py-3 px-4">
+                      {new Intl.NumberFormat("en-NG", {
+                        style: "currency",
+                        currency: "NGN",
+                      }).format(loan.loanAmount)}
+                    </td>
                     <td className="py-3 px-4">{loan.loanType}</td>
                     <td className="py-3 px-4">{loan.loanPurpose}</td>
                     <td className="py-3 px-4">
-                      {loan.status === "Rejected" ? (
-                        <p className="text-red-500 font-bold rounded-md bg-red-50 text-center p-1">
-                          {loan.status}
-                        </p>
-                      ) : loan.status === "Approved" ? (
-                        <p className="text-green-500 font-bold rounded-md bg-green-50 text-center p-1">
-                          {loan.status}
-                        </p>
-                      ) : loan.status === "Active" ? (
-                        <p className="text-blue-500 font-bold rounded-md bg-blue-50 text-center p-1">
-                          {loan.status}
-                        </p>
-                      ) : (
-                        <p className="text-yellow-500 font-bold rounded-md bg-yellow-50 text-center p-1">
-                          {loan.status}
-                        </p>
-                      )}
+                      <p className="text-yellow-500 font-bold rounded-md bg-yellow-50 text-center p-1">
+                        {loan.status}
+                      </p>
                     </td>
-                    <td className="py-3 px-4 text-center">
-                      <FaEye
-                        onClick={() => {
-                          setSelectedLoan(loan.LoanID);
-                          setIsSidebarOpen(true);
-                        }}
-                        size={18}
-                        className="cursor-pointer text-gray-500 hover:text-black"
-                      />
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-3">
+                        <FaEye
+                          onClick={() => {
+                            setSelectedLoan(loan.LoanID);
+                            setIsSidebarOpen(true);
+                          }}
+                          size={18}
+                          className="cursor-pointer text-gray-500 hover:text-black"
+                        />
+                      </div>
                     </td>
                   </tr>
                 );
@@ -275,21 +208,8 @@ const Loans = () => {
         onClose={() => setIsSidebarOpen(false)}
         isOpen={isSidebarOpen}
       />
-      {addModalOpen && (
-        <Modal
-          isOpen={addModalOpen}
-          onClose={() => setAddModalOpen(false)}
-          title={"Add Loan"}
-          description="Fill in the form to add a Loan."
-        >
-          <AddLoan
-            onClose={() => setAddModalOpen(false)}
-            onAdd={handleAddLoan}
-          />
-        </Modal>
-      )}
     </Layout>
   );
 };
 
-export default Loans;
+export default PendingLoans;

@@ -1,8 +1,8 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import Table from "./Table";
-import useAccountService from "@/Services/accountService";
 import { MdModeEditOutline } from "react-icons/md";
+import useAccountService from "@/Services/accountService";
 
 const DepositTypeConfiguration = () => {
   const { getAllAccountTypes, createAccountType, updateAccountType } =

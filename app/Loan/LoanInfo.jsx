@@ -96,19 +96,24 @@ const LoanInfo = ({ loans, onClose, isOpen }) => {
         {[
           "personal",
           "bank",
+          loans?.status === "Approved" || loans?.status === "Active"
+            ? "account"
+            : null,
           "guarantor",
           "document",
           "memo",
           "transactions",
-        ].map((tab) => (
-          <div
-            key={tab}
-            className={tabClass(tab)}
-            onClick={() => setActiveTab(tab)}
-          >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-          </div>
-        ))}
+        ]
+          .filter(Boolean)
+          .map((tab) => (
+            <div
+              key={tab}
+              className={tabClass(tab)}
+              onClick={() => setActiveTab(tab)}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </div>
+          ))}
       </div>
 
       {/* Tab content */}
@@ -183,6 +188,21 @@ const LoanInfo = ({ loans, onClose, isOpen }) => {
             />
           </>
         )}
+        {(loans?.status === "Approved" || loans?.status === "Active") &&
+          activeTab === "account" && (
+            <>
+              <InfoItem
+                icon={<FaMoneyBill />}
+                label="Loan Balance"
+                value={loans?.currentBalance}
+              />
+              <InfoItem
+                icon={<FaPlus />}
+                label="Unposted Loan Interest Balance"
+                value={loans?.unpostedInterestBalance}
+              />
+            </>
+          )}
 
         {activeTab === "guarantor" && (
           <>

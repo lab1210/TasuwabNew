@@ -85,7 +85,7 @@ const AddDeposit = ({ onClose, onAdd }) => {
   };
 
   return (
-    <div className="p-4">
+    <div className="p-4 max-h-100">
       {error && <div className="text-red-500 mb-4">{error}</div>}
 
       {/* Header with DocNbr and Date */}

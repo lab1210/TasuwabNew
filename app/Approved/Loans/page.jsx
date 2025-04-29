@@ -1,30 +1,26 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { useAuth } from "@/Services/authService";
-import { useRouter } from "next/navigation";
-import roleService from "@/Services/roleService";
-import { Tooltip } from "react-tooltip";
 import { FaExchangeAlt, FaEye, FaPlus } from "react-icons/fa";
 import LoanInfo from "@/app/Loan/LoanInfo";
 import dummyClients from "@/app/Loan/DummyClient";
 import dummyLoans from "@/app/Loan/DummyLoan";
 import Layout from "@/app/components/Layout";
+import Modal from "@/app/components/Modal";
+import LoanTransactionModal from "../LoanTransactionModal";
 
 const ITEMS_PER_PAGE = 2;
 
 const ApprovedLoans = () => {
-  const { user } = useAuth();
   const [loans, setLoans] = useState([]);
   const [filterText, setFilterText] = useState("");
   const [filteredLoans, setFilteredLoans] = useState([]);
-  const [rolePrivileges, setRolePrivileges] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [loadingPrivileges, setLoadingPrivileges] = useState(true);
   const [selectedLoan, setSelectedLoan] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [transactionModalOpen, settransactionModalOpen] = useState(false);
 
   useEffect(() => {
     const approvedOnly = dummyLoans.filter(
@@ -33,28 +29,6 @@ const ApprovedLoans = () => {
     setLoans(approvedOnly);
     setLoading(false);
   }, []);
-
-  useEffect(() => {
-    const fetchPrivileges = async () => {
-      if (user?.role) {
-        setLoadingPrivileges(true);
-        try {
-          const role = await roleService.getRoleById(user.role);
-          setRolePrivileges(role?.privileges?.map((p) => p.name) || []);
-        } catch (error) {
-          console.error("Error fetching role by ID:", error);
-          setRolePrivileges([]);
-        } finally {
-          setLoadingPrivileges(false);
-        }
-      } else {
-        setRolePrivileges([]);
-        setLoadingPrivileges(false);
-      }
-    };
-
-    fetchPrivileges();
-  }, [user?.role]);
 
   useEffect(() => {
     const handleFilter = () => {
@@ -79,11 +53,7 @@ const ApprovedLoans = () => {
 
   const totalPages = Math.ceil(filteredLoans.length / ITEMS_PER_PAGE);
 
-  const hasPrivilege = (privilegeName) => {
-    return !loadingPrivileges && rolePrivileges.includes(privilegeName);
-  };
-
-  if (loading || loadingPrivileges) {
+  if (loading) {
     return (
       <Layout>
         <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
@@ -117,17 +87,6 @@ const ApprovedLoans = () => {
               These are loans that have been approved.
             </p>
           </div>
-
-          <Tooltip
-            anchorId="add-loan-icon"
-            content="Add Loan"
-            place="top"
-            style={{
-              backgroundColor: "#3D873B",
-              fontSize: "12px",
-              borderRadius: "6px",
-            }}
-          />
         </div>
         <div className="mt-4 mb-5">
           <input
@@ -162,7 +121,6 @@ const ApprovedLoans = () => {
                     dummyClients.find((c) => c.clientId === loan.clientId)) ||
                   null;
 
-                // Safely display the client's full name
                 const clientName = client
                   ? `${client.firstName} ${client.lastName}`
                   : "Client Not Found";
@@ -174,7 +132,12 @@ const ApprovedLoans = () => {
                     <td className="py-3 px-4">{clientName}</td>
 
                     <td className="py-3 px-4">{loan.bank}</td>
-                    <td className="py-3 px-4">{loan.loanAmount}</td>
+                    <td className="py-3 px-4">
+                      {new Intl.NumberFormat("en-NG", {
+                        style: "currency",
+                        currency: "NGN",
+                      }).format(loan.loanAmount)}
+                    </td>
                     <td className="py-3 px-4">{loan.loanType}</td>
                     <td className="py-3 px-4">{loan.loanPurpose}</td>
                     <td className="py-3 px-4">
@@ -199,7 +162,9 @@ const ApprovedLoans = () => {
                           className="cursor-pointer text-gray-500 hover:text-black"
                         />
                         <FaExchangeAlt
-                          onClick={() => {}}
+                          onClick={() => {
+                            settransactionModalOpen(true);
+                          }}
                           size={18}
                           className="cursor-pointer  hover:text-gray-500"
                         />
@@ -261,6 +226,17 @@ const ApprovedLoans = () => {
         onClose={() => setIsSidebarOpen(false)}
         isOpen={isSidebarOpen}
       />
+      <Modal
+        isOpen={transactionModalOpen}
+        onClose={() => settransactionModalOpen(false)}
+        title={"Create Transaction"}
+        description={"Create a new transaction for this loan"}
+      >
+        <LoanTransactionModal
+          onClose={() => settransactionModalOpen(false)}
+          onAdd={() => settransactionModalOpen(false)}
+        />
+      </Modal>
     </Layout>
   );
 };

@@ -39,6 +39,10 @@ const menuStructure = {
     "/Approved/Loans": "Loans",
     "/Approved/Loan-Transactions": "Loan Transactions",
   },
+  Pending: {
+    "/Pending/Loans": "Loans",
+    "/Pending/Loan-Transactions": "Loan Transactions",
+  },
 };
 
 const Breadcrumbs = () => {

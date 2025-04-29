@@ -9,9 +9,6 @@ const dummyLoans = [
     loanType: "Personal",
     interestRate: 12,
     loanPurpose: "Business Expansion",
-    CurrentBalance: 190000,
-    UnpostedInterestBalance: 1200,
-
     guarantors: [
       {
         name: "John Doe",
@@ -29,24 +26,35 @@ const dummyLoans = [
     document: "loan_doc_001.pdf",
     memo: "Urgent disbursement needed.",
     status: "Pending",
+    currentBalance: 45000,
+    unpostedInterestBalance: 1500,
     transactions: [
       {
         date: "2025-01-15",
         type: "Disbursement",
         amount: 50000,
         description: "Initial loan disbursement",
+        status: "Approved",
+        docNbr: "DOC-1-1",
+        interestRate: 12,
       },
       {
         date: "2025-02-15",
         type: "Repayment",
         amount: 5000,
         description: "First repayment",
+        status: "Pending",
+        docNbr: "DOC-1-2",
+        interestRate: 12,
       },
       {
         date: "2025-03-15",
         type: "Repayment",
         amount: 5000,
         description: "Second repayment",
+        status: "Rejected",
+        docNbr: "DOC-1-3",
+        interestRate: 12,
       },
     ],
   },
@@ -60,9 +68,6 @@ const dummyLoans = [
     loanType: "Mortgage",
     interestRate: 10,
     loanPurpose: "Home Purchase",
-    CurrentBalance: 280000,
-    UnpostedInterestBalance: 3000,
-
     guarantors: [
       {
         name: "Mark Anthony",
@@ -74,18 +79,26 @@ const dummyLoans = [
     document: "loan_doc_002.pdf",
     memo: "Client needs approval by end of week.",
     status: "Approved",
+    currentBalance: 200000,
+    unpostedInterestBalance: 8000,
     transactions: [
       {
         date: "2025-01-20",
         type: "Disbursement",
         amount: 200000,
         description: "Initial mortgage disbursement",
+        status: "Approved",
+        docNbr: "DOC-2-1",
+        interestRate: 10,
       },
       {
         date: "2025-02-20",
         type: "Repayment",
         amount: 20000,
         description: "Monthly repayment",
+        status: "Pending",
+        docNbr: "DOC-2-2",
+        interestRate: 10,
       },
     ],
   },
@@ -99,9 +112,6 @@ const dummyLoans = [
     loanType: "Car Loan",
     interestRate: 9,
     loanPurpose: "Purchase of Used Car",
-    CurrentBalance: 0,
-    UnpostedInterestBalance: 0,
-
     guarantors: [
       {
         name: "Angela Nwosu",
@@ -113,12 +123,17 @@ const dummyLoans = [
     document: "loan_doc_003.pdf",
     memo: "Client requested a flexible repayment plan.",
     status: "Rejected",
+    currentBalance: 75000,
+    unpostedInterestBalance: 3000,
     transactions: [
       {
         date: "2025-01-10",
         type: "Application Fee",
         amount: 10000,
         description: "Fee for car loan application",
+        status: "Rejected",
+        docNbr: "DOC-3-1",
+        interestRate: 9,
       },
     ],
   },
@@ -132,9 +147,6 @@ const dummyLoans = [
     loanType: "Business Loan",
     interestRate: 15,
     loanPurpose: "Retail Store Expansion",
-    CurrentBalance: 685000,
-    UnpostedInterestBalance: 4200,
-
     guarantors: [
       {
         name: "Emeka Obi",
@@ -152,18 +164,26 @@ const dummyLoans = [
     document: "loan_doc_004.pdf",
     memo: "Needs disbursement before end of Q3.",
     status: "Pending",
+    currentBalance: 100000,
+    unpostedInterestBalance: 5000,
     transactions: [
       {
         date: "2025-01-25",
         type: "Disbursement",
         amount: 100000,
         description: "Initial business loan disbursement",
+        status: "Approved",
+        docNbr: "DOC-4-1",
+        interestRate: 15,
       },
       {
         date: "2025-02-25",
         type: "Repayment",
         amount: 15000,
         description: "Repayment for January",
+        status: "Pending",
+        docNbr: "DOC-4-2",
+        interestRate: 15,
       },
     ],
   },
@@ -177,9 +197,6 @@ const dummyLoans = [
     loanType: "Education Loan",
     interestRate: 8,
     loanPurpose: "Tuition Fees",
-    CurrentBalance: 215000,
-    UnpostedInterestBalance: 900,
-
     guarantors: [
       {
         name: "Aisha Bello",
@@ -191,18 +208,26 @@ const dummyLoans = [
     document: "loan_doc_005.pdf",
     memo: "For child’s school fees, urgent attention needed.",
     status: "Approved",
+    currentBalance: 100000,
+    unpostedInterestBalance: 4000,
     transactions: [
       {
         date: "2025-01-30",
         type: "Disbursement",
         amount: 100000,
         description: "Initial education loan disbursement",
+        status: "Approved",
+        docNbr: "DOC-5-1",
+        interestRate: 8,
       },
       {
         date: "2025-02-28",
         type: "Repayment",
         amount: 15000,
         description: "Monthly repayment",
+        status: "Pending",
+        docNbr: "DOC-5-2",
+        interestRate: 8,
       },
     ],
   },
@@ -216,9 +241,6 @@ const dummyLoans = [
     loanType: "Agricultural Loan",
     interestRate: 11,
     loanPurpose: "Purchase of farming equipment",
-    CurrentBalance: 450000,
-    UnpostedInterestBalance: 2100,
-
     guarantors: [
       {
         name: "Usman Garba",
@@ -229,25 +251,36 @@ const dummyLoans = [
     ],
     document: "loan_doc_006.pdf",
     memo: "Monitoring of equipment usage recommended.",
-    status: "Active",
+    status: "Pending",
+    currentBalance: 250000,
+    unpostedInterestBalance: 10000,
     transactions: [
       {
         date: "2025-01-12",
         type: "Disbursement",
         amount: 250000,
         description: "First disbursement for equipment purchase",
+        status: "Approved",
+        docNbr: "DOC-6-1",
+        interestRate: 11,
       },
       {
         date: "2025-03-12",
         type: "Repayment",
         amount: 20000,
         description: "Repayment for February",
+        status: "Pending",
+        docNbr: "DOC-6-2",
+        interestRate: 11,
       },
       {
         date: "2025-04-12",
         type: "Repayment",
         amount: 20000,
         description: "Repayment for March",
+        status: "Pending",
+        docNbr: "DOC-6-3",
+        interestRate: 11,
       },
     ],
   },

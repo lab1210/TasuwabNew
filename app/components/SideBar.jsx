@@ -199,7 +199,6 @@ const SideBar = () => {
               label: "Approved Loan Transactions",
               href: "/Approved/Loan-Transactions",
               privilege: "ViewApprovedTransactions",
-              comment: "Coming soon!",
             },
           ],
           privilege: "ViewApprovedTransactions",
@@ -213,38 +212,15 @@ const SideBar = () => {
               label: "Pending Loan Applications",
               href: "/Pending/Loans",
               privilege: "SelectApprovedLoans",
-              comment: "Coming soon!",
             },
 
             {
               label: "Pending Loan Transactions",
               href: "/Pending/Loan-Transactions",
               privilege: "ViewApprovedTransactions",
-              comment: "Coming soon!",
             },
           ],
           privilege: "ViewApprovedTransactions",
-        },
-        {
-          key: "transactionhistory",
-          label: "Transaction History",
-          icon: <FaHistory />,
-          subItems: [
-            {
-              label: "Client Deposit  History",
-              href: "/History/Deposit",
-              privilege: "ViewAllTransactionHistory",
-              comment: "Coming soon!",
-            },
-
-            {
-              label: "Loan Transaction History",
-              href: "/History/Loan",
-              privilege: "ViewAllTransactionHistory",
-              comment: "Coming soon",
-            },
-          ],
-          privilege: "ViewAllTransactionHistory",
         },
 
         {

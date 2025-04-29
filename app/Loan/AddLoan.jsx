@@ -149,10 +149,10 @@ const AddLoan = ({ onClose, onAdd }) => {
   };
 
   return (
-    <div className="p-4">
+    <div className="p-4 max-h-95">
       {error && <div className="text-red-500 mb-4">{error}</div>}
 
-      <div className="mb-4 text-sm text-gray-600 flex gap-5 items-center">
+      <div className="mb-4 text-sm text-gray-600 ">
         <div>
           Document Number: <strong>{docNbr}</strong>
         </div>
@@ -190,7 +190,7 @@ const AddLoan = ({ onClose, onAdd }) => {
         {step === 2 && (
           <div>
             <h3 className="text-lg font-semibold mb-4">Step 2: Loan Details</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="">
               <input
                 className="mt-1 outline-0 focus:border-[#3D873B] block w-full p-2 border border-gray-300 rounded-md"
                 placeholder="Bank"
@@ -248,7 +248,7 @@ const AddLoan = ({ onClose, onAdd }) => {
 
             {/* Guarantor 1 */}
             <h4 className="text-md font-medium mb-2">Guarantor 1</h4>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="mb-2">
               <input
                 className="mt-1 outline-0 focus:border-[#3D873B] block w-full p-2 border border-gray-300 rounded-md"
                 placeholder="Guarantor Name"
@@ -270,8 +270,8 @@ const AddLoan = ({ onClose, onAdd }) => {
             </div>
 
             {/* Guarantor 2 */}
-            <h4 className="text-md font-medium mb-2 mt-2">Guarantor 2</h4>
-            <div className="grid grid-cols-3 gap-3">
+            <h4 className="text-md font-medium mt-4">Guarantor 2</h4>
+            <div className="">
               <input
                 className="mt-1 outline-0 focus:border-[#3D873B] block w-full p-2 border border-gray-300 rounded-md"
                 placeholder="Guarantor Name"

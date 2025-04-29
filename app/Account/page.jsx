@@ -33,35 +33,6 @@ const Accounts = () => {
   const [entityTypes, setEntityTypes] = useState([]);
   const [branches, setBranches] = useState([]);
 
-  useEffect(() => {
-    const fetchMetadata = async () => {
-      try {
-        const [accountRes, entityRes, branchRes] = await Promise.all([
-          useAccountService().getAllAccountTypes(),
-          useAccountService().getAllAccountEntityTypes(),
-          branchService.getAllBranches(),
-        ]);
-
-        setAccountTypes(accountRes?.data || []);
-        setEntityTypes(entityRes?.data || []);
-        setBranches(branchRes?.data || []);
-      } catch (err) {
-        console.error("Failed to fetch metadata:", err);
-      }
-    };
-
-    fetchMetadata();
-  }, []);
-
-  const getAccountTypeName = (code) =>
-    accountTypes.find((type) => type.accountTypeCode === code)?.name || code;
-
-  const getEntityTypeName = (code) =>
-    entityTypes.find((type) => type.entityTypeCode === code)?.name || code;
-
-  const getBranchName = (code) =>
-    branches.find((branch) => branch.branch_id === code)?.name || code;
-
   const fetchAccounts = async () => {
     setLoading(true);
     setError(null);
@@ -218,15 +189,9 @@ const Accounts = () => {
                 <tr key={account.accountCode} className="hover:bg-gray-50">
                   <td className="py-3 px-4">{startIdx + index + 1}</td>
                   <td className="py-3 px-4">{account.accountCode}</td>
-                  <td className="py-3 px-4">
-                    {getAccountTypeName(account.accountTypeCode)}
-                  </td>
-                  <td className="py-3 px-4">
-                    {getEntityTypeName(account.entityTypeCode)}
-                  </td>
-                  <td className="py-3 px-4">
-                    {getBranchName(account.branchCode)}
-                  </td>
+                  <td className="py-3 px-4">{account.accountTypeCode}</td>
+                  <td className="py-3 px-4">{account.entityTypeCode}</td>
+                  <td className="py-3 px-4">{account.branchCode}</td>
 
                   <td className="py-3 px-4">{account.balance}</td>
                   <td className="py-3 px-4">

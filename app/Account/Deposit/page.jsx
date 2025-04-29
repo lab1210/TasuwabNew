@@ -7,6 +7,7 @@ import { Tooltip } from "react-tooltip";
 import AddDeposit from "./AddDeposit/page";
 import Layout from "@/app/components/Layout";
 import LargeModal from "@/app/components/LargeModal";
+import Modal from "@/app/components/Modal";
 
 const ITEMS_PER_PAGE = 4;
 
@@ -252,7 +253,7 @@ const DepositList = () => {
           </table>
         </div>
       </div>
-      <LargeModal
+      <Modal
         isOpen={addModalOpen}
         onClose={() => setAddModalOpen(false)}
         title={"Add Deposit"}
@@ -274,7 +275,7 @@ const DepositList = () => {
             ])
           } // Dummy data addition
         />
-      </LargeModal>
+      </Modal>
     </Layout>
   );
 };

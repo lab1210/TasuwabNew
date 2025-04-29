@@ -6,7 +6,7 @@ import dummyClients from "@/app/Loan/DummyClient";
 
 const ITEMS_PER_PAGE = 2;
 
-const ApprovedLoanTransactions = () => {
+const PendingLoanTransactions = () => {
   const [loansTransactions, setLoansTransactions] = useState([]);
   const [filterText, setFilterText] = useState("");
   const [filteredLoantransactions, setFilteredLoantransactions] = useState([]);
@@ -15,15 +15,15 @@ const ApprovedLoanTransactions = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const approvedTransactions = dummyLoans.flatMap((loan) =>
+    const PendingTransactions = dummyLoans.flatMap((loan) =>
       loan.transactions
-        .filter((transaction) => transaction.status === "Approved")
+        .filter((transaction) => transaction.status === "Pending")
         .map((transaction) => ({
           ...loan, // keep loan-level info
           transactions: transaction, // but override transactions to single transaction
         }))
     );
-    setLoansTransactions(approvedTransactions);
+    setLoansTransactions(PendingTransactions);
     setLoading(false);
   }, []);
 
@@ -81,11 +81,9 @@ const ApprovedLoanTransactions = () => {
       <div className="w-full">
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-4xl font-extrabold">
-              Approved Loan Transactions
-            </p>
+            <p className="text-4xl font-extrabold">Pending Loan Transactions</p>
             <p className="text-sm text-gray-600">
-              These are loan transactions that have been approved.
+              These are loan transactions that are still pending for approval.
             </p>
           </div>
         </div>
@@ -145,7 +143,7 @@ const ApprovedLoanTransactions = () => {
                       {loan.transactions.description}
                     </td>
                     <td className="py-3 px-4">
-                      <p className="text-green-500 font-bold rounded-md bg-green-50 text-center p-1">
+                      <p className="text-yellow-500 font-bold rounded-md bg-yellow-50 text-center p-1">
                         {loan.transactions.status}
                       </p>
                     </td>
@@ -158,7 +156,7 @@ const ApprovedLoanTransactions = () => {
                     colSpan="7"
                     className="px-4 py-6 text-center text-gray-500"
                   >
-                    No Approved Transaction available.
+                    No Pending Transaction available.
                   </td>
                 </tr>
               )}
@@ -204,4 +202,4 @@ const ApprovedLoanTransactions = () => {
   );
 };
 
-export default ApprovedLoanTransactions;
+export default PendingLoanTransactions;
