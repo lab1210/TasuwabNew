@@ -7,6 +7,7 @@ import { BsGenderFemale, BsGenderMale } from "react-icons/bs";
 import { GiPayMoney, GiRelationshipBounds } from "react-icons/gi";
 import {
   FaCashRegister,
+  FaMinus,
   FaMoneyBill,
   FaPlus,
   FaUniversity,
@@ -162,11 +163,6 @@ const LoanInfo = ({ loans, onClose, isOpen }) => {
         {activeTab === "bank" && (
           <>
             <InfoItem
-              icon={<FaUniversity />}
-              label="Bank Name"
-              value={loans?.bank}
-            />
-            <InfoItem
               icon={<HiOutlineIdentification />}
               label="Account Number"
               value={loans?.bankAccount}
@@ -197,9 +193,14 @@ const LoanInfo = ({ loans, onClose, isOpen }) => {
                 value={loans?.currentBalance}
               />
               <InfoItem
-                icon={<FaPlus />}
+                icon={<FaMinus />}
                 label="Unposted Loan Interest Balance"
                 value={loans?.unpostedInterestBalance}
+              />
+              <InfoItem
+                icon={<FaPlus />}
+                label="Posted Loan Interest Balance"
+                value={loans?.postedInterest}
               />
             </>
           )}

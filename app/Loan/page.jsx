@@ -156,10 +156,9 @@ const Loans = () => {
             <thead className="bg-gray-50 text-gray-500 text-sm">
               <tr>
                 <th className="text-left py-3 px-4">S/N</th>
-                <th className="text-left py-3 px-4">Client ID</th>
                 <th className="text-left py-3 px-4">Client Name</th>
+                <th className="text-left py-3 px-4">Account</th>
 
-                <th className="text-left py-3 px-4">Bank</th>
                 <th className="text-left py-3 px-4">Loan Amount</th>
                 <th className="text-left py-3 px-4">Loan Type</th>
                 <th className="text-left py-3 px-4">Loan Purpose</th>
@@ -182,11 +181,10 @@ const Loans = () => {
                 return (
                   <tr key={index}>
                     <td className="py-3 px-4">{startIdx + index + 1}</td>
-                    <td className="py-3 px-4">{loan.clientId}</td>
 
                     <td className="py-3 px-4">{clientName}</td>
 
-                    <td className="py-3 px-4">{loan.bank}</td>
+                    <td className="py-3 px-4">{loan.bankAccount}</td>
                     <td className="py-3 px-4">{loan.loanAmount}</td>
                     <td className="py-3 px-4">{loan.loanType}</td>
                     <td className="py-3 px-4">{loan.loanPurpose}</td>

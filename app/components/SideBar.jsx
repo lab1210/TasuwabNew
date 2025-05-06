@@ -162,9 +162,18 @@ const SideBar = () => {
               href: "/Account",
               privilege: "ViewAccount",
             },
+          ],
+          privilege: "ViewAccount",
+        },
+
+        {
+          key: "transactionManagement",
+          label: "Transaction ",
+          icon: <GrTransaction />,
+          subItems: [
             {
-              label: "View Deposits",
-              href: "/Account/Deposit",
+              label: "View transactions",
+              href: "/Account/Transaction",
               privilege: "ViewAccount",
             },
           ],
@@ -181,14 +190,6 @@ const SideBar = () => {
               href: "/Loan",
               privilege: "ViewLoanApplications",
             },
-          ],
-          privilege: "ViewLoanApplications",
-        },
-        {
-          key: "ApprovedTransactions",
-          label: "Approved Transactions",
-          icon: <GrTransaction />,
-          subItems: [
             {
               label: "Approved Loan Applications",
               href: "/Approved/Loans",
@@ -200,14 +201,6 @@ const SideBar = () => {
               href: "/Approved/Loan-Transactions",
               privilege: "ViewApprovedTransactions",
             },
-          ],
-          privilege: "ViewApprovedTransactions",
-        },
-        {
-          key: "PendingApprovals",
-          label: "Pending Approvals",
-          icon: <MdOutlinePending />,
-          subItems: [
             {
               label: "Pending Loan Applications",
               href: "/Pending/Loans",
@@ -220,7 +213,7 @@ const SideBar = () => {
               privilege: "ViewApprovedTransactions",
             },
           ],
-          privilege: "ViewApprovedTransactions",
+          privilege: "ViewLoanApplications",
         },
 
         {
@@ -232,31 +225,26 @@ const SideBar = () => {
               label: "Client Statement of Account",
               href: "/Enquiries/Statement-of-account",
               privilege: "ViewEnquiry",
-              comment: "Coming soon",
             },
             {
               label: "Client Loan Enquiry",
               href: "/Enquiries/loan",
               privilege: "ViewEnquiry",
-              comment: "Coming soon",
             },
             {
               label: "Client Deposit Enquiry",
               href: "/Enquiries/Deposit",
               privilege: "ViewEnquiry",
-              comment: "Coming soon",
             },
             {
               label: "Loan Interest Income Enquiry",
               href: "/Enquiries/Loan-Interest-Income",
               privilege: "ViewEnquiry",
-              comment: "Coming soon",
             },
             {
               label: "Deposit Interest Expense Enquiry",
               href: "/Enquiries/Deposit-Interest-Expense",
               privilege: "ViewEnquiry",
-              comment: "Coming soon",
             },
           ],
           privilege: "ViewEnquiry",
@@ -283,13 +271,11 @@ const SideBar = () => {
               label: "Loan Application Approver Assignment",
               href: "/Approver/Loan-Application",
               privilege: "AssignApprovalRights",
-              comment: "Coming soon",
             },
             {
               label: "Loan Transaction Approver Assignment",
               href: "/Approver/Loan-Transaction",
               privilege: "AssignApprovalRights",
-              comment: "Coming soon",
             },
           ],
           privilege: "AssignApprovalRights",

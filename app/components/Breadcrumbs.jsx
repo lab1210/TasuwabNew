@@ -30,7 +30,9 @@ const menuStructure = {
   },
   "Account Management": {
     "/Account": "View Account List",
-    "/Account/Deposit": "View Deposits",
+  },
+  "Transaction Management": {
+    "/Account/Transaction": "View Transactions",
   },
   "Loan Management": {
     "/Loan": "View Loans",
@@ -42,6 +44,16 @@ const menuStructure = {
   Pending: {
     "/Pending/Loans": "Loans",
     "/Pending/Loan-Transactions": "Loan Transactions",
+  },
+  Enquiries: {
+    "/Enquiries/Statement-of-account": "Statement of Account",
+    "/Enquiries/loan": "Loan Enquiry",
+    "/Enquiries/Deposit": "Deposit Enquiry",
+    "/Enquiries/Loan-Interest-Income": "Loan Interest Income ",
+  },
+  "Approval Route": {
+    "/Approver/Loan-Application": "Loan Application",
+    "/Approver/Loan-Transaction": "Loan Transactions",
   },
 };
 

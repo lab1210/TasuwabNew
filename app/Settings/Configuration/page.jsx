@@ -7,9 +7,10 @@ import LoanInterestTableConfiguration from "./Loaninterest";
 import Layout from "@/app/components/Layout";
 import EntityTypeTab from "./EntityType";
 import LoanTransactionTypeTab from "./LoanTransactionType.";
+import InterestTypeToggle from "./InterestType";
 
 const SettingsTabs = () => {
-  const [activeTab, setActiveTab] = useState("Deposit Type Configuration");
+  const [activeTab, setActiveTab] = useState("Interest Type Toggle");
   const [depositTypes, setDepositTypes] = useState([]);
   const [loanTypes, setLoanTypes] = useState([]);
   const [depositInterest, setDepositInterest] = useState([]);
@@ -19,12 +20,23 @@ const SettingsTabs = () => {
 
   return (
     <Layout>
-      <div className="flex gap-3 font-bold  ">
+      <div className="flex gap-3 font-extrabold overflow-x-auto custom-scrollbar ">
+        <button
+          className={`${
+            activeTab === "Interest Type Toggle"
+              ? "text-[#3D873B] bg-gray-100 p-1 rounded-lg min-w-40"
+              : "text-[#333] min-w-40"
+          }`}
+          onClick={() => setActiveTab("Interest Type Toggle")}
+        >
+          Interest Type
+        </button>
+
         <button
           className={`${
             activeTab === "Deposit Type Configuration"
-              ? "text-[#3D873B] bg-gray-100 p-1 rounded-lg"
-              : "text-[#333]"
+              ? "text-[#3D873B] min-w-40 bg-gray-100 p-1 rounded-lg"
+              : "text-[#333] min-w-40"
           }`}
           onClick={() => setActiveTab("Deposit Type Configuration")}
         >
@@ -33,8 +45,8 @@ const SettingsTabs = () => {
         <button
           className={`${
             activeTab === "Entity Type Configuration"
-              ? "text-[#3D873B] bg-gray-100 p-1 rounded-lg"
-              : "text-[#333]"
+              ? "text-[#3D873B] min-w-40 bg-gray-100 p-1 rounded-lg"
+              : "text-[#333] min-w-40"
           }`}
           onClick={() => setActiveTab("Entity Type Configuration")}
         >
@@ -43,8 +55,8 @@ const SettingsTabs = () => {
         <button
           className={`${
             activeTab === "Loan Type Configuration"
-              ? "text-[#3D873B] bg-gray-100 p-1 rounded-lg"
-              : "text-[#333]"
+              ? "text-[#3D873B] min-w-40 bg-gray-100 p-1 rounded-lg"
+              : "text-[#333] min-w-40"
           }`}
           onClick={() => setActiveTab("Loan Type Configuration")}
         >
@@ -53,8 +65,8 @@ const SettingsTabs = () => {
         <button
           className={`${
             activeTab === "Deposit Interest Table Configuration"
-              ? "text-[#3D873B] bg-gray-100 p-1 rounded-lg"
-              : "text-[#333]"
+              ? "text-[#3D873B] min-w-40 bg-gray-100 p-1 rounded-lg"
+              : "text-[#333] min-w-40"
           }`}
           onClick={() => setActiveTab("Deposit Interest Table Configuration")}
         >
@@ -63,8 +75,8 @@ const SettingsTabs = () => {
         <button
           className={`${
             activeTab === "Loan Interest Table Configuration"
-              ? "text-[#3D873B] bg-gray-100 p-1 rounded-lg"
-              : "text-[#333]"
+              ? "text-[#3D873B] min-w-40 bg-gray-100 p-1 rounded-lg"
+              : "text-[#333] min-w-40"
           }`}
           onClick={() => setActiveTab("Loan Interest Table Configuration")}
         >
@@ -73,15 +85,16 @@ const SettingsTabs = () => {
         <button
           className={`${
             activeTab === "Loan Transaction Type"
-              ? "text-[#3D873B] bg-gray-100 p-1 rounded-lg"
-              : "text-[#333]"
+              ? "text-[#3D873B] min-w-40 bg-gray-100 p-1 rounded-lg"
+              : "text-[#333] min-w-40"
           }`}
           onClick={() => setActiveTab("Loan Transaction Type")}
         >
-          Loan Transaction Type
+          Transaction Type
         </button>
       </div>
       <div className="tab-content">
+        {activeTab === "Interest Type Toggle" && <InterestTypeToggle />}
         {activeTab === "Deposit Type Configuration" && (
           <DepositTypeConfiguration
             depositTypes={depositTypes}

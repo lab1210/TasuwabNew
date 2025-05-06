@@ -17,9 +17,9 @@ const DepositInterestTableConfiguration = ({
     minDays: "",
     maxDays: "",
     interestRate: "",
-    penaltyRate: 0,
-    minAmount: 0,
-    maxAmount: 0,
+    penaltyRate: "",
+    minAmount: "",
+    maxAmount: "",
   });
 
   useEffect(() => {
@@ -58,9 +58,9 @@ const DepositInterestTableConfiguration = ({
       minDays: "",
       maxDays: "",
       interestRate: "",
-      penaltyRate: 0,
-      minAmount: 0,
-      maxAmount: 0,
+      penaltyRate: "",
+      minAmount: "",
+      maxAmount: "",
     });
     setError("");
   };
@@ -92,7 +92,7 @@ const DepositInterestTableConfiguration = ({
 
         <input
           type="number"
-          min={0}
+          min={1}
           placeholder="Min Days"
           className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
           value={depositInterestRow.minDays}
@@ -106,7 +106,7 @@ const DepositInterestTableConfiguration = ({
 
         <input
           type="number"
-          min={0}
+          min={1}
           placeholder="Max Days"
           className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
           value={depositInterestRow.maxDays}
@@ -120,7 +120,7 @@ const DepositInterestTableConfiguration = ({
 
         <input
           type="number"
-          min={0}
+          min={1}
           placeholder="Interest Rate (%)"
           className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
           value={depositInterestRow.interestRate}
@@ -148,7 +148,7 @@ const DepositInterestTableConfiguration = ({
 
         <input
           type="number"
-          min={0}
+          min={1}
           placeholder="Min Amount"
           className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
           value={depositInterestRow.minAmount}
@@ -162,6 +162,7 @@ const DepositInterestTableConfiguration = ({
 
         <input
           type="number"
+          min={1}
           placeholder="Max Amount"
           className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
           value={depositInterestRow.maxAmount}

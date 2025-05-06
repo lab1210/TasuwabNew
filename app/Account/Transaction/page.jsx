@@ -1,19 +1,21 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/Services/authService";
-import { useRouter } from "next/navigation";
 import { FaPlus } from "react-icons/fa";
 import { Tooltip } from "react-tooltip";
-import AddDeposit from "./AddDeposit/page";
+import AddDeposit from "./AddTransaction/page";
 import Layout from "@/app/components/Layout";
-import LargeModal from "@/app/components/LargeModal";
 import Modal from "@/app/components/Modal";
+import dummyTransactions from "./dummyDeposit";
+import { MdOutlineMoreVert } from "react-icons/md";
 
-const ITEMS_PER_PAGE = 4;
+const ITEMS_PER_PAGE = 3;
 
 const DepositList = () => {
   const { user } = useAuth();
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [selectedDescription, setSelectedDescription] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [deposits, setDeposits] = useState([]);
   const [filterText, setFilterText] = useState("");
@@ -26,6 +28,10 @@ const DepositList = () => {
 
   const [branches, setBranches] = useState([]);
 
+  const openDocumentInNewTab = (documentId) => {
+    const documentUrl = `/documents/${documentId}`;
+    window.open(documentUrl, "_blank");
+  };
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
@@ -47,43 +53,7 @@ const DepositList = () => {
     branches.find((branch) => branch.branch_id === code)?.name || code;
 
   useEffect(() => {
-    // Use dummy data for deposits
-    const dummyDeposits = [
-      {
-        depositId: "D001",
-        amount: 1000,
-        depositType: "Savings",
-        branchId: "1",
-        date: "2025-04-20T10:00:00Z",
-        status: "Active",
-      },
-      {
-        depositId: "D002",
-        amount: 1500,
-        depositType: "Current",
-        branchId: "2",
-        date: "2025-04-21T10:00:00Z",
-        status: "Inactive",
-      },
-      {
-        depositId: "D003",
-        amount: 2000,
-        depositType: "Savings",
-        branchId: "3",
-        date: "2025-04-22T10:00:00Z",
-        status: "Active",
-      },
-      {
-        depositId: "D004",
-        amount: 500,
-        depositType: "Current",
-        branchId: "1",
-        date: "2025-04-23T10:00:00Z",
-        status: "Inactive",
-      },
-    ];
-
-    setDeposits(dummyDeposits);
+    setDeposits(dummyTransactions);
     setLoading(false);
   }, []);
 
@@ -166,10 +136,8 @@ const DepositList = () => {
       <div className="w-full">
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-4xl font-extrabold">Deposits</p>
-            <p className="text-sm text-gray-600">
-              View all of your deposit transactions.
-            </p>
+            <p className="text-4xl font-extrabold">Transactions</p>
+            <p className="text-sm text-gray-600">View all transactions.</p>
           </div>
           {hasPrivilege("CreateDeposit") && (
             <div
@@ -182,7 +150,7 @@ const DepositList = () => {
           )}
           <Tooltip
             anchorId="add-deposit-icon"
-            content="Add Deposit"
+            content="Add Transaction"
             place="top"
             style={{
               backgroundColor: "#3D873B",
@@ -194,7 +162,7 @@ const DepositList = () => {
         <div className="mt-4 mb-5">
           <input
             type="text"
-            placeholder="Search Deposits..."
+            placeholder="Search Transactions..."
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
             className="placeholder:text-sm border p-2 w-full rounded-md border-gray-300 outline-none shadow-sm"
@@ -205,37 +173,50 @@ const DepositList = () => {
             <thead className="bg-gray-50 text-gray-500 text-sm">
               <tr>
                 <th className="text-left py-3 px-4">S/N</th>
-                <th className="text-left py-3 px-4">Deposit ID</th>
-                <th className="text-left py-3 px-4">Deposit Amount</th>
-                <th className="text-left py-3 px-4">Deposit Type</th>
+                <th className="text-left py-3 px-4">DocNbr</th>
+                <th className="text-left py-3 px-4">Customer</th>
+                <th className="text-left py-3 px-4">Account </th>
+                <th className="text-left py-3 px-4">Transaction Type</th>
+                <th className="text-left py-3 px-4"> Amount</th>
                 <th className="text-left py-3 px-4">Branch</th>
                 <th className="text-left py-3 px-4">Date</th>
-                <th className="text-left py-3 px-4">Status</th>
+                <th className="text-left py-3 px-4"></th>
+                <th className="text-left py-3 px-4"></th>
               </tr>
             </thead>
             <tbody className="text-sm text-gray-700">
               {paginatedDeposits.map((deposit, index) => (
                 <tr key={deposit.depositId} className="hover:bg-gray-50">
                   <td className="py-3 px-4">{startIdx + index + 1}</td>
-                  <td className="py-3 px-4">{deposit.depositId}</td>
-                  <td className="py-3 px-4">{deposit.amount}</td>
-                  <td className="py-3 px-4">{deposit.depositType}</td>
+                  <td className="py-3 px-4">{deposit.DocNbr}</td>
+                  <td className="py-3 px-4">{deposit.Customer}</td>
+                  <td className="py-3 px-4">{deposit.Accountnumber}</td>
+                  <td className="py-3 px-4">{deposit.TransactionType}</td>
+
                   <td className="py-3 px-4">
-                    {getBranchName(deposit.branchId)}
+                    {new Intl.NumberFormat("en-NG", {
+                      style: "currency",
+                      currency: "NGN",
+                    }).format(deposit.amount)}
                   </td>
+                  <td className="py-3 px-4">{getBranchName(deposit.Branch)}</td>
                   <td className="py-3 px-4">
-                    {new Date(deposit.date).toLocaleDateString()}
+                    {new Date(deposit.Date).toLocaleDateString()}
                   </td>
-                  <td className="py-3 px-4">
-                    {deposit.status === "Active" ? (
-                      <p className="text-green-500 font-bold rounded-md bg-green-50 text-center p-1">
-                        Active
-                      </p>
-                    ) : (
-                      <p className="text-red-500 font-bold rounded-md bg-red-50 text-center p-1">
-                        Inactive
-                      </p>
-                    )}
+                  <td
+                    onClick={() => openDocumentInNewTab(deposit.DocumentUrl)}
+                    className="py-3 px-4 text-[#3D873B] text-sm cursor-pointer hover:text-gray-500 "
+                  >
+                    View Document
+                  </td>
+                  <td className="py-3 px-4 cursor-pointer">
+                    <MdOutlineMoreVert
+                      size={20}
+                      onClick={() => {
+                        setSelectedDescription(deposit.OtherInfo);
+                        setIsModalOpen(true);
+                      }}
+                    />
                   </td>
                 </tr>
               ))}
@@ -245,19 +226,53 @@ const DepositList = () => {
                     colSpan="7"
                     className="px-4 py-6 text-center text-gray-500"
                   >
-                    No Deposits available.
+                    No Transactions available.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 mt-4">
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              className="px-3 py-1 text-sm border rounded hover:bg-gray-100"
+              disabled={currentPage === 1}
+            >
+              Prev
+            </button>
+            {[...Array(totalPages)].map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentPage(i + 1)}
+                className={`px-3 py-1 text-sm border rounded ${
+                  currentPage === i + 1
+                    ? "bg-[#3D873B] text-white"
+                    : "hover:bg-gray-100"
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+            <button
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
+              className="px-3 py-1 text-sm border rounded hover:bg-gray-100"
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
       <Modal
         isOpen={addModalOpen}
         onClose={() => setAddModalOpen(false)}
-        title={"Add Deposit"}
-        description="Fill in the form to add a deposit."
+        title={"Add Transaction"}
+        description="Fill in the form to add a transaction."
       >
         <AddDeposit
           onClose={() => setAddModalOpen(false)}
@@ -265,7 +280,7 @@ const DepositList = () => {
             setDeposits([
               ...deposits,
               {
-                depositId: "D005",
+                depositId: "D007",
                 amount: 1200,
                 depositType: "Savings",
                 branchId: "2",
@@ -273,9 +288,26 @@ const DepositList = () => {
                 status: "Active",
               },
             ])
-          } // Dummy data addition
+          }
+          branchcode={user?.BranchCode}
         />
       </Modal>
+      {isModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-bold mb-2">Other Information</h3>
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">
+              {selectedDescription}
+            </p>
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="mt-4 px-4 py-2 bg-[#3D873B] text-white rounded hover:bg-green-300 cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };

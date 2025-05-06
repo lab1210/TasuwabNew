@@ -12,9 +12,9 @@ const LoanInterestTableConfiguration = ({
     minDays: "",
     maxDays: "",
     interestRate: "",
-    penaltyRate: 0,
-    minAmount: 0,
-    maxAmount: 0,
+    penaltyRate: "",
+    minAmount: "",
+    maxAmount: "",
   });
   const [error, setError] = useState("");
 
@@ -39,9 +39,9 @@ const LoanInterestTableConfiguration = ({
       minDays: "",
       maxDays: "",
       interestRate: "",
-      penaltyRate: 0,
-      minAmount: 0,
-      maxAmount: 0,
+      penaltyRate: "",
+      minAmount: "",
+      maxAmount: "",
     });
   };
 
@@ -67,7 +67,7 @@ const LoanInterestTableConfiguration = ({
         </select>
         <input
           type="number"
-          min={0}
+          min={1}
           className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
           placeholder="Min Days"
           value={loanInterestRow.minDays}
@@ -77,7 +77,7 @@ const LoanInterestTableConfiguration = ({
         />
         <input
           type="number"
-          min={0}
+          min={1}
           className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
           placeholder="Max Days"
           value={loanInterestRow.maxDays}
@@ -87,7 +87,7 @@ const LoanInterestTableConfiguration = ({
         />
         <input
           type="number"
-          min={0}
+          min={1}
           className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
           placeholder="Interest Rate (%)"
           value={loanInterestRow.interestRate}
@@ -113,7 +113,7 @@ const LoanInterestTableConfiguration = ({
         />
         <input
           type="number"
-          min={0}
+          min={1}
           className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
           placeholder="Min Amount"
           value={loanInterestRow.minAmount}
@@ -126,7 +126,7 @@ const LoanInterestTableConfiguration = ({
         />
         <input
           type="number"
-          min={0}
+          min={1}
           className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
           placeholder="Max Amount"
           value={loanInterestRow.maxAmount}

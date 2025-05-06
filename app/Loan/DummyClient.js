@@ -1,6 +1,7 @@
 const dummyClients = [
   {
     clientId: "CL001",
+    accountnumber: "ACC001",
     email: "client1@example.com",
     firstName: "Tunde",
     lastName: "Olawale",
@@ -15,25 +16,11 @@ const dummyClients = [
     occupation: "Software Engineer",
     employer: "Andela",
     employerAddress: "20, Herbert Macaulay Way, Yaba, Lagos",
-    depositHistory: [
-      {
-        depositId: "D001",
-        amount: 50000,
-        depositType: "Cash",
-        branchId: "BR001",
-        date: "2025-04-01",
-      },
-      {
-        depositId: "D002",
-        amount: 20000,
-        depositType: "Cheque",
-        branchId: "BR002",
-        date: "2025-04-15",
-      },
-    ],
   },
   {
     clientId: "CL002",
+    accountnumber: "ACC002",
+
     email: "client2@example.com",
     firstName: "Chioma",
     lastName: "Okonkwo",
@@ -48,18 +35,11 @@ const dummyClients = [
     occupation: "Banker",
     employer: "UBA",
     employerAddress: "UBA House, Marina, Lagos",
-    depositHistory: [
-      {
-        depositId: "D003",
-        amount: 100000,
-        depositType: "Bank Transfer",
-        branchId: "BR003",
-        date: "2025-03-25",
-      },
-    ],
   },
   {
     clientId: "CL003",
+    accountnumber: "ACC003",
+
     email: "client3@example.com",
     firstName: "Ahmed",
     lastName: "Bello",
@@ -74,18 +54,11 @@ const dummyClients = [
     occupation: "Mechanic",
     employer: "Self-Employed",
     employerAddress: "10 Akerele Street, Surulere, Lagos",
-    depositHistory: [
-      {
-        depositId: "D004",
-        amount: 15000,
-        depositType: "Cash",
-        branchId: "BR004",
-        date: "2025-02-10",
-      },
-    ],
   },
   {
     clientId: "CL004",
+    accountnumber: "ACC004",
+
     email: "client4@example.com",
     firstName: "Ada",
     lastName: "Eze",
@@ -100,18 +73,11 @@ const dummyClients = [
     occupation: "Retailer",
     employer: "Ada Ventures",
     employerAddress: "12 Ojuelegba Road, Lagos",
-    depositHistory: [
-      {
-        depositId: "D005",
-        amount: 30000,
-        depositType: "Cheque",
-        branchId: "BR005",
-        date: "2025-01-05",
-      },
-    ],
   },
   {
     clientId: "CL005",
+    accountnumber: "ACC005",
+
     email: "client5@example.com",
     firstName: "Mustapha",
     lastName: "Sule",
@@ -126,15 +92,6 @@ const dummyClients = [
     occupation: "Civil Servant",
     employer: "Federal Ministry of Works",
     employerAddress: "Secretariat, Abuja",
-    depositHistory: [
-      {
-        depositId: "D006",
-        amount: 75000,
-        depositType: "Bank Transfer",
-        branchId: "BR006",
-        date: "2025-04-10",
-      },
-    ],
   },
 ];
 

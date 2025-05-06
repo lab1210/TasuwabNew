@@ -5,41 +5,53 @@ import clientService from "@/Services/clientService";
 import React, { useEffect, useState } from "react";
 import Select from "react-select";
 
-const AddAccount = ({ onClose, onAdd }) => {
+const AddAccount = ({ onClose, onAdd, branchCode }) => {
   const [accountTypes, setAccountTypes] = useState([]);
   const [entityTypes, setEntityTypes] = useState([]);
-  const [branches, setBranches] = useState([]);
+  const [branches, setBranches] = useState("");
   const [clients, setClients] = useState([]);
 
   const [formData, setFormData] = useState({
     accountType: "",
     entityType: "",
-    branch: "",
+    branch: branchCode,
     owners: [],
   });
 
   const [minMax, setMinMax] = useState({ min: 1, max: 1 });
 
   useEffect(() => {
+    console.log("Branch code:", branchCode);
+    if (branchCode) {
+      branchService
+        .getBranchById(branchCode)
+        .then((data) => {
+          console.log("Fetched branch data:", data);
+          setBranches(data.name);
+        })
+        .catch((err) => {
+          console.error("Failed to fetch branch name", err);
+        });
+    }
+  }, [branchCode]);
+
+  useEffect(() => {
     const fetchMetadata = async () => {
       try {
-        const [accounts, entities, branches, clientsRes] = await Promise.all([
+        const [accounts, entities, clientsRes] = await Promise.all([
           useAccountService().getAllAccountTypes(),
           useAccountService().getAllAccountEntityTypes(),
-          branchService.getAllBranches(),
           clientService.getAllClients(),
         ]);
 
         // Log each individual response
         console.log("Accounts:", accounts);
         console.log("Entities:", entities);
-        console.log("Branches:", branches);
         console.log("Clients Response:", clientsRes);
 
         // Extract data from the response (assuming 'data' is the correct key)
         setAccountTypes(accounts || []);
         setEntityTypes(entities || []);
-        setBranches(branches || []);
         setClients(clientsRes || []);
       } catch (error) {
         console.error("Error fetching metadata:", error);
@@ -119,18 +131,12 @@ const AddAccount = ({ onClose, onAdd }) => {
       {/* Branch */}
       <div>
         <label className="block text-sm font-medium">Branch</label>
-        <select
-          value={formData.branch}
-          onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
-          className="w-full p-2 border rounded"
-        >
-          <option value="">Select Branch</option>
-          {branches.map((b) => (
-            <option key={b.branch_id} value={b.branch_id}>
-              {b.name}
-            </option>
-          ))}
-        </select>
+        <input
+          type="text"
+          value={branches}
+          disabled
+          className="w-full p-2 border rounded bg-gray-100 text-gray-500"
+        />
       </div>
 
       {/* Owners */}

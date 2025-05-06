@@ -17,6 +17,7 @@ const ITEMS_PER_PAGE = 4;
 const Accounts = () => {
   const { user } = useAuth();
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [branches, setBranches] = useState([]);
 
   const [Accounts, setAccounts] = useState([]);
   const [filterText, setFilterText] = useState("");
@@ -29,9 +30,26 @@ const Accounts = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const [accountTypes, setAccountTypes] = useState([]);
-  const [entityTypes, setEntityTypes] = useState([]);
-  const [branches, setBranches] = useState([]);
+  useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        const response = await branchService.getAllBranches();
+        console.log("Fetched branches:", response);
+        setBranches(response || []);
+      } catch (err) {
+        console.error("Failed to fetch branches", err);
+        setBranches([]);
+      }
+    };
+    fetchBranches();
+  }, []);
+
+  const getBranchName = (branchCode) => {
+    console.log("Matching branchCode:", branchCode);
+    const branch = branches.find((b) => String(b.branch_id) === branchCode);
+    console.log("Matched branch:", branch);
+    return branch ? branch.name : branchCode;
+  };
 
   const fetchAccounts = async () => {
     setLoading(true);
@@ -107,7 +125,7 @@ const Accounts = () => {
     return !loadingPrivileges && rolePrivileges.includes(privilegeName);
   };
 
-  if (loading || loadingPrivileges) {
+  if (loading || loadingPrivileges || branches.length === 0) {
     return (
       <Layout>
         <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
@@ -176,11 +194,15 @@ const Accounts = () => {
             <thead className="bg-gray-50 text-gray-500 text-sm">
               <tr>
                 <th className="text-left py-3 px-4">S/N</th>
-                <th className="text-left py-3 px-4">Account Code</th>
+                {/* <th className="text-left py-3 px-4">Account Code</th> */}
+                <th className="text-left py-3 px-4">Account Name</th>
                 <th className="text-left py-3 px-4">Account Type</th>
+
                 <th className="text-left py-3 px-4">Entity Type</th>
                 <th className="text-left py-3 px-4">Branch</th>
                 <th className="text-left py-3 px-4">Account Balance</th>
+                <th className="text-left py-3 px-4">Owners</th>
+
                 <th className="text-left py-3 px-4">Status</th>
               </tr>
             </thead>
@@ -188,12 +210,29 @@ const Accounts = () => {
               {paginatedClients.map((account, index) => (
                 <tr key={account.accountCode} className="hover:bg-gray-50">
                   <td className="py-3 px-4">{startIdx + index + 1}</td>
-                  <td className="py-3 px-4">{account.accountCode}</td>
+                  {/* <td className="py-3 px-4">{account.accountCode}</td> */}
+                  <td className="py-3 px-4 text-center">-</td>
                   <td className="py-3 px-4">{account.accountTypeCode}</td>
                   <td className="py-3 px-4">{account.entityTypeCode}</td>
-                  <td className="py-3 px-4">{account.branchCode}</td>
+                  <td className="py-3 px-4">
+                    {getBranchName(account.branchCode)}
+                  </td>
 
                   <td className="py-3 px-4">{account.balance}</td>
+                  <td className="py-3 px-4">
+                    {account.owners && account.owners.length > 0
+                      ? account.owners.map((owner, idx) => (
+                          <div key={idx} className="block">
+                            <p>
+                              Client ID: {owner.clientId} | Ownership Type:{" "}
+                              {owner.ownershipType} | Ownership Percentage:{" "}
+                              {owner.ownershipPercentage}%
+                            </p>
+                          </div>
+                        ))
+                      : "No owners"}
+                  </td>
+
                   <td className="py-3 px-4">
                     {account.isActive ? (
                       <p className="text-green-500 font-bold rounded-md bg-green-50 text-center p-1">
@@ -230,6 +269,7 @@ const Accounts = () => {
         <AddAccount
           onClose={() => setAddModalOpen(false)}
           onAdd={fetchAccounts}
+          branchCode={user?.BranchCode}
         />
       </Modal>
     </Layout>

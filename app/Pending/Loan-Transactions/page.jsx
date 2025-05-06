@@ -3,7 +3,8 @@ import React, { useEffect, useState } from "react";
 import dummyLoans from "@/app/Loan/DummyLoan";
 import Layout from "@/app/components/Layout";
 import dummyClients from "@/app/Loan/DummyClient";
-
+import { Tooltip } from "react-tooltip";
+import { useAuth } from "@/Services/authService";
 const ITEMS_PER_PAGE = 2;
 
 const PendingLoanTransactions = () => {
@@ -108,6 +109,8 @@ const PendingLoanTransactions = () => {
                 <th className="text-left py-3 px-4">Interest rate</th>
                 <th className="text-left py-3 px-4">Amount</th>
                 <th className="text-left py-3 px-4">Description</th>
+                <th className="text-left py-3 px-4">Assigned to</th>
+
                 <th className="text-left py-3 px-4">Status</th>
               </tr>
             </thead>
@@ -143,6 +146,9 @@ const PendingLoanTransactions = () => {
                       {loan.transactions.description}
                     </td>
                     <td className="py-3 px-4">
+                      {loan.transactions.assignedRole}
+                    </td>
+                    <td className="py-3 px-4">
                       <p className="text-yellow-500 font-bold rounded-md bg-yellow-50 text-center p-1">
                         {loan.transactions.status}
                       </p>
@@ -153,7 +159,7 @@ const PendingLoanTransactions = () => {
               {paginatedLoans.length === 0 && (
                 <tr>
                   <td
-                    colSpan="7"
+                    colSpan="8"
                     className="px-4 py-6 text-center text-gray-500"
                   >
                     No Pending Transaction available.
