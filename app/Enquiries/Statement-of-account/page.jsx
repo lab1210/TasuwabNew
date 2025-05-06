@@ -8,7 +8,6 @@ import Select from "react-select";
 import dummyClients from "@/app/Loan/DummyClient";
 
 const StatementOfAccount = () => {
-  deposit;
   const [selectedClientId, setSelectedClientId] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
