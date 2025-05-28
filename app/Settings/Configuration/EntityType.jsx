@@ -17,8 +17,6 @@ const EntityTypeTab = ({ entityTypes, setEntityTypes }) => {
   const [entityTypeRow, setEntityTypeRow] = useState({
     entityTypeCode: "",
     name: "",
-    minOwners: 0,
-    maxOwners: 0,
     description: "",
   });
 
@@ -45,8 +43,6 @@ const EntityTypeTab = ({ entityTypes, setEntityTypes }) => {
 
       const dto = {
         ...entityTypeRow,
-        minOwners: Number(entityTypeRow.minOwners),
-        maxOwners: Number(entityTypeRow.maxOwners),
       };
 
       const created = await createAccountEntityType(dto);
@@ -55,8 +51,6 @@ const EntityTypeTab = ({ entityTypes, setEntityTypes }) => {
       setEntityTypeRow({
         entityTypeCode: "",
         name: "",
-        minOwners: 0,
-        maxOwners: 0,
         description: "",
       });
     } catch (err) {
@@ -98,38 +92,7 @@ const EntityTypeTab = ({ entityTypes, setEntityTypes }) => {
             setEntityTypeRow({ ...entityTypeRow, description: e.target.value })
           }
         />
-        <input
-          type="number"
-          min={0}
-          className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
-          placeholder="Min Owners"
-          value={entityTypeRow.minOwners}
-          onChange={(e) =>
-            setEntityTypeRow({
-              ...entityTypeRow,
-              minOwners: Math.max(0, Number(e.target.value)),
-            })
-          }
-        />
-        <input
-          type="number"
-          min={0}
-          className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
-          placeholder="Max Owners"
-          value={entityTypeRow.maxOwners}
-          onChange={(e) =>
-            setEntityTypeRow({
-              ...entityTypeRow,
-              maxOwners: Math.max(0, Number(e.target.value)),
-            })
-          }
-        />
       </div>
-      {Number(entityTypeRow.maxOwners) < Number(entityTypeRow.minOwners) && (
-        <p className="text-red-500 mb-2">
-          Max Owners cannot be less than Min Owners.
-        </p>
-      )}
 
       {error && <p className="text-red-600 mb-2">{error}</p>}
 
@@ -145,13 +108,7 @@ const EntityTypeTab = ({ entityTypes, setEntityTypes }) => {
         <p className="mt-4 text-gray-600">Loading entity types...</p>
       ) : (
         <Table
-          headers={[
-            "Entity Type Code",
-            "Name",
-            "Min Owners",
-            "Max Owners",
-            "Description",
-          ]}
+          headers={["Entity Type Code", "Name", "Description"]}
           rows={entityTypes}
         />
       )}

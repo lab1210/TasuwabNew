@@ -4,9 +4,10 @@ import SideBar from "./SideBar";
 import Header from "./Header";
 import { MdWarning } from "react-icons/md";
 import Profile from "./Profile";
+import { Toaster } from "react-hot-toast";
 
 const Layout = ({ children }) => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSmallScreen, setIsSmallScreen] = useState(false);
   const [isProfileSidebarOpen, setIsProfileSidebarOpen] = useState(false);
   useEffect(() => {
@@ -75,7 +76,7 @@ const Layout = ({ children }) => {
   return (
     <div
       className={`w-screen h-screen ${
-        isSidebarOpen ? "grid grid-cols-[260px_1fr]" : "block"
+        isSidebarOpen ? "grid grid-cols-[280px_1fr]" : "block"
       } overflow-hidden`}
     >
       {isSidebarOpen && <SideBar />}
@@ -85,6 +86,7 @@ const Layout = ({ children }) => {
           isSidebarOpen={isSidebarOpen}
           onOpenProfile={handleOpenProfileSidebar}
         />
+        <Toaster />
         <div className="p-8 w-full h-full  overflow-y-scroll custom-scrollbar">
           {children}
         </div>

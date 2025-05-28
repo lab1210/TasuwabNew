@@ -34,15 +34,17 @@ const menuStructure = {
   "Transaction Management": {
     "/Account/Transaction": "View Transactions",
   },
-  "Loan Management": {
-    "/Loan": "View Loans",
+  "Asset Financing": {
+    "/Loan": "Asset Financing Records",
+    "/Loan/Request-Form": "Request Form",
+    "/Loan/Update-Request-Form": "Update Request Form",
   },
   Approved: {
-    "/Approved/Loans": "Loans",
+    "/Approved/Loans": "Approved Request Forms",
     "/Approved/Loan-Transactions": "Loan Transactions",
   },
   Pending: {
-    "/Pending/Loans": "Loans",
+    "/Pending/Loans": "Pending Request Forms",
     "/Pending/Loan-Transactions": "Loan Transactions",
   },
   Enquiries: {
@@ -55,6 +57,15 @@ const menuStructure = {
     "/Approver/Loan-Application": "Loan Application",
     "/Approver/Loan-Transaction": "Loan Transactions",
   },
+  Suppliers: {
+    "/Supplier/Suppliers": "View Suppliers",
+    "/Supplier/Suppliers/Add-Supplier": "Add Supplier",
+    "/Supplier/Suppliers/Edit-Supplier": "Edit Supplier",
+    "/Supplier/Suppliers/View-Supplier": "Supplier Details",
+    "/Supplier/Categories": "Manage Categories",
+    "/Supplier/Transactions": "View Transactions",
+    "/Supplier/Transactions/Pay-Supplier": "Pay Supplier",
+  },
 };
 
 const Breadcrumbs = () => {
@@ -63,42 +74,20 @@ const Breadcrumbs = () => {
   let breadcrumbMenu = null;
   let breadcrumbSubmenu = null;
 
-  console.log("Current Path:", currentPath);
-
   Object.entries(menuStructure).forEach(([menu, submenus]) => {
-    console.log(`Checking Menu: ${menu}`);
     Object.entries(submenus).forEach(([submenuPath, submenuName]) => {
-      console.log(
-        `  Checking Submenu Path: ${submenuPath}, Name: ${submenuName}`
-      );
-
       // Exact match
       if (submenuPath === currentPath) {
         breadcrumbMenu = menu;
         breadcrumbSubmenu = submenuName;
-        console.log(
-          "    Exact Match! Menu:",
-          breadcrumbMenu,
-          "Submenu:",
-          breadcrumbSubmenu
-        );
       }
       // Check if the current path *starts with* the submenu path
       else if (currentPath.startsWith(submenuPath)) {
         breadcrumbMenu = menu;
         breadcrumbSubmenu = submenuName;
-        console.log(
-          "    Starts With! Menu:",
-          breadcrumbMenu,
-          "Submenu:",
-          breadcrumbSubmenu
-        );
       }
     });
   });
-
-  console.log("breadcrumbMenu:", breadcrumbMenu);
-  console.log("breadcrumbSubmenu:", breadcrumbSubmenu);
 
   return (
     <nav>

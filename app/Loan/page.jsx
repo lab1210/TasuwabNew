@@ -3,16 +3,15 @@ import React, { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import { useAuth } from "@/Services/authService";
 import { useRouter } from "next/navigation";
-import dummyLoans from "./DummyLoan";
 import roleService from "@/Services/roleService";
 import LargeModal from "../components/LargeModal";
 import AddLoan from "./AddLoan";
 import { Tooltip } from "react-tooltip";
-import { FaEye, FaPlus } from "react-icons/fa";
+import { FaEdit, FaEye, FaPlus } from "react-icons/fa";
 import LoanInfo from "./LoanInfo";
 import dummyClients from "./DummyClient";
 import Modal from "../components/Modal";
-
+import dummyLoans from "./DummyLoan";
 const ITEMS_PER_PAGE = 2;
 
 const Loans = () => {
@@ -27,14 +26,18 @@ const Loans = () => {
   const [loadingPrivileges, setLoadingPrivileges] = useState(true);
   const [selectedLoan, setSelectedLoan] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   const handleAddLoan = (newLoan) => {
     setLoans((prevLoans) => [...prevLoans, newLoan]);
   };
   useEffect(() => {
+    console.log("Loaded dummyLoans:", dummyLoans);
     setLoans(dummyLoans);
     setLoading(false);
   }, []);
@@ -64,17 +67,53 @@ const Loans = () => {
   useEffect(() => {
     const handleFilter = () => {
       const lowerCaseFilter = filterText.toLowerCase();
-      const results = loans.filter((loan) =>
-        Object.values(loan).some(
-          (value) =>
-            value && value.toString().toLowerCase().includes(lowerCaseFilter)
-        )
-      );
+      if (!Array.isArray(loans)) {
+        setFilteredLoans([]);
+        return;
+      }
+
+      let results = loans;
+
+      // Filter by text
+      if (filterText) {
+        results = results.filter((loan) =>
+          Object.values(loan).some(
+            (value) =>
+              value && value.toString().toLowerCase().includes(lowerCaseFilter)
+          )
+        );
+      }
+
+      // Filter by status
+      if (statusFilter) {
+        results = results.filter(
+          (loan) =>
+            loan.status &&
+            loan.status.toLowerCase() === statusFilter.toLowerCase()
+        );
+      }
+
+      // Filter by date range
+      if (startDate || endDate) {
+        results = results.filter((loan) => {
+          const loanDate = new Date(loan.createdDate);
+          const start = startDate ? new Date(startDate) : null;
+          const end = endDate ? new Date(endDate) : null;
+
+          if (start && end) return loanDate >= start && loanDate <= end;
+          if (start) return loanDate >= start;
+          if (end) return loanDate <= end;
+
+          return true;
+        });
+      }
+
       setFilteredLoans(results);
-      setCurrentPage(1); // reset to first page on search
+      setCurrentPage(1);
     };
+
     handleFilter();
-  }, [loans, filterText]);
+  }, [loans, filterText, statusFilter, startDate, endDate]);
 
   const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedLoans = filteredLoans.slice(
@@ -117,14 +156,14 @@ const Loans = () => {
       <div className="w-full">
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-4xl font-extrabold">Loans</p>
+            <p className="text-4xl font-extrabold">Financed Assets</p>
             <p className="text-sm text-gray-600">
-              View all of your loan applications.
+              View all your financed assets .
             </p>
           </div>
           {hasPrivilege("CreateLoanApplication") && (
             <div
-              onClick={() => setAddModalOpen(true)}
+              onClick={() => router.push("/Loan/Request-Form")}
               id="add-loan-icon"
               className="w-7 h-7 rounded-full cursor-pointer hover:bg-gray-100 p-1"
             >
@@ -133,7 +172,7 @@ const Loans = () => {
           )}
           <Tooltip
             anchorId="add-loan-icon"
-            content="Add Loan"
+            content="Fill request form"
             place="top"
             style={{
               backgroundColor: "#3D873B",
@@ -142,52 +181,76 @@ const Loans = () => {
             }}
           />
         </div>
-        <div className="mt-4 mb-5">
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4 mb-5">
           <input
             type="text"
-            placeholder="Search Loans..."
+            placeholder="Search Financed Assets..."
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
             className="placeholder:text-sm border p-2 w-full rounded-md border-gray-300 outline-none shadow-sm"
           />
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="border  w-full p-2 rounded-md shadow-sm border-gray-300"
+          />
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="border p-2 w-full rounded-md shadow-sm border-gray-300"
+          />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="border w-full p-2 rounded-md shadow-sm border-gray-300"
+          >
+            <option value="">All Statuses</option>
+            <option value="Approved">Approved</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Active">Active</option>
+            <option value="Pending">Pending</option>
+          </select>
         </div>
+
         <div className="overflow-x-auto">
           <table className="w-full table-auto divide-y divide-gray-200 shadow-lg rounded-md">
             <thead className="bg-gray-50 text-gray-500 text-sm">
               <tr>
                 <th className="text-left py-3 px-4">S/N</th>
-                <th className="text-left py-3 px-4">Client Name</th>
-                <th className="text-left py-3 px-4">Account</th>
-
+                <th className="text-left py-3 px-4">DocNbr </th>
+                <th className="text-left py-3 px-4">Name</th>
+                <th className="text-left py-3 px-4">Business </th>
+                <th className="text-left py-3 px-4">Phone</th>
+                <th className="text-left py-3 px-4">Email</th>
                 <th className="text-left py-3 px-4">Loan Amount</th>
-                <th className="text-left py-3 px-4">Loan Type</th>
-                <th className="text-left py-3 px-4">Loan Purpose</th>
-
+                <th className="text-left py-3 px-4">Payment Period</th>
                 <th className="text-left py-3 px-4">Status</th>
+                <th className="text-left py-3 px-4">Created By</th>
+                <th className="text-left py-3 px-4">Created Date</th>
                 <th className="text-left py-3 px-4">Actions</th>
               </tr>
             </thead>
             <tbody className="text-sm divide-y divide-gray-200">
               {paginatedLoans.map((loan, index) => {
-                const client =
-                  (loan?.clientId &&
-                    dummyClients.find((c) => c.clientId === loan.clientId)) ||
-                  null;
-
-                // Safely display the client's full name
-                const clientName = client
-                  ? `${client.firstName} ${client.lastName}`
-                  : "Client Not Found";
                 return (
                   <tr key={index}>
                     <td className="py-3 px-4">{startIdx + index + 1}</td>
 
-                    <td className="py-3 px-4">{clientName}</td>
+                    <td className="py-3 px-4">{loan.filename}</td>
+                    <td className="py-3 px-4">{loan.name}</td>
+                    <td className="py-3 px-4">{loan.businessName}</td>
+                    <td className="py-3 px-4">{loan.phone}</td>
+                    <td className="py-3 px-4">{loan.email}</td>
+                    <td className="py-3 px-4">
+                      {new Intl.NumberFormat("en-NG", {
+                        style: "currency",
+                        currency: "NGN",
+                      }).format(loan.loanAmount)}
+                    </td>
+                    <td className="py-3 px-4">{loan.paymentPeriodInMonths}</td>
 
-                    <td className="py-3 px-4">{loan.bankAccount}</td>
-                    <td className="py-3 px-4">{loan.loanAmount}</td>
-                    <td className="py-3 px-4">{loan.loanType}</td>
-                    <td className="py-3 px-4">{loan.loanPurpose}</td>
                     <td className="py-3 px-4">
                       {loan.status === "Rejected" ? (
                         <p className="text-red-500 font-bold rounded-md bg-red-50 text-center p-1">
@@ -207,7 +270,10 @@ const Loans = () => {
                         </p>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-center">
+                    <td className="py-3 px-4">{loan.createdBy}</td>
+                    <td className="py-3 px-4">{loan.createdDate}</td>
+
+                    <td className="py-3 px-4 text-center flex items-center justify-center gap-2">
                       <FaEye
                         onClick={() => {
                           setSelectedLoan(loan.LoanID);
@@ -216,6 +282,19 @@ const Loans = () => {
                         size={18}
                         className="cursor-pointer text-gray-500 hover:text-black"
                       />
+                      {(loan.status === "Pending" ||
+                        loan.status === "Rejected") && (
+                        <FaEdit
+                          onClick={() => {
+                            setSelectedLoan(loan.LoanID);
+                            router.push(
+                              `/Loan/Update-Request-Form/${loan.loanId}`
+                            );
+                          }}
+                          size={18}
+                          className="cursor-pointer  hover:text-gray-500"
+                        />
+                      )}
                     </td>
                   </tr>
                 );
@@ -269,23 +348,14 @@ const Loans = () => {
         )}
       </div>
       <LoanInfo
-        loans={loans.find((c) => c.LoanID === selectedLoan)}
+        loans={
+          Array.isArray(loans)
+            ? loans.find((c) => c.loanId === selectedLoan)
+            : null
+        }
         onClose={() => setIsSidebarOpen(false)}
         isOpen={isSidebarOpen}
       />
-      {addModalOpen && (
-        <Modal
-          isOpen={addModalOpen}
-          onClose={() => setAddModalOpen(false)}
-          title={"Add Loan"}
-          description="Fill in the form to add a Loan."
-        >
-          <AddLoan
-            onClose={() => setAddModalOpen(false)}
-            onAdd={handleAddLoan}
-          />
-        </Modal>
-      )}
     </Layout>
   );
 };

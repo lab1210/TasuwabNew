@@ -143,60 +143,54 @@ const Role = () => {
           </div>
           <div className="w-full overflow-x-hidden">
             {filteredRoles.map((role) => (
-              <div>
-                <div
-                  className="w-full shadow-md flex flex-col lg:grid lg:grid-cols-2 p-5 lg:items-start rounded-md"
-                  key={role.role_id}
-                >
-                  <div>
-                    <div className="flex-1 lg:mb-0 mb-4">
-                      <p className="font-extrabold text-lg mb-1.5">
-                        {role.name}
-                      </p>
-                      <p className="text-[#3D873B] text-sm">
-                        {role.description}
-                      </p>
+              <div
+                className="w-full shadow-md flex flex-col lg:grid lg:grid-cols-2 p-5 lg:items-start rounded-md"
+                key={role.role_id}
+              >
+                <div>
+                  <div className="flex-1 lg:mb-0 mb-4">
+                    <p className="font-extrabold text-lg mb-1.5">{role.name}</p>
+                    <p className="text-[#3D873B] text-sm">{role.description}</p>
+                  </div>
+                </div>
+                <div className="flex flex-col">
+                  <div className="flex gap-3 flex-wrap lg:justify-end ">
+                    <div className="text-xs flex items-center gap-2">
+                      <p className="font-bold text-sm">ID:</p> {role.role_id}
                     </div>
                   </div>
-                  <div className="flex flex-col">
-                    <div className="flex gap-3 flex-wrap lg:justify-end ">
-                      <div className="text-xs flex items-center gap-2">
-                        <p className="font-bold text-sm">ID:</p> {role.role_id}
-                      </div>
-                    </div>
-                    <div className="flex justify-end gap-2 mt-2">
-                      <button
-                        className="border border-[#ccc] rounded-md p-1 cursor-pointer text-sm flex items-center gap-2 hover:border-[#999] transition-all"
-                        onClick={() => togglePrivileges(role.role_id)}
-                      >
-                        Privileges{" "}
-                        {isExpanded(role.role_id) ? (
-                          <FaChevronUp />
-                        ) : (
-                          <FaChevronDown />
-                        )}
-                      </button>
-                      {hasPrivilege("UpdateRole") && (
-                        <FaEdit
-                          size={20}
-                          className="cursor-pointer"
-                          onClick={() => {
-                            setSelectedRole(role);
-                            setEditModalOpen(true);
-                          }}
-                        />
+                  <div className="flex justify-end gap-2 mt-2">
+                    <button
+                      className="border border-[#ccc] rounded-md p-1 cursor-pointer text-sm flex items-center gap-2 hover:border-[#999] transition-all"
+                      onClick={() => togglePrivileges(role.role_id)}
+                    >
+                      Privileges{" "}
+                      {isExpanded(role.role_id) ? (
+                        <FaChevronUp />
+                      ) : (
+                        <FaChevronDown />
                       )}
-                      {hasPrivilege("DeleteRole") && (
-                        <FaTrash
-                          size={20}
-                          className="text-red-500 cursor-pointer"
-                          onClick={() => {
-                            setSelectedRole(role);
-                            setDeleteModalOpen(true);
-                          }}
-                        />
-                      )}
-                    </div>
+                    </button>
+                    {hasPrivilege("UpdateRole") && (
+                      <FaEdit
+                        size={20}
+                        className="cursor-pointer"
+                        onClick={() => {
+                          setSelectedRole(role);
+                          setEditModalOpen(true);
+                        }}
+                      />
+                    )}
+                    {hasPrivilege("DeleteRole") && (
+                      <FaTrash
+                        size={20}
+                        className="text-red-500 cursor-pointer"
+                        onClick={() => {
+                          setSelectedRole(role);
+                          setDeleteModalOpen(true);
+                        }}
+                      />
+                    )}
                   </div>
                 </div>
                 {isExpanded(role.role_id) && role.privileges && (

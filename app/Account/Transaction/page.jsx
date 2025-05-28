@@ -186,7 +186,7 @@ const DepositList = () => {
             </thead>
             <tbody className="text-sm text-gray-700">
               {paginatedDeposits.map((deposit, index) => (
-                <tr key={deposit.depositId} className="hover:bg-gray-50">
+                <tr key={index} className="hover:bg-gray-50">
                   <td className="py-3 px-4">{startIdx + index + 1}</td>
                   <td className="py-3 px-4">{deposit.DocNbr}</td>
                   <td className="py-3 px-4">{deposit.Customer}</td>

@@ -3,11 +3,10 @@ import React, { useState } from "react";
 import DepositTypeConfiguration from "./DepositType";
 import LoanTypeConfiguration from "./LoanType";
 import DepositInterestTableConfiguration from "./DepositInterest";
-import LoanInterestTableConfiguration from "./Loaninterest";
 import Layout from "@/app/components/Layout";
 import EntityTypeTab from "./EntityType";
 import LoanTransactionTypeTab from "./LoanTransactionType.";
-import InterestTypeToggle from "./InterestType";
+import EquitySettings from "./Equity";
 
 const SettingsTabs = () => {
   const [activeTab, setActiveTab] = useState("Interest Type Toggle");
@@ -29,7 +28,7 @@ const SettingsTabs = () => {
           }`}
           onClick={() => setActiveTab("Interest Type Toggle")}
         >
-          Interest Type
+          Equity Contribution
         </button>
 
         <button
@@ -74,16 +73,6 @@ const SettingsTabs = () => {
         </button>
         <button
           className={`${
-            activeTab === "Loan Interest Table Configuration"
-              ? "text-[#3D873B] min-w-40 bg-gray-100 p-1 rounded-lg"
-              : "text-[#333] min-w-40"
-          }`}
-          onClick={() => setActiveTab("Loan Interest Table Configuration")}
-        >
-          Loan Interest Table
-        </button>
-        <button
-          className={`${
             activeTab === "Loan Transaction Type"
               ? "text-[#3D873B] min-w-40 bg-gray-100 p-1 rounded-lg"
               : "text-[#333] min-w-40"
@@ -94,7 +83,7 @@ const SettingsTabs = () => {
         </button>
       </div>
       <div className="tab-content">
-        {activeTab === "Interest Type Toggle" && <InterestTypeToggle />}
+        {activeTab === "Interest Type Toggle" && <EquitySettings />}
         {activeTab === "Deposit Type Configuration" && (
           <DepositTypeConfiguration
             depositTypes={depositTypes}
@@ -120,13 +109,7 @@ const SettingsTabs = () => {
             setDepositInterest={setDepositInterest}
           />
         )}
-        {activeTab === "Loan Interest Table Configuration" && (
-          <LoanInterestTableConfiguration
-            loanTypes={loanTypes}
-            loanInterest={loanInterest}
-            setLoanInterest={setLoanInterest}
-          />
-        )}
+
         {activeTab === "Loan Transaction Type" && (
           <LoanTransactionTypeTab
             loanTransactionTypes={loanTransactionTypes}

@@ -18,8 +18,6 @@ const AddAccount = ({ onClose, onAdd, branchCode }) => {
     owners: [],
   });
 
-  const [minMax, setMinMax] = useState({ min: 1, max: 1 });
-
   useEffect(() => {
     console.log("Branch code:", branchCode);
     if (branchCode) {
@@ -61,16 +59,6 @@ const AddAccount = ({ onClose, onAdd, branchCode }) => {
     fetchMetadata();
   }, []);
 
-  const handleEntityTypeChange = (e) => {
-    const selected = e.target.value;
-    const match = entityTypes.find((et) => et.entityTypeCode === selected);
-    setMinMax({
-      min: match?.minOwners || 1,
-      max: match?.maxOwners || 1,
-    });
-    setFormData({ ...formData, entityType: selected, owners: [] });
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -94,7 +82,7 @@ const AddAccount = ({ onClose, onAdd, branchCode }) => {
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Account Type */}
       <div>
-        <label className="block text-sm font-medium">Account Type</label>
+        <label className="block text-sm font-medium">Deposit Type</label>
         <select
           value={formData.accountType}
           onChange={(e) =>
@@ -102,7 +90,7 @@ const AddAccount = ({ onClose, onAdd, branchCode }) => {
           }
           className="w-full p-2 border rounded"
         >
-          <option value="">Select Account Type</option>
+          <option value="">Select Deposit Type</option>
           {accountTypes.map((type) => (
             <option key={type.accountTypeCode} value={type.accountTypeCode}>
               {type.name}
@@ -116,7 +104,9 @@ const AddAccount = ({ onClose, onAdd, branchCode }) => {
         <label className="block text-sm font-medium">Entity Type</label>
         <select
           value={formData.entityType}
-          onChange={handleEntityTypeChange}
+          onChange={(e) =>
+            setFormData({ ...formData, entityType: e.target.value })
+          }
           className="w-full p-2 border rounded"
         >
           <option value="">Select Entity Type</option>
@@ -141,9 +131,7 @@ const AddAccount = ({ onClose, onAdd, branchCode }) => {
 
       {/* Owners */}
       <div>
-        <label className="block text-sm font-medium">
-          Owners ({minMax.min} - {minMax.max})
-        </label>
+        <label className="block text-sm font-medium">Owners</label>
         <Select
           isMulti
           options={clients.map((c) => ({
@@ -152,16 +140,9 @@ const AddAccount = ({ onClose, onAdd, branchCode }) => {
           }))}
           value={formData.owners}
           onChange={(selected) => {
-            if (selected.length <= minMax.max) {
-              setFormData({ ...formData, owners: selected });
-            }
+            setFormData({ ...formData, owners: selected });
           }}
         />
-        {formData.owners.length < minMax.min && (
-          <p className="text-red-500 text-sm">
-            Select at least {minMax.min} owners
-          </p>
-        )}
       </div>
 
       <div className="flex justify-end">
@@ -172,7 +153,7 @@ const AddAccount = ({ onClose, onAdd, branchCode }) => {
             !formData.accountType ||
             !formData.entityType ||
             !formData.branch ||
-            formData.owners.length < minMax.min
+            formData.owners.length > 0
           }
           className="bg-green-600  text-white p-2 rounded hover:bg-green-700"
         >

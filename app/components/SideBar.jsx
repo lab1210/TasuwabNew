@@ -6,6 +6,7 @@ import { MdAccountBalance, MdOutlinePending } from "react-icons/md";
 import { LuLayoutDashboard } from "react-icons/lu";
 import { GrTransaction } from "react-icons/gr";
 import {
+  FaBoxOpen,
   FaBriefcase,
   FaBuilding,
   FaCalculator,
@@ -140,23 +141,15 @@ const SideBar = () => {
         },
 
         {
-          key: "clientManagement",
-          label: "Client ",
-          icon: <FaUsers />,
+          key: "accountmanagement",
+          label: "Accounts ",
+          icon: <MdAccountBalance />,
           subItems: [
             {
-              label: "View Client List",
+              label: "View Customer List",
               href: "/Clients",
               privilege: "ViewClients",
             },
-          ],
-          privilege: "ViewClients",
-        },
-        {
-          key: "accountmanagement",
-          label: "Account ",
-          icon: <MdAccountBalance />,
-          subItems: [
             {
               label: "View Account List",
               href: "/Account",
@@ -165,10 +158,9 @@ const SideBar = () => {
           ],
           privilege: "ViewAccount",
         },
-
         {
           key: "transactionManagement",
-          label: "Transaction ",
+          label: "Transactions ",
           icon: <GrTransaction />,
           subItems: [
             {
@@ -179,41 +171,78 @@ const SideBar = () => {
           ],
           privilege: "ViewAccount",
         },
+        {
+          key: "supplierManagement",
+          label: "Suppliers ",
+          icon: <FaBoxOpen />,
+          subItems: [
+            {
+              label: "Manage Categories",
+              href: "/Supplier/Categories",
+              // privilege: "ViewAccount",
+            },
+
+            {
+              label: "View Supplier List",
+              href: "/Supplier/Suppliers",
+
+              // privilege: "ViewAccount",
+            },
+            {
+              label: " Supplier Transactions",
+              href: "/Supplier/Transactions",
+
+              // privilege: "ViewAccount",
+            },
+          ],
+          // privilege: "ViewAccount",
+        },
 
         {
           key: "loanManagement",
-          label: "Loan Management",
+          label: "Asset Financing",
           icon: <FaMoneyBill />,
           subItems: [
             {
-              label: "View Loan Applications",
+              label: "View Financed Assets",
               href: "/Loan",
               privilege: "ViewLoanApplications",
             },
             {
-              label: "Approved Loan Applications",
+              label: "Approved Applications",
               href: "/Approved/Loans",
               privilege: "SelectApprovedLoans",
             },
 
+            // {
+            //   label: "Approved Loan Transactions",
+            //   href: "/Approved/Loan-Transactions",
+            //   privilege: "ViewApprovedTransactions",
+            // },
             {
-              label: "Approved Loan Transactions",
-              href: "/Approved/Loan-Transactions",
-              privilege: "ViewApprovedTransactions",
-            },
-            {
-              label: "Pending Loan Applications",
+              label: "Pending Applications",
               href: "/Pending/Loans",
               privilege: "SelectApprovedLoans",
             },
 
-            {
-              label: "Pending Loan Transactions",
-              href: "/Pending/Loan-Transactions",
-              privilege: "ViewApprovedTransactions",
-            },
+            // {
+            //   label: "Pending Loan Transactions",
+            //   href: "/Pending/Loan-Transactions",
+            //   privilege: "ViewApprovedTransactions",
+            // },
           ],
           privilege: "ViewLoanApplications",
+        },
+        {
+          key: "calculator",
+          label: "Pricing Model",
+          icon: <FaCalculator />,
+          subItems: [
+            {
+              label: "Pricing Model Calculator",
+              href: "/Pricing",
+            },
+          ],
         },
 
         {
@@ -250,18 +279,6 @@ const SideBar = () => {
           privilege: "ViewEnquiry",
         },
 
-        {
-          key: "calculator",
-          label: "Pricing and calculators",
-          icon: <FaCalculator />,
-          subItems: [
-            {
-              label: "Pricing Model Calculator",
-              href: "/Pricing",
-              comment: "Coming soon",
-            },
-          ],
-        },
         {
           key: "approvalworkflow",
           label: "Approval Workflow",
@@ -346,15 +363,17 @@ const SideBar = () => {
                 {openMenus[item.key] && item.subItems && (
                   <ul className="pt-5 text-center">
                     {item.subItems.map((subItem) => (
-                      <li
-                        className="hover:text-[#3D873B] mb-4 text-sm"
-                        key={subItem.label}
-                      >
-                        <Link href={subItem.href}>{subItem.label}</Link>
-                        <p className="text-xs font-bold text-red-500">
-                          {subItem.comment}
-                        </p>
-                      </li>
+                      <Link href={subItem.href} key={subItem.label}>
+                        <li
+                          className="hover:text-[#3D873B] mb-4 text-sm border border-gray-400 rounded-lg p-2 "
+                          key={subItem.label}
+                        >
+                          {subItem.label}
+                          <p className="text-xs font-bold text-red-500">
+                            {subItem.comment}
+                          </p>
+                        </li>
+                      </Link>
                     ))}
                   </ul>
                 )}
