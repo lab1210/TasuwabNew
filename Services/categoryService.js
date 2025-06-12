@@ -8,6 +8,7 @@ let nextProductId = 1;
 
 // Load categories from localStorage or init dummy data
 function loadCategories() {
+  if (typeof window === "undefined") return;
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored) {
     try {
@@ -34,7 +35,9 @@ function loadCategories() {
 }
 
 function saveCategories() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(categories));
+  if (typeof window !== "undefined") {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(categories));
+  }
 }
 
 function initDummyData() {
@@ -69,7 +72,13 @@ function initDummyData() {
   saveCategories();
 }
 
-loadCategories();
+function initCategoryService() {
+  if (categories.length === 0 && typeof window !== "undefined") {
+    loadCategories();
+  }
+}
+
+initCategoryService(); // optionally call it here if you ensure you're on client
 
 const categoryService = {
   getAllCategories() {
