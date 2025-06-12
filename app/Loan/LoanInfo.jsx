@@ -10,8 +10,6 @@ import {
   FaMinus,
   FaMoneyBill,
   FaPlus,
-  FaUniversity,
-  FaUsers,
   FaUserShield,
 } from "react-icons/fa";
 import { RiFileDownloadLine } from "react-icons/ri";
@@ -24,6 +22,7 @@ const LoanInfo = ({ loans, onClose, isOpen }) => {
 
   // State for filters
   const [filterDate, setFilterDate] = useState("");
+  const [filterRepayment, setFilterRepayment] = useState("");
   const [filterType, setFilterType] = useState("");
   const [filterAmount, setFilterAmount] = useState("");
   const [filterDescription, setFilterDescription] = useState("");
@@ -33,8 +32,6 @@ const LoanInfo = ({ loans, onClose, isOpen }) => {
     const date = new Date(dateString);
     return date.toISOString().split("T")[0];
   };
-
-  const client = dummyClients.find((c) => c.clientId === loans?.clientId);
 
   const tabClass = (tab) =>
     `px-4 py-2 rounded-t-md cursor-pointer font-medium ${
@@ -49,32 +46,30 @@ const LoanInfo = ({ loans, onClose, isOpen }) => {
   };
 
   // Filter transactions based on filters
-  const filteredTransactions = loans?.transactions?.filter((transaction) => {
+  const filteredTransactions = loans?.repayment?.filter((transaction) => {
     return (
       (filterDate ? transaction.date.includes(filterDate) : true) &&
+      (filterRepayment
+        ? transaction.RepaymentDate.includes(filterRepayment)
+        : true) &&
       (filterType
-        ? transaction.type.toLowerCase().includes(filterType.toLowerCase())
+        ? transaction.DocNbr.toLowerCase().includes(filterType.toLowerCase())
         : true) &&
       (filterAmount
-        ? transaction.amount.toString().includes(filterAmount)
-        : true) &&
-      (filterDescription
-        ? transaction.description
-            .toLowerCase()
-            .includes(filterDescription.toLowerCase())
+        ? transaction.Repaidamount.toString().includes(filterAmount)
         : true)
     );
   });
   const clearFilter = () => {
     setFilterDate("");
+    setFilterRepayment("");
     setFilterType("");
     setFilterAmount("");
-    setFilterDescription("");
   };
 
   return (
     <div
-      className={`overflow-x-hidden fixed top-0 right-0 overflow-y-auto h-screen w-96 bg-white shadow-md z-20 transform transition-transform duration-300 ease-in-out ${
+      className={`overflow-x-hidden fixed top-0 right-0 overflow-y-auto h-screen w-full bg-white shadow-md z-20 transform transition-transform duration-300 ease-in-out ${
         isOpen ? "translate-x-0" : "translate-x-full"
       }`}
     >
@@ -89,21 +84,19 @@ const LoanInfo = ({ loans, onClose, isOpen }) => {
       </div>
 
       <div className="text-center mt-3 text-lg font-bold mb-4">
-        <p>{client?.firstName + " " + client?.lastName}</p>
+        <p>{loans?.name}</p>
       </div>
 
       {/* Tabs */}
       <div className="flex justify-around border-b border-b-gray-100 text-sm hover:overflow-x-scroll">
         {[
           "personal",
-          "bank",
-          loans?.status === "Approved" || loans?.status === "Active"
-            ? "account"
-            : null,
+          "business",
+          loans?.purpose === "Asset Financing" ? "Asset Finance" : "Loan",
           "guarantor",
-          "document",
-          "memo",
-          "transactions",
+          loans?.status === "Approved" || loans?.status === "Active"
+            ? "transactions"
+            : null,
         ]
           .filter(Boolean)
           .map((tab) => (
@@ -121,143 +114,214 @@ const LoanInfo = ({ loans, onClose, isOpen }) => {
       <div className="p-5 flex flex-col gap-4">
         {activeTab === "personal" && (
           <>
-            <InfoItem
-              icon={<HiOutlineIdentification />}
-              label="Client ID"
-              value={client?.clientId}
-            />
-            <InfoItem
-              icon={<MdAlternateEmail />}
-              label="Email"
-              value={client?.email}
-            />
-            <InfoItem
-              icon={<MdOutlinePhone />}
-              label="Phone"
-              value={client?.phone}
-            />
-            <InfoItem
-              icon={<LiaBirthdayCakeSolid />}
-              label="DOB"
-              value={formatDate(client?.dob)}
-            />
-            <InfoItem
-              icon={
-                client?.gender === "Female" ? (
-                  <BsGenderFemale />
-                ) : (
-                  <BsGenderMale />
-                )
-              }
-              label="Gender"
-              value={client?.gender}
-            />
-            <InfoItem
-              icon={<GiRelationshipBounds />}
-              label="Marital Status"
-              value={client?.maritalStatus}
-            />
+            <InfoItem label="Client ID" value={loans?.clientId} />
+            <InfoItem label="File Number" value={loans?.fileName} />
+            <InfoItem label="Email" value={loans?.email} />
+            <InfoItem label="Phone" value={loans?.phone} />
+            <InfoItem label="DOB" value={formatDate(loans?.dob)} />
           </>
         )}
 
-        {activeTab === "bank" && (
+        {activeTab === "business" && (
           <>
+            <InfoItem label="Business Name" value={loans?.businessName} />
+            <InfoItem label="Ownership Type" value={loans?.ownershipType} />
+            <InfoItem label="Employer ID" value={loans?.employerId} />
+            <InfoItem label="Number of Staff" value={loans?.numberOfStaffs} />
+            <InfoItem label="StartUp Date" value={loans?.businessStartupDate} />
+          </>
+        )}
+        {activeTab === "Asset Finance" && (
+          <>
+            <InfoItem label="Loan details" value={loans?.loanDetails} />
+            <InfoItem label="Loan Type" value={loans?.purpose} />
+            <InfoItem label="Asset Name" value={loans?.asset} />
             <InfoItem
-              icon={<HiOutlineIdentification />}
-              label="Account Number"
-              value={loans?.bankAccount}
+              label="Asset descriptions"
+              value={loans?.assetdescription}
             />
+            <InfoItem label="Asset Quantity" value={loans?.assetQuantity} />
+            <InfoItem label="Asset Price" value={loans?.assetPrice} />
+            <InfoItem label="Preferred Supplier" value={loans?.Supplier} />
+            <InfoItem label="Supplier Quote" value={loans?.supplierQuote} />
+
+            <InfoItem label="Cost of Asset" value={loans?.totalCostofAsset} />
             <InfoItem
-              icon={<FaCashRegister />}
-              label="Loan Amount"
-              value={loans?.loanAmount}
-            />
-            <InfoItem
-              icon={<FaMoneyBill />}
               label="Equity Contribution"
-              value={loans?.Equity + "%"}
+              value={loans?.equityContribution}
             />
             <InfoItem
-              icon={<FaPlus />}
-              label="Interest"
-              value={loans?.interestRate + "%"}
+              label="Additional Client Contribution"
+              value={loans?.additionalClientContribution}
+            />
+            <InfoItem
+              label="Cost Financed by Tasuwab"
+              value={loans?.costOfAssetFinancedByTasuwab}
+            />
+            <InfoItem
+              label="Installment Period (months)"
+              value={loans?.InstallmentPeriod}
+            />
+            <InfoItem
+              label="Average inflation rate (%)"
+              value={loans?.AverageInflationRate}
+            />
+            <InfoItem
+              label="Inflation Multiplier (%)"
+              value={loans?.InflationMultiplier}
+            />
+            <InfoItem
+              label="Post Inflation Cost"
+              value={loans?.postInflationCost}
+            />
+            <InfoItem
+              label="Market Risk Premium (%)"
+              value={loans?.MarketRiskPremium}
+            />
+            <InfoItem
+              label="Operational Expenses (%)"
+              value={loans?.operationalExpenses}
+            />
+            <InfoItem
+              label="Total Real Operation Cost"
+              value={loans?.totalRealOperationalCost}
+            />
+            <InfoItem
+              label="Required Profit Margin (%)"
+              value={loans?.requiredProfitMargin}
+            />
+            <InfoItem
+              label="Minimum Loan Price"
+              value={loans?.minimumAssetPrice}
+            />
+            <InfoItem label="Profit Estimate" value={loans?.profitEstimate} />
+            <InfoItem label="Profit Percentage" value={loans?.profitPercent} />
+            <InfoItem
+              label="statement of account"
+              value={loans?.forms.statementOfAccount}
+            />
+            <InfoItem label="ID card" value={loans?.forms.idCard} />
+            <InfoItem label="Passport" value={loans?.forms.passport} />
+            <InfoItem label="Loan Invoice" value={loans?.forms.loanInvoice} />
+            <InfoItem
+              label="Physical Form Upload"
+              value={loans?.forms.physicalFormUpload}
             />
           </>
         )}
-        {(loans?.status === "Approved" || loans?.status === "Active") &&
-          activeTab === "account" && (
-            <>
-              <InfoItem
-                icon={<FaMoneyBill />}
-                label="Loan Balance"
-                value={loans?.currentBalance}
-              />
-              <InfoItem
-                icon={<FaMinus />}
-                label="Unposted Loan Interest Balance"
-                value={loans?.unpostedInterestBalance}
-              />
-              <InfoItem
-                icon={<FaPlus />}
-                label="Posted Loan Interest Balance"
-                value={loans?.postedInterest}
-              />
-            </>
-          )}
+        {activeTab === "Loan" && (
+          <>
+            <InfoItem label="Loan details" value={loans?.loanDetails} />
+            <InfoItem label="Loan Type" value={loans?.purpose} />
+            <InfoItem label="Loan Amount" value={loans?.loanAmount} />
+            <InfoItem
+              label="Equity Contribution"
+              value={loans?.equityContribution}
+            />
+            <InfoItem
+              label="Additional Client Contribution"
+              value={loans?.additionalClientContribution}
+            />
+            <InfoItem
+              label="Cost Financed by Tasuwab"
+              value={loans?.costOfAssetFinancedByTasuwab}
+            />
+            <InfoItem
+              label="Installment Period (months)"
+              value={loans?.InstallmentPeriod}
+            />
+            <InfoItem
+              label="Average inflation rate (%)"
+              value={loans?.AverageInflationRate}
+            />
+            <InfoItem
+              label="Inflation Multiplier (%)"
+              value={loans?.InflationMultiplier}
+            />
+            <InfoItem
+              label="Post Inflation Cost"
+              value={loans?.postInflationCost}
+            />
+            <InfoItem
+              label="Market Risk Premium (%)"
+              value={loans?.MarketRiskPremium}
+            />
+            <InfoItem
+              label="Operational Expenses (%)"
+              value={loans?.operationalExpenses}
+            />
+            <InfoItem
+              label="Total Real Operation Cost"
+              value={loans?.totalRealOperationalCost}
+            />
+            <InfoItem
+              label="Required Profit Margin (%)"
+              value={loans?.requiredProfitMargin}
+            />
+            <InfoItem
+              label="Minimum Loan Price"
+              value={loans?.minimumAssetPrice}
+            />
+            <InfoItem label="Profit Estimate" value={loans?.profitEstimate} />
+            <InfoItem label="Profit Percentage" value={loans?.profitPercent} />
+            <InfoItem
+              label="statement of account"
+              value={loans?.forms.statementOfAccount}
+            />
+            <InfoItem label="ID card" value={loans?.forms.idCard} />
+            <InfoItem label="Passport" value={loans?.forms.passport} />
+            <InfoItem label="Loan Invoice" value={loans?.forms.loanInvoice} />
+            <InfoItem
+              label="Physical Form Upload"
+              value={loans?.forms.physicalFormUpload}
+            />
+          </>
+        )}
 
         {activeTab === "guarantor" && (
           <>
             {loans?.guarantors.map((guarantor, index) => (
               <div key={index}>
                 <InfoItem
-                  icon={<FaUserShield />}
                   label={`Guarantor ${index + 1} Name`}
                   value={guarantor?.name}
                 />
                 <InfoItem
-                  icon={<MdOutlinePhone />}
+                  label={`Guarantor ${index + 1} relationship with Client`}
+                  value={guarantor?.relationship}
+                />
+                <InfoItem
                   label={`Guarantor ${index + 1} Phone`}
                   value={guarantor?.phone}
                 />
                 <InfoItem
-                  icon={<MdAlternateEmail />}
                   label={`Guarantor ${index + 1} Email`}
                   value={guarantor?.email}
                 />
                 <InfoItem
-                  icon={<TbNotebook />}
                   label={`Guarantor ${index + 1} Address`}
                   value={guarantor?.address}
                 />
+                <InfoItem
+                  label={`Guarantor ${index + 1} Occupation`}
+                  value={guarantor?.occupation}
+                />
+                <InfoItem
+                  label={`Guarantor ${index + 1} ID Card`}
+                  value={guarantor?.forms.idCard}
+                />
+                <InfoItem
+                  label={`Guarantor ${index + 1} passport`}
+                  value={guarantor?.forms.passport}
+                />
+                <InfoItem
+                  label={`Guarantor ${index + 1} Form Upload`}
+                  value={guarantor?.forms.formUpload}
+                />
+                <hr className="mt-5 mb-5 border border-gray-300" />
               </div>
             ))}
           </>
-        )}
-
-        {activeTab === "document" && (
-          <div className="flex items-center justify-between border p-3 rounded-md">
-            <p className="text-sm">Loan Agreement</p>
-            <button
-              className="flex items-center gap-2 px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700"
-              onClick={downloadDocument}
-            >
-              <RiFileDownloadLine /> Download PDF
-            </button>
-          </div>
-        )}
-
-        {activeTab === "memo" && (
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor="memo"
-              className="font-semibold text-sm flex items-center gap-2"
-            >
-              <TbNotebook /> Memo
-            </label>
-            <p className="font-normal min-w-40 text-center text-xs border border-gray-200 p-2 rounded-md">
-              {loans.memo}
-            </p>
-          </div>
         )}
 
         {activeTab === "transactions" && (
@@ -274,33 +338,41 @@ const LoanInfo = ({ loans, onClose, isOpen }) => {
 
             {/* Filters */}
             <div className="flex flex-col gap-2">
-              <input
-                type="date"
-                value={filterDate}
-                onChange={(e) => setFilterDate(e.target.value)}
-                className="border border-gray-300 rounded-md p-2"
-                placeholder="Filter by Date"
-              />
+              <div className="flex flex-col gap-2">
+                <label className="text-xs" htmlFor="">
+                  Created Date
+                </label>
+                <input
+                  type="date"
+                  value={filterDate}
+                  onChange={(e) => setFilterDate(e.target.value)}
+                  className="border border-gray-300 rounded-md p-2"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-xs" htmlFor="">
+                  Repayment Date
+                </label>
+                <input
+                  type="date"
+                  value={filterRepayment}
+                  onChange={(e) => setFilterRepayment(e.target.value)}
+                  className="border border-gray-300 rounded-md p-2"
+                />
+              </div>
               <input
                 type="text"
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
                 className="border border-gray-300 rounded-md p-2 outline-0"
-                placeholder="Filter by Type"
+                placeholder="Filter by DocNbr"
               />
               <input
                 type="number"
                 value={filterAmount}
                 onChange={(e) => setFilterAmount(e.target.value)}
                 className="border outline-0 border-gray-300 rounded-md p-2"
-                placeholder="Filter by Amount"
-              />
-              <input
-                type="text"
-                value={filterDescription}
-                onChange={(e) => setFilterDescription(e.target.value)}
-                className="border outline-0 border-gray-300 rounded-md p-2"
-                placeholder="Filter by Description"
+                placeholder="Filter by Repaid Amount"
               />
             </div>
 
@@ -308,10 +380,45 @@ const LoanInfo = ({ loans, onClose, isOpen }) => {
             {filteredTransactions?.map((transaction, index) => (
               <div key={index} className="border p-3 rounded-md mb-2">
                 <p className="font-bold text-sm">{transaction.date}</p>
-                <p className="text-sm">Type: {transaction.type}</p>
-                <p className="text-sm">Amount: {transaction.amount}</p>
-                <p className="text-sm">
-                  Description: {transaction.description}
+                <p className=" text-sm">
+                  Repayment Date:
+                  <span className="font-bold ml-2">
+                    {transaction.RepaymentDate}
+                  </span>
+                </p>
+                <p className=" text-sm">
+                  DocNbr:
+                  <span className="font-bold ml-2">{transaction.DocNbr}</span>
+                </p>
+                <p className=" text-sm">
+                  Repaid Amount:
+                  <span className="font-bold ml-2">
+                    {transaction.Repaidamount.toLocaleString("en-NG", {
+                      style: "currency",
+                      currency: "NGN",
+                    })}
+                  </span>
+                </p>
+                <p className=" text-sm">
+                  Amount Remaining:
+                  <span className="font-bold ml-2">
+                    {transaction.amountRemaining.toLocaleString("en-NG", {
+                      style: "currency",
+                      currency: "NGN",
+                    })}
+                  </span>
+                </p>
+                <p className=" text-sm">
+                  Months Remaining:
+                  <span className="font-bold ml-2">
+                    {transaction.MonthsRemaining} months
+                  </span>
+                </p>
+                <p className=" text-sm">
+                  Created By :
+                  <span className="font-bold ml-2">
+                    {transaction.CreatedBy}
+                  </span>
                 </p>
               </div>
             ))}
@@ -322,11 +429,10 @@ const LoanInfo = ({ loans, onClose, isOpen }) => {
   );
 };
 
-const InfoItem = ({ icon, label, value }) => (
-  <div className="flex items-center gap-3 mb-2">
-    <div className="text-[#3D873B]">{icon}</div>
-    <p className="text-sm font-medium">{label}:</p>
-    <p className="text-sm font-normal">{value || "N/A"}</p>
+const InfoItem = ({ label, value }) => (
+  <div className="flex items-center justify-between gap-3 mb-2">
+    <p className=" font-bold">{label}:</p>
+    <p className=" ">{value || "N/A"}</p>
   </div>
 );
 

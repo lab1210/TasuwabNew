@@ -17,6 +17,7 @@
     "js-cookie": "^3.0.5",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
+    "lucide-react": "^0.511.0",
     "next": "15.3.0",
     "react": "^19.0.0",
     "react-datepicker": "^8.3.0",
@@ -29,7 +30,8 @@
     "react-spinners": "^0.16.1",
     "react-toastify": "^11.0.5",
     "react-tooltip": "^5.28.1",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "zustand": "^5.0.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

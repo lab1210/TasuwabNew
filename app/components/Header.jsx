@@ -32,13 +32,13 @@ const Header = ({ isSidebarOpen, onToggleSidebar, onOpenProfile }) => {
   return (
     <div className="flex items-center justify-between pl-3 pr-3 bg-[#fdfefd] w-full shadow-md sticky top-0 z-10">
       <div className="flex items-center gap-2">
-        <div className="lg:mr-0 mr-5 cursor-pointer" onClick={onToggleSidebar}>
+        {/* <div className="lg:mr-0 mr-5 cursor-pointer" onClick={onToggleSidebar}>
           {isSidebarOpen ? (
             <GoSidebarExpand size={20} />
           ) : (
             <GoSidebarCollapse size={20} />
           )}
-        </div>
+        </div> */}
         <div className="hidden lg:block">
           <Breadcrumbs />
         </div>

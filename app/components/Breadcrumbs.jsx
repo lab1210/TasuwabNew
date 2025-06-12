@@ -1,5 +1,6 @@
 import { usePathname } from "next/navigation";
 import React from "react";
+import useLoanStore from "./loanStore";
 
 const menuStructure = {
   Home: {
@@ -38,10 +39,14 @@ const menuStructure = {
     "/Loan": "Asset Financing Records",
     "/Loan/Request-Form": "Request Form",
     "/Loan/Update-Request-Form": "Update Request Form",
+    "/Pricing": `Pricing Model for asset `,
   },
   Approved: {
     "/Approved/Loans": "Approved Request Forms",
     "/Approved/Loan-Transactions": "Loan Transactions",
+  },
+  Active: {
+    "/Active": "View Active Loans",
   },
   Pending: {
     "/Pending/Loans": "Pending Request Forms",
@@ -54,8 +59,8 @@ const menuStructure = {
     "/Enquiries/Loan-Interest-Income": "Loan Interest Income ",
   },
   "Approval Route": {
-    "/Approver/Loan-Application": "Loan Application",
-    "/Approver/Loan-Transaction": "Loan Transactions",
+    "/Approver": "Pricing Model Approval",
+    "/Approver/Supplier-Payments": "Supplier Payments Approval",
   },
   Suppliers: {
     "/Supplier/Suppliers": "View Suppliers",
@@ -65,6 +70,8 @@ const menuStructure = {
     "/Supplier/Categories": "Manage Categories",
     "/Supplier/Transactions": "View Transactions",
     "/Supplier/Transactions/Pay-Supplier": "Pay Supplier",
+    "/Supplier/Transactions/Completed-Payments": "Completed Supplier Payments",
+    "/Supplier/Transactions/Pending-Payments": "Pending Supplier Payments",
   },
 };
 

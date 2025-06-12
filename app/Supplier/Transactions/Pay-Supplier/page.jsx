@@ -1,5 +1,7 @@
 "use client";
 import Layout from "@/app/components/Layout";
+import dummyClients from "@/app/Loan/DummyClient";
+import dummyLoans from "@/app/Loan/DummyLoan";
 import { getSuppliers } from "@/Services/supplierService";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
@@ -12,6 +14,7 @@ const AddSupplierTransaction = () => {
   const [products, setProducts] = useState([]);
   const router = useRouter();
   const [selectedSupplier, setSelectedSupplier] = useState(null);
+  const [selectedClient, setSelectedClient] = useState(null);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [bankDetails, setBankDetails] = useState({
@@ -23,6 +26,7 @@ const AddSupplierTransaction = () => {
     transactionId: "",
     name: "",
     amount: "",
+    ClientName: "",
     date: "",
     status: "",
     categories: [],
@@ -214,6 +218,13 @@ const AddSupplierTransaction = () => {
     }
   };
 
+  const clientOptions = dummyLoans
+    .filter((loan) => loan.purpose === "Asset Financing" && loan.loanId) // loanId implies an existing loan
+    .map((loan) => ({
+      value: loan.clientId,
+      label: loan.name,
+    }));
+
   return (
     <Layout>
       <div className="w-full">
@@ -233,9 +244,37 @@ const AddSupplierTransaction = () => {
         <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
           <div className="flex flex-col gap-2">
             <label className="font-bold text-sm" htmlFor="name">
+              Client Name
+            </label>
+            <Select
+              isClearable
+              isSearchable
+              options={clientOptions}
+              value={selectedClient}
+              onChange={(selectedOption) => setSelectedClient(selectedOption)}
+              placeholder="Select a Client..."
+              styles={{
+                control: (base, state) => ({
+                  ...base,
+                  borderColor: state.isFocused ? "#3D873B" : base.borderColor,
+                  boxShadow: state.isFocused
+                    ? "0 0 0 1px green"
+                    : base.boxShadow,
+                  "&:hover": {
+                    borderColor: state.isFocused ? "#3D873B" : base.borderColor,
+                  },
+                }),
+              }}
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="font-bold text-sm" htmlFor="name">
               Supplier Name
             </label>
             <Select
+              isClearable
+              isSearchable
               options={suppliers}
               value={selectedSupplier}
               onChange={handleSupplierChange}

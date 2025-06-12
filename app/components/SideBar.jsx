@@ -194,6 +194,16 @@ const SideBar = () => {
 
               // privilege: "ViewAccount",
             },
+            {
+              label: "Completed Supplier Payments",
+              href: "/Supplier/Transactions/Completed-Payments",
+              // privilege: "ViewAccount",
+            },
+            {
+              label: "Pending Supplier Payments",
+              href: "/Supplier/Transactions/Pending-Payments",
+              // privilege: "ViewAccount",
+            },
           ],
           // privilege: "ViewAccount",
         },
@@ -224,6 +234,11 @@ const SideBar = () => {
               href: "/Pending/Loans",
               privilege: "SelectApprovedLoans",
             },
+            {
+              label: "Active Loans",
+              href: "/Active",
+              privilege: "SelectApprovedLoans",
+            },
 
             // {
             //   label: "Pending Loan Transactions",
@@ -233,18 +248,6 @@ const SideBar = () => {
           ],
           privilege: "ViewLoanApplications",
         },
-        {
-          key: "calculator",
-          label: "Pricing Model",
-          icon: <FaCalculator />,
-          subItems: [
-            {
-              label: "Pricing Model Calculator",
-              href: "/Pricing",
-            },
-          ],
-        },
-
         {
           key: "enquiries",
           label: "Enquiries",
@@ -266,7 +269,7 @@ const SideBar = () => {
               privilege: "ViewEnquiry",
             },
             {
-              label: "Loan Interest Income Enquiry",
+              label: "Loan Profit Income Enquiry",
               href: "/Enquiries/Loan-Interest-Income",
               privilege: "ViewEnquiry",
             },
@@ -281,17 +284,17 @@ const SideBar = () => {
 
         {
           key: "approvalworkflow",
-          label: "Approval Workflow",
+          label: "Approval",
           icon: <FaRegCheckCircle />,
           subItems: [
             {
-              label: "Loan Application Approver Assignment",
-              href: "/Approver/Loan-Application",
+              label: "Approve Loan Applications",
+              href: "/Approver",
               privilege: "AssignApprovalRights",
             },
             {
-              label: "Loan Transaction Approver Assignment",
-              href: "/Approver/Loan-Transaction",
+              label: "Approve Supplier Payments",
+              href: "/Approver/Supplier-Payments",
               privilege: "AssignApprovalRights",
             },
           ],
@@ -346,14 +349,14 @@ const SideBar = () => {
         </div>
       ) : (
         <>
-          <div className="w-45 h-20 object-contain pl-2 pt-2 sticky top-0 bg-[#fdfefd] z-10">
-            <img className="w-full h-full" src="/logo.png" alt="" />
+          <div className=" w-full h-20 object-contain pl-2 pt-2 sticky top-0 bg-[#fdfefd] z-10">
+            <img className="w-45 h-full" src="/logo.png" alt="" />
           </div>
           <ul className="p-5 pl-2 pr-2 w-full h-full flex justify-between flex-col">
             {menuItems.map((item) => (
-              <li className="pb-5 w-full h-full cursor-pointer" key={item.key}>
+              <li className="pb-1 w-full h-full cursor-pointer" key={item.key}>
                 <span
-                  className="p-3  rounded-md flex items-center gap-8 w-full  justify-between hover:text-white hover:bg-[#3D873B]"
+                  className="p-2.5  rounded-md flex items-center gap-8 w-full  justify-between hover:text-white hover:bg-[#3D873B]"
                   onClick={() => toggleMenu(item.key)}
                 >
                   {item.icon}
@@ -365,7 +368,7 @@ const SideBar = () => {
                     {item.subItems.map((subItem) => (
                       <Link href={subItem.href} key={subItem.label}>
                         <li
-                          className="hover:text-[#3D873B] mb-4 text-sm border border-gray-400 rounded-lg p-2 "
+                          className="hover:text-[#3D873B] mb-4 text-xs border border-gray-400 rounded-lg p-2 "
                           key={subItem.label}
                         >
                           {subItem.label}
@@ -384,7 +387,7 @@ const SideBar = () => {
               className="pb-5 w-full h-full cursor-pointer "
               onClick={handleLogout}
             >
-              <span className="p-3  rounded-md flex items-center gap-8 w-full  justify-between hover:text-white hover:bg-red-500 text-red-500">
+              <span className="p-2.5  rounded-md flex items-center gap-8 w-full  justify-between hover:text-white hover:bg-red-500 text-red-500">
                 <FaSignOutAlt />
                 Logout
                 <div></div>

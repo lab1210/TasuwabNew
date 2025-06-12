@@ -2,6 +2,7 @@ const STORAGE_KEY_For_Suppliers = "suppliersData";
 const dummySuppliers = [
   {
     id: "1",
+    loanID: "LN2000",
     name: "ElectroHub Ltd",
     email: "contact@electrohub.com",
     phone: "+2348011112222",
@@ -22,6 +23,7 @@ const dummySuppliers = [
   },
   {
     id: "2",
+    loanID: "LN2001",
     name: "BookVerse",
     email: "info@bookverse.ng",
     phone: "+2348092223333",
@@ -42,6 +44,7 @@ const dummySuppliers = [
   },
   {
     id: "3",
+    loanID: "LN2000",
     name: "ClothWorld",
     email: "sales@clothworld.com",
     phone: "+2348033334444",
@@ -62,6 +65,7 @@ const dummySuppliers = [
   },
   {
     id: "4",
+    loanID: "LN2001",
     name: "MultiSupply Co.",
     email: "contact@multisupply.ng",
     phone: "+2348077778888",

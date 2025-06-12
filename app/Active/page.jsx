@@ -4,13 +4,14 @@ import { useAuth } from "@/Services/authService";
 import { useRouter } from "next/navigation";
 import roleService from "@/Services/roleService";
 import { Tooltip } from "react-tooltip";
-import { FaEdit, FaEye, FaPlus } from "react-icons/fa";
+import { FaEdit, FaEye, FaPlus, FaWallet } from "react-icons/fa";
 import LoanInfo from "@/app/Loan/LoanInfo";
 import Layout from "@/app/components/Layout";
 import dummyLoans from "@/app/Loan/DummyLoan";
+import RepaymentModal from "@/app/components/RepaymentModal";
 const ITEMS_PER_PAGE = 2;
 
-const Pending = () => {
+const ActiveLoans = () => {
   const { user } = useAuth();
   const [loans, setLoans] = useState([]);
   const [filterText, setFilterText] = useState("");
@@ -22,7 +23,7 @@ const Pending = () => {
   const [selectedLoan, setSelectedLoan] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");
-
+  const [openRepayModal, setOpenRepayModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [startDate, setStartDate] = useState("");
@@ -30,9 +31,7 @@ const Pending = () => {
 
   useEffect(() => {
     console.log("Loaded dummyLoans:", dummyLoans);
-    const pending = dummyLoans.filter(
-      (loan) => loan.status === "Pending" || loan.status === "Rejected"
-    );
+    const pending = dummyLoans.filter((loan) => loan.status === "Active");
     setLoans(pending);
     setLoading(false);
   }, []);
@@ -151,32 +150,9 @@ const Pending = () => {
       <div className="w-full">
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-4xl font-extrabold">
-              Pending and Rejected Loans
-            </p>
-            <p className="text-sm text-gray-600">
-              View all pending and rejected loans.
-            </p>
+            <p className="text-4xl font-extrabold">Active Loans</p>
+            <p className="text-sm text-gray-600">View all Active loans.</p>
           </div>
-          {hasPrivilege("CreateLoanApplication") && (
-            <div
-              onClick={() => router.push("/Loan/Request-Form")}
-              id="add-loan-icon"
-              className="w-7 h-7 rounded-full cursor-pointer hover:bg-gray-100 p-1"
-            >
-              <FaPlus className="text-[#3D873B] w-full h-full" />
-            </div>
-          )}
-          <Tooltip
-            anchorId="add-loan-icon"
-            content="Fill request form"
-            place="top"
-            style={{
-              backgroundColor: "#3D873B",
-              fontSize: "12px",
-              borderRadius: "6px",
-            }}
-          />
         </div>
         <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4 mb-5">
           <input
@@ -261,16 +237,22 @@ const Pending = () => {
                         <p className="text-green-500 font-bold rounded-md bg-green-50 text-center p-1">
                           {loan.status}
                         </p>
-                      ) : (
+                      ) : loan.status === "Rejected" ? (
                         <p className="text-red-500 font-bold rounded-md bg-red-50 text-center p-1">
                           {loan.status}
                         </p>
+                      ) : (
+                        loan.status === "Active" && (
+                          <p className="text-blue-500 font-bold rounded-md bg-blue-50 text-center p-1">
+                            {loan.status}
+                          </p>
+                        )
                       )}
                     </td>
                     <td className="py-3 px-4">{loan.createdBy}</td>
                     <td className="py-3 px-4">{loan.date}</td>
 
-                    <td className="py-3 px-4 text-center flex items-center justify-center gap-2">
+                    <td className="py-3 px-4 text-center flex items-center justify-center gap-4">
                       <FaEye
                         onClick={() => {
                           setSelectedLoan(loan.loanId);
@@ -292,6 +274,16 @@ const Pending = () => {
                           className="cursor-pointer  hover:text-gray-500"
                         />
                       )}
+                      <div
+                        onClick={() => {
+                          setOpenRepayModal(true);
+                          setSelectedLoan(loan);
+                        }}
+                        title="Repay Loan"
+                        className="bg-gray-200 flex justify-center items-center rounded-full cursor-pointer w-8 h-8 hover:opacity-90"
+                      >
+                        <FaWallet size={18} />
+                      </div>
                     </td>
                   </tr>
                 );
@@ -353,8 +345,14 @@ const Pending = () => {
         onClose={() => setIsSidebarOpen(false)}
         isOpen={isSidebarOpen}
       />
+      {openRepayModal && selectedLoan && (
+        <RepaymentModal
+          onClose={() => setOpenRepayModal(false)}
+          loan={selectedLoan}
+        />
+      )}
     </Layout>
   );
 };
 
-export default Pending;
+export default ActiveLoans;

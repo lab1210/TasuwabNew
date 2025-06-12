@@ -1,16 +1,16 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import Layout from "../components/Layout";
 import { useAuth } from "@/Services/authService";
 import { useRouter } from "next/navigation";
 import roleService from "@/Services/roleService";
 import { Tooltip } from "react-tooltip";
 import { FaEdit, FaEye, FaPlus } from "react-icons/fa";
-import LoanInfo from "@/app/Loan/LoanInfo";
-import Layout from "@/app/components/Layout";
-import dummyLoans from "@/app/Loan/DummyLoan";
+import dummyLoans from "../Loan/DummyLoan";
+import LoanInfo from "../Loan/LoanInfo";
 const ITEMS_PER_PAGE = 2;
 
-const Pending = () => {
+const ModelApproval = () => {
   const { user } = useAuth();
   const [loans, setLoans] = useState([]);
   const [filterText, setFilterText] = useState("");
@@ -151,32 +151,12 @@ const Pending = () => {
       <div className="w-full">
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-4xl font-extrabold">
-              Pending and Rejected Loans
-            </p>
+            <p className="text-4xl font-extrabold">Loans Awaiting Approval</p>
             <p className="text-sm text-gray-600">
-              View all pending and rejected loans.
+              View all your loans awaiting approval. Click on the eye icon to
+              view the loan details.
             </p>
           </div>
-          {hasPrivilege("CreateLoanApplication") && (
-            <div
-              onClick={() => router.push("/Loan/Request-Form")}
-              id="add-loan-icon"
-              className="w-7 h-7 rounded-full cursor-pointer hover:bg-gray-100 p-1"
-            >
-              <FaPlus className="text-[#3D873B] w-full h-full" />
-            </div>
-          )}
-          <Tooltip
-            anchorId="add-loan-icon"
-            content="Fill request form"
-            place="top"
-            style={{
-              backgroundColor: "#3D873B",
-              fontSize: "12px",
-              borderRadius: "6px",
-            }}
-          />
         </div>
         <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4 mb-5">
           <input
@@ -357,4 +337,4 @@ const Pending = () => {
   );
 };
 
-export default Pending;
+export default ModelApproval;

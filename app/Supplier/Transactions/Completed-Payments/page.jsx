@@ -1,13 +1,12 @@
 "use client";
-import Layout from "@/app/components/Layout";
 import React, { useState } from "react";
-import { FaEye, FaPlus } from "react-icons/fa";
-import { Tooltip } from "react-tooltip";
-import Details from "./Details";
-import Modal from "@/app/components/Modal";
+import { FaEye } from "react-icons/fa";
 import { useRouter } from "next/navigation";
+import Modal from "@/app/components/Modal";
+import Layout from "@/app/components/Layout";
+import Details from "../Details";
 
-const SupplierPayment = () => {
+const CompletedPaymenttoSupplier = () => {
   const [suppliers, setSuppliers] = useState([
     {
       id: 1,
@@ -227,42 +226,31 @@ const SupplierPayment = () => {
     return matchesSearch && matchesStatus && matchesDate;
   });
 
+  const CompletedSupplierPayment = filteredSuppliers.filter(
+    (supplier) => supplier.status === "Completed"
+  );
+
   const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedSuppliers = filteredSuppliers.slice(
+  const paginatedSuppliers = CompletedSupplierPayment.slice(
     startIdx,
     startIdx + ITEMS_PER_PAGE
   );
-  const totalPages = Math.ceil(filteredSuppliers.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(
+    CompletedSupplierPayment.length / ITEMS_PER_PAGE
+  );
 
   return (
     <Layout>
       <div className="w-full">
         <div className="flex justify-between items-start flex-wrap gap-4">
           <div>
-            <p className="text-4xl font-extrabold">Suppliers Payments</p>
+            <p className="text-4xl font-extrabold">
+              Completed Suppliers Payments
+            </p>
             <p className="text-sm text-gray-600">
-              View all of your supplier payments here.
+              View all completed supplier payments here.
             </p>
           </div>
-          <div
-            id="add-client-icon"
-            className="w-7 h-7 rounded-full cursor-pointer hover:bg-gray-100 p-1"
-          >
-            <FaPlus
-              className="text-[#3D873B] w-full h-full"
-              onClick={() => router.push("/Supplier/Transactions/Pay-Supplier")}
-            />
-          </div>
-          <Tooltip
-            anchorId="add-client-icon"
-            content="Pay Supplier"
-            place="top"
-            style={{
-              backgroundColor: "#3D873B",
-              fontSize: "12px",
-              borderRadius: "6px",
-            }}
-          />
         </div>
 
         {/* Filters */}
@@ -274,15 +262,7 @@ const SupplierPayment = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <select
-            className="border p-2 w-full rounded-md border-gray-300 shadow-sm"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="">All Status</option>
-            <option value="Pending">Pending</option>
-            <option value="Completed">Completed</option>
-          </select>
+
           <input
             type="date"
             className="border p-2 w-full rounded-md border-gray-300 shadow-sm"
@@ -313,7 +293,7 @@ const SupplierPayment = () => {
               </tr>
             </thead>
             <tbody className="text-sm text-gray-700">
-              {filteredSuppliers.length === 0 ? (
+              {CompletedSupplierPayment.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center py-10 text-gray-400">
                     No payment history found.
@@ -411,4 +391,4 @@ const SupplierPayment = () => {
   );
 };
 
-export default SupplierPayment;
+export default CompletedPaymenttoSupplier;

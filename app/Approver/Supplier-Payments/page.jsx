@@ -1,13 +1,15 @@
 "use client";
-import Layout from "@/app/components/Layout";
-import React, { useState } from "react";
-import { FaEye, FaPlus } from "react-icons/fa";
-import { Tooltip } from "react-tooltip";
-import Details from "./Details";
-import Modal from "@/app/components/Modal";
+import React, { use, useState } from "react";
+import { FaCheck, FaExclamation, FaEye } from "react-icons/fa";
 import { useRouter } from "next/navigation";
+import Modal from "@/app/components/Modal";
+import Layout from "@/app/components/Layout";
+import Details from "@/app/Supplier/Transactions/Details";
+import { ImCross } from "react-icons/im";
+import ApprovalModal from "@/app/components/ApprovalModal";
+import toast from "react-hot-toast";
 
-const SupplierPayment = () => {
+const ApprovePaymenttoSupplier = () => {
   const [suppliers, setSuppliers] = useState([
     {
       id: 1,
@@ -204,65 +206,81 @@ const SupplierPayment = () => {
   ]);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState(null);
-  const router = useRouter();
+  const [openApprovalModal, setOpenApprovalModal] = useState(false);
+  const [openRejectModal, setOpenRejectModal] = useState(false);
+  const [Approvalreply, setApprovalReply] = useState("cancel");
+  const [Rejectionreply, setRejectionReply] = useState("cancel");
 
-  const ITEMS_PER_PAGE = 4;
+  const handleConfirmation = () => {
+    if (Approvalreply == "confirm" && selectedSupplier) {
+      setSuppliers((prev) =>
+        prev.map((s) =>
+          s.id === selectedSupplier.id ? { ...s, status: "Completed" } : s
+        )
+      );
+      toast.success("Payment has been approved successfully");
+      setOpenApprovalModal(false);
+      setApprovalReply("cancel");
+    } else if (Rejectionreply == "confirm" && selectedSupplier) {
+      setSuppliers((prev) =>
+        prev.map((s) =>
+          s.id === selectedSupplier.id ? { ...s, status: "Rejected" } : s
+        )
+      );
+      toast.success("Payment has been rejected successfully");
+      setOpenRejectModal(false);
+      setRejectionReply("cancel");
+    }
+  };
+
+  const ITEMS_PER_PAGE = 3;
 
   const filteredSuppliers = suppliers.filter((supplier) => {
     const matchesSearch = supplier.name
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter
-      ? supplier.status === statusFilter
-      : true;
+
     const matchesDate =
       (!startDate || new Date(supplier.date) >= new Date(startDate)) &&
       (!endDate || new Date(supplier.date) <= new Date(endDate));
-    return matchesSearch && matchesStatus && matchesDate;
+    return matchesSearch && matchesDate;
   });
 
+  const PendingSupplierPayment = filteredSuppliers.filter(
+    (supplier) => supplier.status === "Pending"
+  );
+
   const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedSuppliers = filteredSuppliers.slice(
+  const paginatedSuppliers = PendingSupplierPayment.slice(
     startIdx,
     startIdx + ITEMS_PER_PAGE
   );
-  const totalPages = Math.ceil(filteredSuppliers.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(PendingSupplierPayment.length / ITEMS_PER_PAGE);
+
+  const handleCloseModalforApproval = () => {
+    setOpenApprovalModal(false);
+  };
+  const handleCloseModalforRejection = () => {
+    setOpenRejectModal(false);
+  };
 
   return (
     <Layout>
       <div className="w-full">
         <div className="flex justify-between items-start flex-wrap gap-4">
           <div>
-            <p className="text-4xl font-extrabold">Suppliers Payments</p>
+            <p className="text-4xl font-extrabold">
+              Approve Suppliers Payments
+            </p>
             <p className="text-sm text-gray-600">
-              View all of your supplier payments here.
+              View and approve or reject all pending supplier payments here.
             </p>
           </div>
-          <div
-            id="add-client-icon"
-            className="w-7 h-7 rounded-full cursor-pointer hover:bg-gray-100 p-1"
-          >
-            <FaPlus
-              className="text-[#3D873B] w-full h-full"
-              onClick={() => router.push("/Supplier/Transactions/Pay-Supplier")}
-            />
-          </div>
-          <Tooltip
-            anchorId="add-client-icon"
-            content="Pay Supplier"
-            place="top"
-            style={{
-              backgroundColor: "#3D873B",
-              fontSize: "12px",
-              borderRadius: "6px",
-            }}
-          />
         </div>
 
         {/* Filters */}
@@ -274,15 +292,7 @@ const SupplierPayment = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <select
-            className="border p-2 w-full rounded-md border-gray-300 shadow-sm"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="">All Status</option>
-            <option value="Pending">Pending</option>
-            <option value="Completed">Completed</option>
-          </select>
+
           <input
             type="date"
             className="border p-2 w-full rounded-md border-gray-300 shadow-sm"
@@ -313,7 +323,7 @@ const SupplierPayment = () => {
               </tr>
             </thead>
             <tbody className="text-sm text-gray-700">
-              {filteredSuppliers.length === 0 ? (
+              {PendingSupplierPayment.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center py-10 text-gray-400">
                     No payment history found.
@@ -344,7 +354,7 @@ const SupplierPayment = () => {
                         {supplier.status}
                       </span>
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-4 gap-3 flex items-center justify-between">
                       <FaEye
                         onClick={() => {
                           setModalOpen(true);
@@ -354,6 +364,24 @@ const SupplierPayment = () => {
                         className="cursor-pointer text-gray-500 hover:text-black"
                         title="View"
                       />
+                      <div
+                        onClick={() => {
+                          setOpenApprovalModal(true);
+                          setSelectedSupplier(supplier);
+                        }}
+                        className="bg-green-50 text-green-500 w-7 h-7 flex justify-center items-center rounded-full cursor-pointer hover:bg-gray-200"
+                      >
+                        <FaCheck title="Approve" />
+                      </div>
+                      <div
+                        onClick={() => {
+                          setOpenRejectModal(true);
+                          setSelectedSupplier(supplier);
+                        }}
+                        className="bg-red-50 text-red-500 w-7 h-7 flex justify-center items-center rounded-full cursor-pointer hover:bg-gray-200"
+                      >
+                        <ImCross title="Reject" size={12} />
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -407,8 +435,36 @@ const SupplierPayment = () => {
           <Details supplier={selectedSupplier} />
         </Modal>
       )}
+      {openApprovalModal && selectedSupplier && (
+        <ApprovalModal
+          isOpen={openApprovalModal}
+          onClose={() => handleCloseModalforApproval()}
+          icon={<FaCheck className="text-white" size={15} />}
+          title="Approval"
+          description={"approve"}
+          supplier={selectedSupplier.name}
+          amount={selectedSupplier.amount}
+          client={selectedSupplier.clientName}
+          reply={setApprovalReply}
+          handleConfirmation={handleConfirmation}
+        />
+      )}
+      {openRejectModal && selectedSupplier && (
+        <ApprovalModal
+          isOpen={openRejectModal}
+          onClose={() => handleCloseModalforRejection()}
+          icon={<FaExclamation className="text-white" size={15} />}
+          title="Rejection"
+          description={"reject"}
+          supplier={selectedSupplier.name}
+          amount={selectedSupplier.amount}
+          client={selectedSupplier.clientName}
+          reply={setRejectionReply}
+          handleConfirmation={handleConfirmation}
+        />
+      )}
     </Layout>
   );
 };
 
-export default SupplierPayment;
+export default ApprovePaymenttoSupplier;

@@ -1,223 +1,213 @@
 "use client";
-import React, { useState } from "react";
-import jsPDF from "jspdf";
-import dummyLoans from "@/app/Loan/DummyLoan";
 import Layout from "@/app/components/Layout";
-import Select from "react-select"; // Import react-select for dropdown
-import dummyClients from "@/app/Loan/DummyClient";
-import { format } from "date-fns"; // For date formatting
+import dummyLoans from "@/app/Loan/DummyLoan";
+import React, { useState } from "react";
+import { jsPDF } from "jspdf";
 
-const LoanEnquiry = () => {
-  const [selectedClientId, setSelectedClientId] = useState("");
-  const [startDate, setStartDate] = useState(""); // State for start date
-  const [endDate, setEndDate] = useState(""); // State for end date
+const LoanEnquiryPage = () => {
+  const [selectedClient, setSelectedClient] = useState("");
+  const [selectedLoanId, setSelectedLoanId] = useState("");
 
-  // Create a list of all unique clientIds from loans
-  const clients = [...new Set([...dummyLoans.map((l) => l.clientId)])];
+  const uniqueClients = [...new Set(dummyLoans.map((loan) => loan.name))];
+  const clientLoans = dummyLoans.filter((loan) => loan.name === selectedClient);
+  const selectedLoan = clientLoans.find(
+    (loan) => loan.loanId === selectedLoanId
+  );
 
-  const allClients = clients.map((clientId) => {
-    const client = dummyClients.find((c) => c.clientId === clientId);
-    const clientName = client
-      ? `${client.firstName} ${client.lastName} -(${client.accountnumber})`
-      : `Client ${clientId}`;
-    return { value: clientId, label: clientName };
-  });
+  // Function to generate PDF
+  const generatePDF = () => {
+    if (!selectedLoan) return;
 
-  // Filter loans for the selected client and date range
-  const filteredLoans = dummyLoans.filter((loan) => {
-    const isClientMatch = loan.clientId === selectedClientId;
-    const isDateInRange =
-      (startDate ? new Date(loan.date) >= new Date(startDate) : true) &&
-      (endDate ? new Date(loan.date) <= new Date(endDate) : true);
-    return isClientMatch && isDateInRange;
-  });
+    const doc = new jsPDF();
 
-  // Calculate Opening and Closing Balances
-  const calculateBalances = (loan) => {
-    const transactions = loan.transactions;
-    let openingBalance = 0;
-    let closingBalance = 0;
+    doc.setFontSize(18);
+    doc.text("Loan Enquiry Report", 14, 22);
 
-    if (transactions.length > 0) {
-      openingBalance = transactions[0].amount; // Assuming first transaction is the opening balance
-      closingBalance = transactions[transactions.length - 1].amount; // Last transaction as closing balance
+    doc.setFontSize(12);
+    let y = 35;
+
+    const addLine = (label, value) => {
+      doc.text(`${label}: ${value}`, 14, y);
+      y += 8;
+    };
+
+    addLine("Client ID", selectedLoan.clientId);
+    addLine("Loan ID", selectedLoan.loanId);
+    addLine("Business Name", selectedLoan.businessName);
+    addLine("Purpose", selectedLoan.purpose);
+    addLine("Loan Amount", `₦${selectedLoan.loanAmount.toLocaleString()}`);
+    addLine("Status", selectedLoan.status);
+    addLine("Date", selectedLoan.date);
+    addLine("Installment Period", `${selectedLoan.InstallmentPeriod} months`);
+    addLine(
+      "Equity Contribution",
+      `₦${selectedLoan.equityContribution.toLocaleString()}`
+    );
+    addLine("Asset", selectedLoan.asset);
+    addLine("Supplier", selectedLoan.Supplier);
+
+    if (selectedLoan.repayment) {
+      y += 8;
+      doc.setFontSize(14);
+      doc.text("Repayment Info", 14, y);
+      y += 8;
+      doc.setFontSize(12);
+
+      addLine("Repayment Date", selectedLoan.repayment.RepaymentDate);
+      addLine(
+        "Repaid Amount",
+        `₦${selectedLoan.repayment.Repaidamount.toLocaleString()}`
+      );
+      addLine("Months Remaining", selectedLoan.repayment.MonthsRemaining);
+      addLine(
+        "Opening Balance",
+        `₦${(
+          selectedLoan.repayment.amountRemaining +
+          selectedLoan.repayment.Repaidamount
+        ).toLocaleString()}`
+      );
+      addLine(
+        "Closing Balance",
+        `₦${selectedLoan.repayment.amountRemaining.toLocaleString()}`
+      );
     }
 
-    return { openingBalance, closingBalance };
-  };
-
-  // Handle export to PDF
-  const handleExportPDF = () => {
-    const doc = new jsPDF();
-    const content = document.getElementById("statement-content");
-
-    doc.html(content, {
-      callback: function (doc) {
-        doc.save(`Client_${selectedClientId}_Loan_Statement.pdf`);
-      },
-      x: 10,
-      y: 10,
-      width: 180,
-      windowWidth: 1000,
-    });
+    doc.save(`LoanEnquiry_${selectedLoan.loanId}.pdf`);
   };
 
   return (
-    <Layout>
-      <div className="w-full">
-        <div className="flex justify-between items-start">
-          <div>
-            <p className="text-4xl font-extrabold">Client Loan </p>
-            <p className="text-sm text-gray-600">View selected client Loans.</p>
-          </div>
-        </div>
-        <div className="mt-4 mb-5">
-          <Select
-            id="clientId"
-            options={allClients}
-            value={allClients.find(
-              (client) => client.value === selectedClientId
-            )}
-            onChange={(selectedOption) =>
-              setSelectedClientId(selectedOption ? selectedOption.value : "")
-            }
-            placeholder="Select Client"
-          />
-        </div>
+    <Layout className="max-w-3xl mx-auto p-6 bg-white rounded shadow">
+      <h2 className="text-2xl font-bold mb-6">Loan Enquiry</h2>
 
-        <div className="flex gap-4 mt-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Start Date
-            </label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="border p-2 rounded"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              End Date:{" "}
-            </label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="border p-2 rounded"
-            />
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          {selectedClientId && (
-            <div id="statement-content">
-              <div className="flex items-center justify-between mb-4">
-                <p className="font-semibold text-lg text-[#4a5565]">
-                  Loan Statement for Client:{" "}
-                  <span className="text-[#3D873B] font-bold">
-                    {selectedClientId
-                      ? allClients.find(
-                          (client) => client.value === selectedClientId
-                        )?.label
-                      : "Select a client"}
-                  </span>
-                </p>
-
-                <button
-                  onClick={handleExportPDF}
-                  className="bg-[#3D873B] text-white px-4 py-2 rounded mt-4 cursor-pointer"
-                >
-                  Export to PDF
-                </button>
-              </div>
-
-              <div className="mb-4">
-                {filteredLoans.length > 0 ? (
-                  filteredLoans.map((loan, index) => {
-                    const { openingBalance, closingBalance } =
-                      calculateBalances(loan);
-                    return (
-                      <div key={index}>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-[#364153]">
-                          <div className="p-4 bg-[#f1f5f9] rounded shadow">
-                            <p className="font-semibold">Opening Balance</p>
-                            <p className="text-[#3D873B] font-bold">
-                              {new Intl.NumberFormat("en-NG", {
-                                style: "currency",
-                                currency: "NGN",
-                              }).format(openingBalance)}
-                            </p>
-                          </div>
-
-                          <div className="p-4 bg-[#f1f5f9] rounded shadow">
-                            <p className="font-semibold">Closing Balance</p>
-                            <p className="text-[#3D873B] font-bold">
-                              {new Intl.NumberFormat("en-NG", {
-                                style: "currency",
-                                currency: "NGN",
-                              }).format(closingBalance)}
-                            </p>
-                          </div>
-                          <div className="p-4 bg-[#f1f5f9] rounded shadow">
-                            <p className="font-semibold">Date Range</p>
-                            <p className="text-[#3D873B] font-bold">
-                              {startDate && endDate
-                                ? `${format(
-                                    new Date(startDate),
-                                    "MM/dd/yyyy"
-                                  )} - ${format(
-                                    new Date(endDate),
-                                    "MM/dd/yyyy"
-                                  )}`
-                                : "All Time"}
-                            </p>
-                          </div>
-                        </div>
-
-                        <table className="w-full table-auto divide-y divide-[#e5e7eb] shadow-lg rounded-md mt-4">
-                          <thead className="bg-[#f9fafb] text-[#6a7282] text-sm">
-                            <tr>
-                              <th className="text-left py-3 px-4">Date</th>
-                              <th className="text-left py-3 px-4">Amount</th>
-                              <th className="text-left py-3 px-4">Type</th>
-                              <th className="text-left py-3 px-4">
-                                Description
-                              </th>
-                              <th className="text-left py-3 px-4">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody className="text-sm text-[#364153]">
-                            {loan.transactions.map((d, index) => (
-                              <tr key={index}>
-                                <td className="py-3 px-4">{d.date}</td>
-                                <td className="py-3 px-4">
-                                  {new Intl.NumberFormat("en-NG", {
-                                    style: "currency",
-                                    currency: "NGN",
-                                  }).format(d.amount)}
-                                </td>
-                                <td className="py-3 px-4">{d.type}</td>
-                                <td className="py-3 px-4">{d.description}</td>
-                                <td className="py-3 px-4">{d.status}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <p>No Loans found.</p>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+      {/* Select Client */}
+      <div className="mb-4">
+        <label className="block font-semibold mb-1">Select Client</label>
+        <select
+          className="w-full border p-2 rounded"
+          value={selectedClient}
+          onChange={(e) => {
+            setSelectedClient(e.target.value);
+            setSelectedLoanId("");
+          }}
+        >
+          <option value="">-- Choose a Client --</option>
+          {uniqueClients.map((client) => (
+            <option key={client} value={client}>
+              {client}
+            </option>
+          ))}
+        </select>
       </div>
+
+      {/* Select Loan */}
+      {selectedClient && (
+        <div className="mb-4">
+          <label className="block font-semibold mb-1">Select Loan</label>
+          <select
+            className="w-full border p-2 rounded"
+            value={selectedLoanId}
+            onChange={(e) => setSelectedLoanId(e.target.value)}
+          >
+            <option value="">-- Choose a Loan --</option>
+            {clientLoans.map((loan) => (
+              <option key={loan.loanId} value={loan.loanId}>
+                {loan.loanId} - {loan.loanDetails} ({loan.status})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Display Loan Details */}
+      {selectedLoan && (
+        <>
+          {/* Download PDF Button */}
+          <div className="flex justify-end">
+            <button
+              onClick={generatePDF}
+              className="mt-6 bg-green-600 text-white px-4 py-2 rounded hover:opacity-90"
+            >
+              Download PDF
+            </button>
+          </div>
+
+          <div className="mt-6 border-t pt-4">
+            <h3 className="text-lg font-bold mb-3 underline">Loan Details</h3>
+            <div className="space-y-2">
+              <p>
+                <strong>Client ID:</strong> {selectedLoan.clientId}
+              </p>
+              <p>
+                <strong>Loan ID:</strong> {selectedLoan.loanId}
+              </p>
+              <p>
+                <strong>Business Name:</strong> {selectedLoan.businessName}
+              </p>
+              <p>
+                <strong>Purpose:</strong> {selectedLoan.purpose}
+              </p>
+              <p>
+                <strong>Loan Amount:</strong> ₦
+                {selectedLoan.loanAmount.toLocaleString()}
+              </p>
+              <p>
+                <strong>Status:</strong> {selectedLoan.status}
+              </p>
+              <p>
+                <strong>Date:</strong> {selectedLoan.date}
+              </p>
+              <p>
+                <strong>Installment Period:</strong>{" "}
+                {selectedLoan.InstallmentPeriod} months
+              </p>
+              <p>
+                <strong>Equity Contribution:</strong> ₦
+                {selectedLoan.equityContribution.toLocaleString()}
+              </p>
+              <p>
+                <strong>Asset:</strong> {selectedLoan.asset}
+              </p>
+              <p>
+                <strong>Supplier:</strong> {selectedLoan.Supplier}
+              </p>
+            </div>
+
+            {/* Repayment Details */}
+            {selectedLoan.repayment && (
+              <div className="mt-6">
+                <h4 className="text-lg underline font-semibold mb-2">
+                  Repayment Info
+                </h4>
+                <p>
+                  <strong>Repayment Date:</strong>{" "}
+                  {selectedLoan.repayment.RepaymentDate}
+                </p>
+                <p>
+                  <strong>Repaid Amount:</strong> ₦
+                  {selectedLoan.repayment.Repaidamount.toLocaleString()}
+                </p>
+                <p>
+                  <strong>Months Remaining:</strong>{" "}
+                  {selectedLoan.repayment.MonthsRemaining}
+                </p>
+                <p>
+                  <strong>Opening Balance:</strong> ₦
+                  {(
+                    selectedLoan.repayment.amountRemaining +
+                    selectedLoan.repayment.Repaidamount
+                  ).toLocaleString()}
+                </p>
+                <p>
+                  <strong>Closing Balance:</strong> ₦
+                  {selectedLoan.repayment.amountRemaining.toLocaleString()}
+                </p>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </Layout>
   );
 };
 
-export default LoanEnquiry;
+export default LoanEnquiryPage;

@@ -9,11 +9,19 @@ const Details = ({ supplier }) => {
 
   return (
     <div className="p-6 space-y-6 bg-white rounded-xl shadow-md">
-      <div>
-        <p className="text-gray-500 text-sm">Transaction ID</p>
-        <p className="text-lg font-semibold text-gray-800">
-          {supplier.transactionId}
-        </p>
+      <div className=" flex justify-between">
+        <div>
+          <p className="text-gray-500 text-sm">Transaction ID</p>
+          <p className="text-lg font-semibold text-gray-800">
+            {supplier.transactionId}
+          </p>
+        </div>
+        <div>
+          <p className="text-gray-500 text-sm">Client Name</p>
+          <p className="text-lg font-semibold text-gray-800">
+            {supplier.clientName}
+          </p>
+        </div>
       </div>
 
       {supplier.categories?.map((category) => {

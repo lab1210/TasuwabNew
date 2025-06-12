@@ -4,13 +4,14 @@ import { useAuth } from "@/Services/authService";
 import { useRouter } from "next/navigation";
 import roleService from "@/Services/roleService";
 import { Tooltip } from "react-tooltip";
-import { FaEdit, FaEye, FaPlus } from "react-icons/fa";
-import dummyLoans from "@/app/Loan/DummyLoan";
-import Layout from "@/app/components/Layout";
+import { FaEdit, FaEye, FaPlus, FaWallet } from "react-icons/fa";
 import LoanInfo from "@/app/Loan/LoanInfo";
+import Layout from "@/app/components/Layout";
+import dummyLoans from "@/app/Loan/DummyLoan";
+import RepaymentModal from "@/app/components/RepaymentModal";
 const ITEMS_PER_PAGE = 2;
 
-const ApprovedApplications = () => {
+const ApprovedLoans = () => {
   const { user } = useAuth();
   const [loans, setLoans] = useState([]);
   const [filterText, setFilterText] = useState("");
@@ -22,21 +23,16 @@ const ApprovedApplications = () => {
   const [selectedLoan, setSelectedLoan] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");
-
+  const [openRepayModal, setOpenRepayModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  const handleAddLoan = (newLoan) => {
-    setLoans((prevLoans) => [...prevLoans, newLoan]);
-  };
   useEffect(() => {
     console.log("Loaded dummyLoans:", dummyLoans);
-    const approvedOnly = dummyLoans.filter(
-      (loan) => loan.status === "Approved" || loan.status === "Active"
-    );
-    setLoans(approvedOnly);
+    const pending = dummyLoans.filter((loan) => loan.status === "Approved");
+    setLoans(pending);
     setLoading(false);
   }, []);
 
@@ -154,10 +150,8 @@ const ApprovedApplications = () => {
       <div className="w-full">
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-4xl font-extrabold">Approved Forms</p>
-            <p className="text-sm text-gray-600">
-              View all your approved forms for asset financing .
-            </p>
+            <p className="text-4xl font-extrabold">Approved Loans</p>
+            <p className="text-sm text-gray-600">View all approved loans.</p>
           </div>
         </div>
         <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4 mb-5">
@@ -180,6 +174,16 @@ const ApprovedApplications = () => {
             onChange={(e) => setEndDate(e.target.value)}
             className="border p-2 w-full rounded-md shadow-sm border-gray-300"
           />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="border w-full p-2 rounded-md shadow-sm border-gray-300"
+          >
+            <option value="">All Statuses</option>
+            <option value="Approved">Approved</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Pending">Pending</option>
+          </select>
         </div>
 
         <div className="overflow-x-auto">
@@ -189,9 +193,10 @@ const ApprovedApplications = () => {
                 <th className="text-left py-3 px-4">S/N</th>
                 <th className="text-left py-3 px-4">DocNbr </th>
                 <th className="text-left py-3 px-4">Name</th>
-                <th className="text-left py-3 px-4">Business </th>
+                <th className="text-left py-3 px-4">Business Name </th>
                 <th className="text-left py-3 px-4">Phone</th>
                 <th className="text-left py-3 px-4">Email</th>
+                <th className="text-left py-3 px-4">Loan Type</th>
                 <th className="text-left py-3 px-4">Loan Amount</th>
                 <th className="text-left py-3 px-4">Payment Period</th>
                 <th className="text-left py-3 px-4">Status</th>
@@ -205,46 +210,46 @@ const ApprovedApplications = () => {
                 return (
                   <tr key={index}>
                     <td className="py-3 px-4">{startIdx + index + 1}</td>
-
-                    <td className="py-3 px-4">{loan.filename}</td>
+                    <td className="py-3 px-4">{loan.fileName}</td>
                     <td className="py-3 px-4">{loan.name}</td>
                     <td className="py-3 px-4">{loan.businessName}</td>
                     <td className="py-3 px-4">{loan.phone}</td>
                     <td className="py-3 px-4">{loan.email}</td>
+                    <td className="py-3 px-4">{loan.purpose}</td>
                     <td className="py-3 px-4">
                       {new Intl.NumberFormat("en-NG", {
                         style: "currency",
                         currency: "NGN",
-                      }).format(loan.loanAmount)}
+                      }).format(
+                        loan.loanAmount === "NA"
+                          ? loan.totalCostofAsset
+                          : loan.loanAmount
+                      )}
                     </td>
-                    <td className="py-3 px-4">{loan.paymentPeriodInMonths}</td>
+                    <td className="py-3 px-4">{loan.InstallmentPeriod}</td>
 
                     <td className="py-3 px-4">
-                      {loan.status === "Rejected" ? (
-                        <p className="text-red-500 font-bold rounded-md bg-red-50 text-center p-1">
+                      {loan.status === "Pending" ? (
+                        <p className="text-yellow-500 font-bold rounded-md bg-yellow-50 text-center p-1">
                           {loan.status}
                         </p>
                       ) : loan.status === "Approved" ? (
                         <p className="text-green-500 font-bold rounded-md bg-green-50 text-center p-1">
                           {loan.status}
                         </p>
-                      ) : loan.status === "Active" ? (
-                        <p className="text-blue-500 font-bold rounded-md bg-blue-50 text-center p-1">
-                          {loan.status}
-                        </p>
                       ) : (
-                        <p className="text-yellow-500 font-bold rounded-md bg-yellow-50 text-center p-1">
+                        <p className="text-red-500 font-bold rounded-md bg-red-50 text-center p-1">
                           {loan.status}
                         </p>
                       )}
                     </td>
                     <td className="py-3 px-4">{loan.createdBy}</td>
-                    <td className="py-3 px-4">{loan.createdDate}</td>
+                    <td className="py-3 px-4">{loan.date}</td>
 
-                    <td className="py-3 px-4 text-center flex items-center justify-center gap-2">
+                    <td className="py-3 px-4 text-center flex items-center justify-center gap-4">
                       <FaEye
                         onClick={() => {
-                          setSelectedLoan(loan.LoanID);
+                          setSelectedLoan(loan.loanId);
                           setIsSidebarOpen(true);
                         }}
                         size={18}
@@ -254,7 +259,7 @@ const ApprovedApplications = () => {
                         loan.status === "Rejected") && (
                         <FaEdit
                           onClick={() => {
-                            setSelectedLoan(loan.LoanID);
+                            setSelectedLoan(loan.loanId);
                             router.push(
                               `/Loan/Update-Request-Form/${loan.loanId}`
                             );
@@ -263,6 +268,16 @@ const ApprovedApplications = () => {
                           className="cursor-pointer  hover:text-gray-500"
                         />
                       )}
+                      <div
+                        onClick={() => {
+                          setOpenRepayModal(true);
+                          setSelectedLoan(loan);
+                        }}
+                        title="Repay Loan"
+                        className="bg-gray-200 flex justify-center items-center rounded-full cursor-pointer w-8 h-8 hover:opacity-90"
+                      >
+                        <FaWallet size={18} />
+                      </div>
                     </td>
                   </tr>
                 );
@@ -324,8 +339,14 @@ const ApprovedApplications = () => {
         onClose={() => setIsSidebarOpen(false)}
         isOpen={isSidebarOpen}
       />
+      {openRepayModal && selectedLoan && (
+        <RepaymentModal
+          onClose={() => setOpenRepayModal(false)}
+          loan={selectedLoan}
+        />
+      )}
     </Layout>
   );
 };
 
-export default ApprovedApplications;
+export default ApprovedLoans;
