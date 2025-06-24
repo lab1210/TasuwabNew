@@ -3,15 +3,32 @@ import Layout from "@/app/components/Layout";
 import useLoanStore from "@/app/components/loanStore";
 import { useAuth } from "@/Services/authService";
 import roleService from "@/Services/roleService";
+import { getSuppliers } from "@/Services/supplierService";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import CreatableSelect from "react-select/creatable";
+
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Number(value) || 0);
 
 const LoanCalculator = () => {
   const { loanFormData } = useLoanStore();
   const { user } = useAuth();
   const router = useRouter();
   const [rolePrivileges, setRolePrivileges] = useState([]);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectionComment, setRejectionComment] = useState("");
+
+  const supplierOptions = getSuppliers().map((s) => ({
+    label: s.name,
+    value: s.name,
+  }));
 
   useEffect(() => {
     const fetchPrivileges = async () => {
@@ -246,42 +263,13 @@ const LoanCalculator = () => {
   const handlesubmit = (e) => {
     e.preventDefault();
 
-    const isFormComplete = Object.entries(formdata).every(([key, value]) => {
-      // Allow 0 as valid input, but not empty strings
-      return value !== "" && value !== null && value !== undefined;
-    });
-
-    if (!isFormComplete) {
-      toast.error(
-        `Please fill all fields (${Object.entries(formdata)
-          .filter(([key, value]) => value === "")
-          .map(([key, value]) => key)
-          .join(", ")}) before sending for approval .`
-      );
-      return;
-    }
-
     toast.success("Loan Calculation Successful, sent for approval");
     router.push("/Loan");
     console.log(formdata);
   };
+
   const handleApprove = (e) => {
     e.preventDefault();
-
-    const isFormComplete = Object.entries(formdata).every(([key, value]) => {
-      // Allow 0 as valid input, but not empty strings
-      return value !== "" && value !== null && value !== undefined;
-    });
-
-    if (!isFormComplete) {
-      toast.error(
-        `Please fill all fields (${Object.entries(formdata)
-          .filter(([key, value]) => value === "")
-          .map(([key, value]) => key)
-          .join(", ")}) before approval .`
-      );
-      return;
-    }
 
     toast.success("Loan Approved");
     router.push("/Approved/Loans");
@@ -290,22 +278,6 @@ const LoanCalculator = () => {
 
   const handleReject = (e) => {
     e.preventDefault();
-
-    const isFormComplete = Object.entries(formdata).every(([key, value]) => {
-      // Allow 0 as valid input, but not empty strings
-      return value !== "" && value !== null && value !== undefined;
-    });
-
-    if (!isFormComplete) {
-      toast.error(
-        `Please fill all fields (${Object.entries(formdata)
-          .filter(([key, value]) => value === "")
-          .map(([key, value]) => key)
-          .join(", ")}) before rejection .`
-      );
-      return;
-    }
-
     toast.success("Loan Rejected");
     router.push("/Pending/Loans");
     console.log(formdata);
@@ -330,7 +302,7 @@ const LoanCalculator = () => {
 
   return (
     <Layout>
-      <form onSubmit={handlesubmit} className="w-full">
+      <form className="w-full">
         <div>
           <p className="text-4xl font-extrabold mb-2 text-[#3D873B]">
             Pricing Model for {formdata.name} - {formdata.fileName}
@@ -400,11 +372,12 @@ const LoanCalculator = () => {
               </label>
               <input
                 name="totalCostofAsset"
-                type="number"
-                onChange={(e) =>
-                  setFormdata({ ...formdata, totalCostofAsset: e.target.value })
-                }
-                value={Number(formdata.totalCostofAsset)}
+                type="text"
+                onChange={(e) => {
+                  const rawValue = e.target.value.replace(/[^0-9.]/g, ""); // remove commas, ₦
+                  setFormdata({ ...formdata, totalCostofAsset: rawValue });
+                }}
+                value={formatCurrency(formdata.totalCostofAsset)}
                 className="border focus:border-2 text-center border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
               />
             </div>
@@ -417,14 +390,12 @@ const LoanCalculator = () => {
               </label>
               <input
                 name="loanAmount"
-                type="number"
-                onChange={(e) =>
-                  setFormdata({ ...formdata, loanAmount: e.target.value })
-                }
-                value={new Intl.NumberFormat("en-NG", {
-                  style: "currency",
-                  currency: "NGN",
-                }).format(formdata.loanAmount)}
+                type="text"
+                onChange={(e) => {
+                  const rawValue = e.target.value.replace(/[^0-9.]/g, ""); // remove commas, ₦
+                  setFormdata({ ...formdata, loanAmount: rawValue });
+                }}
+                value={formatCurrency(formdata.loanAmount)}
                 className="border text-center border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
               />
             </div>
@@ -433,16 +404,37 @@ const LoanCalculator = () => {
           {formdata.loanAmount === "NA" && (
             <>
               <div className="grid grid-cols-2 gap-y-1">
-                <label className="font-bold " htmlFor="Supplier">
+                <label className="font-bold" htmlFor="Supplier">
                   Supplier
                 </label>
-                <input
-                  name="Supplier"
-                  type="text"
-                  value={formdata.Supplier}
-                  readOnly
-                  className="border focus:border-2 text-center border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                />
+                <div>
+                  <CreatableSelect
+                    isClearable
+                    placeholder="Select or type supplier name"
+                    options={supplierOptions}
+                    value={
+                      formdata.Supplier
+                        ? { label: formdata.Supplier, value: formdata.Supplier }
+                        : null
+                    }
+                    onChange={(selectedOption) =>
+                      setFormdata((prev) => ({
+                        ...prev,
+                        Supplier: selectedOption ? selectedOption.value : "",
+                      }))
+                    }
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        borderColor: "#ccc",
+                        boxShadow: "none",
+                        minHeight: "44px",
+                        textAlign: "center",
+                      }),
+                      menu: (base) => ({ ...base, zIndex: 9999 }),
+                    }}
+                  />
+                </div>
               </div>
             </>
           )}
@@ -750,25 +742,67 @@ const LoanCalculator = () => {
           {hasPrivilege("AssignApprovalRights") ? (
             <div className="flex gap-2">
               <button
+                type="button"
                 onClick={handleApprove}
                 className="px-4 py-2 bg-[#3D873B] cursor-pointer text-white rounded mt-8"
               >
                 Approve
               </button>
               <button
-                onClick={handleReject}
+                type="button"
+                onClick={() => setShowRejectModal(true)}
                 className="px-4 py-2 bg-red-500 cursor-pointer text-white rounded mt-8"
               >
                 Reject
               </button>
             </div>
           ) : (
-            <button className="px-4 py-2 bg-[#3D873B] cursor-pointer text-white rounded mt-8">
+            <button
+              onClick={handlesubmit}
+              className="px-4 py-2 bg-[#3D873B] cursor-pointer text-white rounded mt-8"
+            >
               Send For approval
             </button>
           )}
         </div>
       </form>
+      {showRejectModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg">
+            <h2 className="text-lg font-semibold mb-4 text-gray-800">
+              Reason for Rejection
+            </h2>
+
+            <textarea
+              className="w-full border border-gray-300 p-2 rounded-md mb-4 focus:outline-none focus:border-red-500"
+              placeholder="Enter your reason..."
+              rows={4}
+              value={rejectionComment}
+              onChange={(e) => setRejectionComment(e.target.value)}
+            />
+
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setShowRejectModal(false)}
+                className="px-4 py-2 bg-gray-300 rounded-md text-gray-700 hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  // Submit rejection logic here
+                  console.log("Rejected with reason:", rejectionComment);
+                  handleReject;
+                  setShowRejectModal(false);
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+              >
+                Submit Rejection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };

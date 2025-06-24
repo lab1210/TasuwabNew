@@ -1,13 +1,12 @@
 "use client";
 import Layout from "@/app/components/Layout";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import dummyClients from "../DummyClient";
 import CreatableSelect from "react-select/creatable";
 import Select from "react-select";
 import toast from "react-hot-toast";
 import dummyLoans from "../DummyLoan";
 import { useRouter } from "next/navigation";
-import { create } from "zustand";
 import useLoanStore from "@/app/components/loanStore";
 
 const AddLoan = () => {
@@ -127,10 +126,58 @@ const AddLoan = () => {
     });
   };
 
-  const { setLoanFormData } = useLoanStore();
+  const { loanFormData, setLoanFormData, createEmptyFormData } = useLoanStore();
+  useEffect(() => {
+    // If there's saved data, restore it into local form state
+    if (loanFormData) {
+      setFormData(loanFormData);
+    }
+  }, []);
+
+  const validateForm = () => {
+    const requiredFields = [
+      "filename",
+      "name",
+      "dob",
+      "phone",
+      "email",
+      "address",
+      "loanDetails",
+      "loanType",
+      ...(formData.loanType !== "Asset Financing" ? ["loanAmount"] : []),
+      "paymentPeriodInMonths",
+    ];
+
+    for (let field of requiredFields) {
+      if (!formData[field]) {
+        toast.error(`Please fill the "${field}" field.`);
+        return false;
+      }
+    }
+
+    // Additional checks for "Asset Financing"
+    if (formData.loanType === "Asset Financing") {
+      const assetFields = [
+        "assetName",
+        "assetDescription",
+        "assetQuantity",
+        "assetPrice",
+      ];
+      for (let field of assetFields) {
+        if (!formData[field]) {
+          toast.error(`Please fill the "${field}" field.`);
+          return false;
+        }
+      }
+    }
+
+    return true;
+  };
 
   const handleMoveToPricing = (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
+
     setLoanFormData(formData);
     router.push(`/Pricing/${formData.filename}`);
   };
@@ -831,7 +878,7 @@ const AddLoan = () => {
                   className="font-bold text-sm"
                   htmlFor="preferredSupplier"
                 >
-                  Preferred Supplier <span className="text-red-500">*</span>
+                  Preferred Supplier
                 </label>
                 <input
                   type="text"
@@ -849,7 +896,7 @@ const AddLoan = () => {
               </div>
               <div className="flex flex-col gap-2">
                 <label className="font-bold text-sm" htmlFor="assetPrice">
-                  Supplier Quote <span className="text-red-500">*</span>
+                  Supplier Quote
                 </label>
                 <input
                   type="number"

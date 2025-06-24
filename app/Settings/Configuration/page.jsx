@@ -7,19 +7,29 @@ import Layout from "@/app/components/Layout";
 import EntityTypeTab from "./EntityType";
 import LoanTransactionTypeTab from "./LoanTransactionType.";
 import EquitySettings from "./Equity";
+import Bank from "./Bank";
 
 const SettingsTabs = () => {
-  const [activeTab, setActiveTab] = useState("Interest Type Toggle");
+  const [activeTab, setActiveTab] = useState("Bank Toggle");
   const [depositTypes, setDepositTypes] = useState([]);
   const [loanTypes, setLoanTypes] = useState([]);
   const [depositInterest, setDepositInterest] = useState([]);
-  const [loanInterest, setLoanInterest] = useState([]);
   const [entityTypes, setEntityTypes] = useState([]);
   const [loanTransactionTypes, setLoanTransactionTypes] = useState([]);
 
   return (
     <Layout>
       <div className="flex gap-3 font-extrabold overflow-x-auto custom-scrollbar ">
+        <button
+          className={`${
+            activeTab === "Bank Toggle"
+              ? "text-[#3D873B] bg-gray-100 p-1 rounded-lg min-w-40"
+              : "text-[#333] min-w-40"
+          }`}
+          onClick={() => setActiveTab("Bank Toggle")}
+        >
+          Company Banks
+        </button>
         <button
           className={`${
             activeTab === "Interest Type Toggle"
@@ -83,6 +93,8 @@ const SettingsTabs = () => {
         </button>
       </div>
       <div className="tab-content">
+        {activeTab === "Bank Toggle" && <Bank />}
+
         {activeTab === "Interest Type Toggle" && <EquitySettings />}
         {activeTab === "Deposit Type Configuration" && (
           <DepositTypeConfiguration
