@@ -95,7 +95,10 @@ const dummySuppliers = [
 
 // Initialize localStorage with dummy data if empty
 function initializeData() {
-  if (!localStorage.getItem(STORAGE_KEY_For_Suppliers)) {
+  if (
+    typeof window !== "undefined" &&
+    !localStorage.getItem(STORAGE_KEY_For_Suppliers)
+  ) {
     localStorage.setItem(
       STORAGE_KEY_For_Suppliers,
       JSON.stringify(dummySuppliers)
@@ -104,9 +107,12 @@ function initializeData() {
 }
 
 function getAllSuppliers() {
-  initializeData(); // ensure data is initialized before fetching
-  const data = localStorage.getItem(STORAGE_KEY_For_Suppliers);
-  return data ? JSON.parse(data) : [];
+  if (typeof window !== "undefined") {
+    initializeData(); // Only runs in browser
+    const data = localStorage.getItem(STORAGE_KEY_For_Suppliers);
+    return data ? JSON.parse(data) : [];
+  }
+  return []; // Fallback for SSR
 }
 
 function saveAllSuppliers(suppliers) {

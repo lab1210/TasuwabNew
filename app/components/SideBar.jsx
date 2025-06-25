@@ -224,11 +224,6 @@ const SideBar = () => {
               privilege: "SelectApprovedLoans",
             },
 
-            // {
-            //   label: "Approved Loan Transactions",
-            //   href: "/Approved/Loan-Transactions",
-            //   privilege: "ViewApprovedTransactions",
-            // },
             {
               label: "Pending Applications",
               href: "/Pending/Loans",
@@ -290,15 +285,15 @@ const SideBar = () => {
             {
               label: "Approve Loan Applications",
               href: "/Approver",
-              privilege: "AssignApprovalRights",
+              privilege: "ApproveLoanApplication",
             },
             {
               label: "Approve Supplier Payments",
               href: "/Approver/Supplier-Payments",
-              privilege: "AssignApprovalRights",
+              privilege: "ApproveSupplierPayment",
             },
           ],
-          privilege: "AssignApprovalRights",
+          privilege: "ApproveLoanApplication" || "ApproveSupplierPayment",
         },
         {
           key: "settings",
@@ -342,17 +337,17 @@ const SideBar = () => {
   };
 
   return (
-    <div className="bg-[#fdfefd] shadow-md flex flex-col overflow-y-scroll custom-scrollbar w-full">
+    <div className="bg-[#fdfefd] shadow-md flex flex-col w-full h-screen">
       {authLoading || loadingPrivileges ? (
         <div>
           <HashLoader color="#333" size={60} />
         </div>
       ) : (
         <>
-          <div className=" w-full h-20 object-contain pl-2 pt-2 sticky top-0 bg-[#fdfefd] z-10">
+          <div className=" w-full h-20 object-contain pl-2 pt-2 sticky top-0 bg-[#fdfefd] z-[1000]">
             <img className="w-45 h-full" src="/logo.png" alt="" />
           </div>
-          <ul className="p-5 pl-2 pr-2 w-full h-full flex justify-between flex-col">
+          <ul className="pt-5 pl-2 pr-2 w-full h-full overflow-y-auto max-h-screen flex justify-between  custom-scrollbar flex-col">
             {menuItems.map((item) => (
               <li className="pb-1 w-full h-full cursor-pointer" key={item.key}>
                 <span

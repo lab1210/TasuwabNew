@@ -176,7 +176,7 @@ const ApprovePaymenttoSupplier = () => {
               ) : (
                 paginatedSuppliers.map((supplier, index) => (
                   <tr key={supplier.id} className="hover:bg-gray-50">
-                    <td className="py-3 px-4 text-center">
+                    <td className="py-3 px-4 text-center ">
                       {startIdx + index + 1}
                     </td>
                     <td className="py-3 px-4 text-center">
