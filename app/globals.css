@@ -24,3 +24,16 @@ body {
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
 }
+
+#nprogress {
+  pointer-events: none;
+}
+#nprogress .bar {
+  background: #3d873b;
+  height: 5px;
+  z-index: 9999;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+}

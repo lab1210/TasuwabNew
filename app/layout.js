@@ -1,5 +1,7 @@
 import { AuthProvider } from "@/Services/authService";
+import "nprogress/nprogress.css";
 import "./globals.css";
+import RouteProgressBar from "./RouteProgressBar";
 
 export const metadata = {
   title: "Tasuwab Micro Lending",
@@ -22,7 +24,10 @@ export default function RootLayout({ children }) {
             rel="stylesheet"
           />
         </head>
-        <body>{children}</body>
+        <body>
+          <RouteProgressBar />
+          {children}
+        </body>
       </html>
     </AuthProvider>
   );
