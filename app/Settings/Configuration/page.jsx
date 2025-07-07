@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import DepositTypeConfiguration from "./DepositType";
 import LoanTypeConfiguration from "./LoanType";
 import DepositInterestTableConfiguration from "./DepositInterest";
@@ -8,8 +8,11 @@ import EntityTypeTab from "./EntityType";
 import LoanTransactionTypeTab from "./LoanTransactionType.";
 import EquitySettings from "./Equity";
 import Bank from "./Bank";
+import roleService from "@/Services/roleService";
+import { useAuth } from "@/Services/authService";
 
 const SettingsTabs = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("Bank Toggle");
   const [depositTypes, setDepositTypes] = useState([]);
   const [loanTypes, setLoanTypes] = useState([]);

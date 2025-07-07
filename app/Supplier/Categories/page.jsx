@@ -1,6 +1,7 @@
 "use client";
 import Layout from "@/app/components/Layout";
 import categoryService from "@/Services/categoryService";
+import productService from "@/Services/productService";
 import React, { useState, useEffect } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import { FaTrashAlt } from "react-icons/fa";
@@ -11,34 +12,42 @@ export default function CategoryManager() {
   const [newProductName, setNewProductName] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [allProducts, setAllProducts] = useState([]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
 
   useEffect(() => {
-    setCategories(categoryService.getAllCategories());
+    const fetchCategories = async () => {
+      try {
+        const data = await categoryService.getCategories();
+        setCategories(data);
+      } catch (e) {
+        toast.error(e.message);
+      }
+    };
+    fetchCategories();
   }, []);
 
-  function refreshCategories() {
-    setCategories([...categoryService.getAllCategories()]);
-  }
-
-  function handleAddCategory() {
+  async function handleAddCategory() {
     if (!newCategoryName.trim()) {
       toast.error("Category name cannot be empty");
       return;
     }
     try {
-      categoryService.addCategory(newCategoryName.trim());
+      await categoryService.addCategory({ name: newCategoryName.trim() });
+
+      const updatedCategories = await categoryService.getCategories();
+      setCategories(updatedCategories);
+
       toast.success(`Category "${newCategoryName}" added!`);
       setNewCategoryName("");
-      refreshCategories();
     } catch (e) {
       toast.error(e.message);
     }
   }
 
-  function handleAddProduct() {
+  async function handleAddProduct() {
     if (!selectedCategoryId) {
       toast.error("Select a category first");
       return;
@@ -48,7 +57,16 @@ export default function CategoryManager() {
       return;
     }
 
-    const existingProduct = selectedCategory?.products.find(
+    const selectedCategory = categories.find(
+      (cat) => String(cat.id) === selectedCategoryId
+    );
+
+    if (!selectedCategory) {
+      toast.error("Selected category not found.");
+      return;
+    }
+
+    const existingProduct = selectedCategory.products?.find(
       (p) => p.name.toLowerCase() === newProductName.trim().toLowerCase()
     );
 
@@ -58,45 +76,47 @@ export default function CategoryManager() {
     }
 
     try {
-      categoryService.addProductToCategory(
-        selectedCategoryId,
-        newProductName.trim()
-      );
+      await productService.addProductToCategory({
+        categoryId: selectedCategoryId,
+        name: newProductName.trim(),
+      });
       toast.success(`Product "${newProductName}" added!`);
       setNewProductName("");
-      refreshCategories();
-      setCurrentPage(1); // reset to first page after adding product
+      setCurrentPage(1);
+
+      const updatedProducts = await categoryService.getallProductsunderCategory(
+        selectedCategoryId
+      );
+      setAllProducts(updatedProducts);
     } catch (e) {
-      toast.error(e.message);
+      toast.error(e.message || "Failed to add product");
     }
   }
 
-  function handleDeleteCategory(id) {
-    if (window.confirm("Are you sure you want to delete this category?")) {
-      try {
-        categoryService.deleteCategory(id);
-        toast.success("Category deleted");
-        if (selectedCategoryId === id) setSelectedCategoryId(null);
-        refreshCategories();
-        setCurrentPage(1);
-      } catch (e) {
-        toast.error(e.message);
-      }
-    }
-  }
+  // function handleDeleteCategory(id) {
+  //   if (window.confirm("Are you sure you want to delete this category?")) {
+  //     try {
+  //       categoryService.deleteCategory(id);
+  //       toast.success("Category deleted");
+  //       if (selectedCategoryId === id) setSelectedCategoryId(null);
+  //       setCurrentPage(1);
+  //     } catch (e) {
+  //       toast.error(e.message);
+  //     }
+  //   }
+  // }
 
-  function handleRemoveProduct(categoryId, productId) {
-    if (window.confirm("Remove this product?")) {
-      try {
-        categoryService.removeProductFromCategory(categoryId, productId);
-        toast.success("Product removed");
-        refreshCategories();
-        setCurrentPage(1);
-      } catch (e) {
-        toast.error(e.message);
-      }
-    }
-  }
+  // function handleRemoveProduct(categoryId, productId) {
+  //   if (window.confirm("Remove this product?")) {
+  //     try {
+  //       categoryService.removeProductFromCategory(categoryId, productId);
+  //       toast.success("Product removed");
+  //       setCurrentPage(1);
+  //     } catch (e) {
+  //       toast.error(e.message);
+  //     }
+  //   }
+  // }
 
   useEffect(() => {
     setCurrentPage(1);
@@ -104,10 +124,8 @@ export default function CategoryManager() {
   }, [selectedCategoryId]);
 
   const selectedCategory = categories.find(
-    (cat) => cat.id === selectedCategoryId
+    (cat) => String(cat.id) === selectedCategoryId
   );
-
-  const allProducts = selectedCategory?.products || [];
 
   const filteredProducts = allProducts.filter((product) =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -159,7 +177,18 @@ export default function CategoryManager() {
           <select
             className="w-full p-3 rounded   border border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-500"
             value={selectedCategoryId || ""}
-            onChange={(e) => setSelectedCategoryId(Number(e.target.value))}
+            onChange={async (e) => {
+              const value = e.target.value;
+              setSelectedCategoryId(value);
+              try {
+                const products =
+                  await categoryService.getallProductsunderCategory(value);
+                setAllProducts(products);
+              } catch (err) {
+                toast.error("Failed to load products for selected category");
+                setAllProducts([]); // clear in case of failure
+              }
+            }}
           >
             <option value="" disabled>
               Select a category
@@ -222,9 +251,9 @@ export default function CategoryManager() {
                       <td className="py-3 px-4">{product.name}</td>
                       <td className="py-3 px-4">
                         <button
-                          onClick={() =>
-                            handleRemoveProduct(selectedCategoryId, product.id)
-                          }
+                          // onClick={() =>
+                          //   handleRemoveProduct(selectedCategoryId, product.id)
+                          // }
                           className="text-red-500 hover:text-red-700 font-semibold cursor-pointer"
                           aria-label={`Remove ${product.name}`}
                         >
@@ -269,7 +298,7 @@ export default function CategoryManager() {
             )}
 
             <button
-              onClick={() => handleDeleteCategory(selectedCategoryId)}
+              // onClick={() => handleDeleteCategory(selectedCategoryId)}
               className="w-full py-3 bg-red-600 hover:bg-red-700 rounded text-white font-semibold transition mt-6"
             >
               Delete This Category

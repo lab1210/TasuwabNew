@@ -165,96 +165,97 @@ const BranchList = () => {
               className="placeholder:text-sm border p-1 w-full rounded-md border-gray-200 outline-0"
             />
           </div>
-          <div className="w-full overflow-y-auto overflow-x-hidden">
-            {filteredBranch.map((branch) => (
-              <div
-                className="w-full shadow-md flex flex-col lg:grid lg:grid-cols-2 p-5 lg:items-start rounded-md"
-                key={branch.branch_id}
-              >
-                <div>
-                  <div className="flex-1 lg:mb-0 mb-4">
-                    <p className="font-extrabold text-lg mb-1.5">
-                      {branch.name}
-                    </p>
-                    <p className="text-[#3D873B] text-sm">
-                      {branch.description}
-                    </p>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex gap-3 flex-wrap lg:justify-end ">
-                    <div className="text-xs flex items-center gap-2">
-                      <p className="font-bold text-sm">ID:</p>{" "}
-                      {branch.branch_id}
-                    </div>
-                    <div className="text-xs flex items-center gap-2">
-                      <p className="font-bold text-sm">Email:</p> {branch.email}
-                    </div>
-                    <div className="text-xs flex items-center gap-2">
-                      <p className="font-bold text-sm">Phone:</p> {branch.phone}
-                    </div>
-                    <div className="text-xs flex items-center gap-2">
-                      <p className="font-bold text-sm">Status:</p>{" "}
+          <div className="overflow-x-auto">
+            <table className="w-full table-auto divide-y divide-gray-200 shadow-lg rounded-md">
+              <thead className="bg-gray-50 text-gray-500 text-sm">
+                <tr>
+                  <th className="text-left py-3 px-4">Name</th>
+                  <th className="text-left py-3 px-4">Description</th>
+                  <th className="text-left py-3 px-4">Email</th>
+                  <th className="text-left py-3 px-4">Phone</th>
+                  <th className="text-left py-3 px-4">ID</th>
+                  <th className="text-left py-3 px-4">Status</th>
+                  {hasPrivilege(
+                    "UpdateBranch" ||
+                      "DeleteBranch" ||
+                      "ActivateBranch" ||
+                      "DeactivateBranch"
+                  ) && <th className="text-left py-3 px-4 ">Actions</th>}
+                </tr>
+              </thead>
+              <tbody className="text-sm divide-y divide-gray-200">
+                {filteredBranch.map((branch) => (
+                  <tr key={branch.branch_id}>
+                    <td className="py-3 px-4">{branch.name}</td>
+                    <td className="py-3 px-4">{branch.description}</td>
+                    <td className="py-3 px-4">{branch.email}</td>
+                    <td className="py-3 px-4">{branch.phone}</td>
+                    <td className="py-3 px-4">{branch.branch_id}</td>
+                    <td className="py-3 px-4">
                       {branch.is_active ? "Active" : "Inactive"}
-                    </div>
-                  </div>
-                  <div className="flex justify-end gap-2 mt-2">
-                    {hasPrivilege("UpdateBranch") && (
-                      <FaEdit
-                        className="cursor-pointer"
-                        size={20}
-                        onClick={() => {
-                          setSelectedBranch(branch);
-                          setEditModalOpen(true);
-                        }}
-                      />
-                    )}
-                    {hasPrivilege("DeleteBranch") && (
-                      <FaTrash
-                        size={20}
-                        className="text-red-500 cursor-pointer"
-                        onClick={() => {
-                          setSelectedBranch(branch);
-                          setDeleteModalOpen(true);
-                        }}
-                      />
-                    )}
-                  </div>
-                </div>
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <div className="flex items-center gap-2 justify-center flex-wrap">
+                        {hasPrivilege("UpdateBranch") && (
+                          <FaEdit
+                            className="cursor-pointer text-[#333]"
+                            onClick={() => {
+                              setSelectedBranch(branch);
+                              setEditModalOpen(true);
+                            }}
+                          />
+                        )}
+                        {hasPrivilege("DeleteBranch") && (
+                          <FaTrash
+                            className="cursor-pointer text-red-600"
+                            onClick={() => {
+                              setSelectedBranch(branch);
+                              setDeleteModalOpen(true);
+                            }}
+                          />
+                        )}
+                        {branch.is_active
+                          ? hasPrivilege("DeactivateBranch") && (
+                              <button
+                                onClick={() =>
+                                  handleDeactivate(branch.branch_id)
+                                }
+                                disabled={deactivatingId === branch.branch_id}
+                                className="bg-red-500 text-white text-xs px-2 py-1 rounded"
+                              >
+                                {deactivatingId === branch.branch_id
+                                  ? "Deactivating..."
+                                  : "Deactivate"}
+                              </button>
+                            )
+                          : hasPrivilege("ActivateBranch") && (
+                              <button
+                                onClick={() => handleActivate(branch.branch_id)}
+                                disabled={activatingId === branch.branch_id}
+                                className="bg-green-600 text-white text-xs px-2 py-1 rounded"
+                              >
+                                {activatingId === branch.branch_id
+                                  ? "Activating..."
+                                  : "Activate"}
+                              </button>
+                            )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
 
-                <div>
-                  {branch.is_active
-                    ? hasPrivilege("DeactivateBranch") && (
-                        <button
-                          onClick={() => handleDeactivate(branch.branch_id)}
-                          disabled={deactivatingId === branch.branch_id}
-                          className="bg-red-600 text-white text-sm p-2 rounded-md mt-8 cursor-pointer"
-                        >
-                          {deactivatingId === branch.branch_id
-                            ? "Deactivating..."
-                            : "Deactivate"}
-                        </button>
-                      )
-                    : hasPrivilege("ActivateBranch") && (
-                        <button
-                          onClick={() => handleActivate(branch.branch_id)}
-                          disabled={activatingId === branch.branch_id}
-                          className="bg-green-600 text-white text-sm p-2 rounded-md mt-8 cursor-pointer"
-                        >
-                          {deactivatingId === branch.branch_id
-                            ? "Activating..."
-                            : "Activate"}
-                        </button>
-                      )}
-                  {activationError && (
-                    <p className="text-xs text-red-500">{activationError}</p>
-                  )}
-                  {deactivationError && (
-                    <p className="text-xs text-red-500">{deactivationError}</p>
-                  )}
-                </div>
-              </div>
-            ))}
+                {filteredBranch.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan="7"
+                      className="px-4 py-6 text-center text-gray-500"
+                    >
+                      No Branches available.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

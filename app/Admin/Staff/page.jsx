@@ -26,6 +26,9 @@ const Staff = () => {
   const [rolePrivileges, setRolePrivileges] = useState([]);
   const [loadingPrivileges, setLoadingPrivileges] = useState(true);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   useEffect(() => {
     const fetchPrivileges = async () => {
       if (user?.role) {
@@ -90,6 +93,11 @@ const Staff = () => {
         s.phone?.includes(filterText.toLowerCase())
     ) || [];
 
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredStaff.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredStaff.length / itemsPerPage);
+
   if (loading || loadingPrivileges) {
     return (
       <Layout>
@@ -136,92 +144,117 @@ const Staff = () => {
               type="text"
               placeholder="Search..."
               value={filterText}
-              onChange={(e) => setFilterText(e.target.value)}
+              onChange={(e) => {
+                setFilterText(e.target.value);
+                setCurrentPage(1); // Reset to first page on search
+              }}
               className="placeholder:text-sm border p-1 w-full rounded-md border-gray-200 outline-0"
             />
           </div>
-          <div className="w-full overflow-x-hidden">
-            {filteredStaff.map((staff) => {
-              return (
-                <div
-                  className="w-full shadow-md flex flex-col lg:grid lg:grid-cols-2 p-5 lg:items-start rounded-md"
-                  key={staff.staffCode}
+          <div className="overflow-x-auto w-full">
+            <table className="w-full table-auto divide-y divide-gray-200 shadow-lg rounded-md">
+              <thead className="bg-gray-50 text-gray-500 text-sm">
+                <tr>
+                  <th className="text-left py-3 px-4">Name</th>
+                  <th className="text-left py-3 px-4">Code</th>
+                  <th className="text-left py-3 px-4">Branch</th>
+                  <th className="text-left py-3 px-4">Department</th>
+                  <th className="text-left py-3 px-4">Position</th>
+                  <th className="text-left py-3 px-4">Role</th>
+                  <th className="text-left py-3 px-4 ">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="text-sm divide-y divide-gray-200">
+                {currentItems.map((staff) => (
+                  <tr
+                    key={staff.staffCode}
+                    className="border-t hover:bg-gray-50"
+                  >
+                    <td className="py-3 px-4">
+                      {staff.firstName + " " + staff.lastName}
+                    </td>
+                    <td className="py-3 px-4">{staff.staffCode}</td>
+                    <td className="py-3 px-4">{staff.branchID}</td>
+                    <td className="py-3 px-4">{staff.departmentID}</td>
+                    <td className="py-3 px-4">{staff.positionID}</td>
+                    <td className="py-3 px-4">{staff.roleID}</td>
+                    <td className="py-3 px-4 ">
+                      <div className="flex items-center gap-2 justify-center flex-wrap">
+                        {hasPrivilege("UpdateStaff") && (
+                          <FaEdit
+                            className="cursor-pointer text-blue-600"
+                            onClick={() => {
+                              setSelectedStaff(staff);
+                              setEditModalOpen(true);
+                            }}
+                          />
+                        )}
+                        {hasPrivilege("DeleteStaff") && (
+                          <FaTrash
+                            className="cursor-pointer text-red-600"
+                            onClick={() => {
+                              setSelectedStaff(staff);
+                              setDeleteModalOpen(true);
+                            }}
+                          />
+                        )}
+                        <FaEye
+                          className="cursor-pointer text-green-600"
+                          onClick={() => {
+                            setSelectedStaff(staff);
+                            setDetailModalOpen(true);
+                          }}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {currentItems.length === 0 && (
+                  <tr>
+                    <td colSpan="7" className="text-center py-3 text-gray-500">
+                      No staff found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+            {filteredStaff.length > itemsPerPage && (
+              <div className="flex justify-center items-center gap-2 mt-4">
+                <button
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(prev - 1, 1))
+                  }
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
                 >
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <div className="rounded-full w-8 h-8 p-2 object-contain bg-gray-100 flex items-center">
-                        <FaUser className="w-full h-full" />
-                      </div>
-                      <div>
-                        <p className="font-extrabold text-lg mb-1.5">
-                          {staff.firstName + " " + staff.lastName}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <div>
-                      <div className="flex gap-3 flex-wrap lg:justify-end ">
-                        <div className="text-xs flex items-center gap-2">
-                          <p className="font-bold text-sm">Code:</p>{" "}
-                          {staff.staffCode}
-                        </div>
-                        <div className="text-xs flex items-center gap-2">
-                          <p className="font-bold text-sm">Branch:</p>{" "}
-                          {staff.branchID}
-                        </div>
-                        <div className="text-xs flex items-center gap-2">
-                          <p className="font-bold text-sm">Department:</p>{" "}
-                          {staff.departmentID}
-                        </div>
-                        <div className="text-xs flex items-center gap-2">
-                          <p className="font-bold text-sm">Position:</p>{" "}
-                          {staff.positionID}
-                        </div>
-                        <div className="text-xs flex items-center gap-2">
-                          <p className="font-bold text-sm">Role:</p>{" "}
-                          {staff.roleID}
-                        </div>
-                      </div>
-                    </div>
+                  Prev
+                </button>
 
-                    <div className="flex justify-end mt-2 gap-2">
-                      {hasPrivilege("UpdateStaff") && (
-                        <FaEdit
-                          className="cursor-pointer"
-                          size={20}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedStaff(staff);
-                            setEditModalOpen(true);
-                          }}
-                        />
-                      )}
-                      {hasPrivilege("DeleteStaff") && (
-                        <FaTrash
-                          size={20}
-                          className="text-red-500 cursor-pointer"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedStaff(staff);
-                            setDeleteModalOpen(true);
-                          }}
-                        />
-                      )}
-                      <FaEye
-                        size={20}
-                        className="cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedStaff(staff);
-                          setDetailModalOpen(true);
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+                {Array.from({ length: totalPages }, (_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentPage(index + 1)}
+                    className={`px-3 py-1 rounded ${
+                      currentPage === index + 1
+                        ? "bg-[#3D873B] text-white"
+                        : "bg-gray-200"
+                    }`}
+                  >
+                    {index + 1}
+                  </button>
+                ))}
+
+                <button
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                  }
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

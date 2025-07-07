@@ -36,7 +36,6 @@ const Login = () => {
       console.log("Login successful, redirecting...");
       // After successful login, authService should handle redirection internally
     } catch (err) {
-      console.error("Login failed:", err); // Log error for debugging
       if (typeof err === "string" && err.includes("Password not set")) {
         // Handle password not set scenario
         router.push("/Authentication/Set-Password");
@@ -52,8 +51,8 @@ const Login = () => {
   };
 
   return (
-    <div className="bg-[url(/loginbg.png)] shadow-md bg-cover bg-center w-screen h-screen flex justify-center p-8">
-      <div className="flex flex-col">
+    <div className="bg-[url(/loginbg.png)]  bg-cover bg-center w-screen h-screen flex justify-center items-center p-8 sm:p-0">
+      <div className="flex flex-col ">
         <div className="w-38 h-18 object-contain mb-3">
           <img src="/logo.png" alt="" className="w-full h-full" />
         </div>

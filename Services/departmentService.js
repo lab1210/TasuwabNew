@@ -1,7 +1,7 @@
 // departmentService.js
 import axios from "axios";
 
-const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/Department`; // Assuming your DepartmentController is under /api/Department
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/Department`;
 
 const departmentService = {
   addDepartment: async (departmentData) => {

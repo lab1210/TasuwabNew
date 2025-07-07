@@ -1,43 +1,41 @@
 "use client";
-
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Table from "./Table";
 import toast from "react-hot-toast";
 import { MdModeEditOutline } from "react-icons/md";
+import bankService from "@/Services/bankService";
 
 const Bank = () => {
   const [editIndex, setEditIndex] = useState(null);
-  const [banks, setBanks] = useState([
-    {
-      bank_name: "First Bank",
-      account_number: "1234567890",
-      account_name: "Tasuwab 1",
-      account_type: "Current",
-      status: true,
-    },
-    {
-      bank_name: "GTBank",
-      account_number: "9876543210",
-      account_name: "Tasuwab 2",
-      account_type: "Savings",
-      status: false,
-    },
-  ]);
+  const [banks, setBanks] = useState([]);
   const [formData, setFormData] = useState({
-    bank_name: "",
-    account_number: "",
-    account_name: "",
-    account_type: "",
+    bankName: "",
+    accountNumber: "",
+    accountName: "",
+    accountType: "",
     status: true,
   });
+
+  useEffect(() => {
+    fetchBanks();
+  }, []);
+
+  const fetchBanks = async () => {
+    try {
+      const data = await bankService.getBank();
+      setBanks(data);
+    } catch (err) {
+      toast.error("Failed to fetch banks. Please try again later.");
+    }
+  };
 
   const handleEdit = (index) => {
     const selected = banks[index];
     setFormData({
-      bank_name: selected.bank_name,
-      account_number: selected.account_number,
-      account_name: selected.account_name,
-      account_type: selected.account_type,
+      bankName: selected.bankName,
+      accountNumber: selected.accountNumber,
+      accountName: selected.accountName,
+      accountType: selected.accountType,
       status: selected.status || true,
     });
     setEditIndex(index);
@@ -46,8 +44,7 @@ const Bank = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    if (name === "account_number") {
-      // Only allow digits
+    if (name === "accountNumber") {
       const digitsOnly = value.replace(/\D/g, "");
       setFormData((prev) => ({
         ...prev,
@@ -61,11 +58,11 @@ const Bank = () => {
     }
   };
 
-  const handleAddBank = () => {
+  const handleAddBank = async () => {
     if (
-      !formData.bank_name ||
-      !formData.account_number ||
-      !formData.account_name
+      !formData.bankName ||
+      !formData.accountNumber ||
+      !formData.accountName
     ) {
       toast.error("Please fill in all required fields.");
       return;
@@ -78,58 +75,58 @@ const Bank = () => {
       status: parsedStatus,
     };
 
-    if (editIndex !== null) {
-      // Editing existing
-      const updatedBanks = [...banks];
-      updatedBanks[editIndex] = bankData;
-      setBanks(updatedBanks);
-      toast.success("Bank details updated.");
+    try {
+      if (editIndex !== null) {
+        const id = banks[editIndex]?.id;
+        await bankService.editBank(id, bankData);
+        toast.success("Bank updated successfully.");
+      } else {
+        await bankService.addBank(bankData);
+        toast.success("Bank added successfully.");
+      }
+      setFormData({
+        bankName: "",
+        accountNumber: "",
+        accountName: "",
+        accountType: "",
+        status: true,
+      });
       setEditIndex(null);
-    } else {
-      // Adding new
-      setBanks((prev) => [...prev, bankData]);
-      toast.success("Bank added.");
+      fetchBanks();
+    } catch (error) {
+      toast.error(error.message || "Failed to submit bank data.");
     }
-
-    // Reset form
-    setFormData({
-      bank_name: "",
-      account_number: "",
-      account_name: "",
-      account_type: "",
-      status: true,
-    });
   };
 
   return (
     <div className="p-6">
       <h3 className="font-semibold text-[#333] mb-4">Add Bank Account</h3>
       <div className="flex gap-3 items-end">
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
           <input
-            name="bank_name"
+            name="bankName"
             className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
             placeholder="Bank Name"
-            value={formData.bank_name}
+            value={formData.bankName}
             onChange={handleChange}
           />
           <input
-            name="account_number"
+            name="accountNumber"
             className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
             placeholder="Account Number"
-            value={formData.account_number}
+            value={formData.accountNumber}
             onChange={handleChange}
           />
           <input
-            name="account_name"
+            name="accountName"
             className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
             placeholder="Account Name"
-            value={formData.account_name}
+            value={formData.accountName}
             onChange={handleChange}
           />
           <select
-            name="account_type"
-            value={formData.account_type}
+            name="accountType"
+            value={formData.accountType}
             onChange={handleChange}
             className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
           >
@@ -137,15 +134,17 @@ const Bank = () => {
             <option value="Savings">Savings</option>
             <option value="Current">Current</option>
           </select>
-          <select
-            name="status"
-            value={formData.status}
-            onChange={handleChange}
-            className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
-          >
-            <option value="true">Active</option>
-            <option value="false">Inactive</option>
-          </select>
+          {editIndex !== null && (
+            <select
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
+            >
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </select>
+          )}
         </div>
         <button
           className="bg-[#3D873B] text-white p-2 pl-5 pr-5 hover:bg-green-600 cursor-pointer rounded-md"
@@ -164,10 +163,10 @@ const Bank = () => {
           "",
         ]}
         rows={banks.map((bank, idx) => [
-          bank.bank_name,
-          bank.account_number,
-          bank.account_name,
-          bank.account_type,
+          bank.bankName,
+          bank.accountNumber,
+          bank.accountName,
+          bank.accountType,
           bank.status === true || bank.status === "true" ? (
             <p className="text-green-500 max-w-20 font-bold rounded-md bg-green-50 text-center p-1">
               Active
@@ -178,7 +177,7 @@ const Bank = () => {
             </p>
           ),
           <MdModeEditOutline
-            key={bank.account_number}
+            key={bank.id || idx}
             size={22}
             className="hover:text-gray-500 cursor-pointer"
             onClick={() => handleEdit(idx)}
