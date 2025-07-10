@@ -1,13 +1,8 @@
 "use client";
-
-"use client";
 import React, { useState } from "react";
 import Table from "./Table";
 
-const LoanTransactionTypeTab = ({
-  loanTransactionTypes,
-  setLoanTransactionTypes,
-}) => {
+const LoanTransactionTypeTab = () => {
   const [loanTransactionRow, setLoanTransactionRow] = useState({
     name: "",
     description: "",

@@ -4,21 +4,19 @@ import React, { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import { useAuth } from "@/Services/authService";
 import { useRouter } from "next/navigation";
-import useAccountService from "@/Services/accountService";
 import roleService from "@/Services/roleService";
 import { FaPlus } from "react-icons/fa";
 import { Tooltip } from "react-tooltip";
 import Modal from "../components/Modal";
-import AddAccount from "./AddAccount";
 import branchService from "@/Services/branchService";
+import useAccountService from "@/Services/accountService";
+import AddAccount from "./AddAccount";
 
 const ITEMS_PER_PAGE = 4;
 
 const Accounts = () => {
   const { user } = useAuth();
-  const [addModalOpen, setAddModalOpen] = useState(false);
   const [branches, setBranches] = useState([]);
-
   const [Accounts, setAccounts] = useState([]);
   const [filterText, setFilterText] = useState("");
   const [filteredAccounts, setfilteredAccounts] = useState([]);
@@ -54,10 +52,9 @@ const Accounts = () => {
   const fetchAccounts = async () => {
     setLoading(true);
     setError(null);
-    const accountService = useAccountService(); // ✅ important
 
     try {
-      const response = await accountService.getAllAccounts(); // ✅ correct usage
+      const response = await useAccountService.getAllAccounts();
       const data = Array.isArray(response?.data) ? response.data : response;
       if (Array.isArray(data)) {
         setAccounts(data);
@@ -160,11 +157,11 @@ const Accounts = () => {
               View all of your client account information.
             </p>
           </div>
-          {hasPrivilege("CreateAccount") && (
+          {hasPrivilege("CreateAccounts") && (
             <div
-              onClick={() => setAddModalOpen(true)}
               id="add-account-icon"
               className="w-7 h-7 rounded-full cursor-pointer hover:bg-gray-100 p-1"
+              onClick={() => router.push("/Account/AddAccount")}
             >
               <FaPlus className="text-[#3D873B] w-full h-full" />
             </div>
@@ -194,44 +191,34 @@ const Accounts = () => {
             <thead className="bg-gray-50 text-gray-500 text-sm">
               <tr>
                 <th className="text-left py-3 px-4">S/N</th>
-                {/* <th className="text-left py-3 px-4">Account Code</th> */}
+                <th className="text-left py-3 px-4">Account Code</th>
                 <th className="text-left py-3 px-4">Account Name</th>
-                <th className="text-left py-3 px-4">Account Type</th>
-
-                <th className="text-left py-3 px-4">Entity Type</th>
-                <th className="text-left py-3 px-4">Branch</th>
-                <th className="text-left py-3 px-4">Account Balance</th>
                 <th className="text-left py-3 px-4">Owners</th>
-
+                <th className="text-left py-3 px-4">Branch</th>
+                <th className="text-left py-3 px-4">Account Type</th>
+                <th className="text-left py-3 px-4">Entity Type</th>
+                <th className="text-left py-3 px-4">Account Balance</th>
                 <th className="text-left py-3 px-4">Status</th>
+                <th className="text-left py-3 px-4">Open Date</th>
+                <th className="text-left py-3 px-4">Close Date</th>
+                <th className="text-left py-3 px-4">Created date</th>
+                <th className="text-left py-3 px-4">Last Updated</th>
+                <th className="text-left py-3 px-4">Performed by</th>
               </tr>
             </thead>
-            <tbody className="text-sm text-gray-700">
+            <tbody className="text-xs text-gray-700">
               {paginatedClients.map((account, index) => (
                 <tr key={account.accountCode} className="hover:bg-gray-50">
                   <td className="py-3 px-4">{startIdx + index + 1}</td>
-                  {/* <td className="py-3 px-4">{account.accountCode}</td> */}
-                  <td className="py-3 px-4 text-center">-</td>
-                  <td className="py-3 px-4">{account.accountTypeCode}</td>
-                  <td className="py-3 px-4">{account.entityTypeCode}</td>
+                  <td className="py-3 px-4">{account.accountCode}</td>
+                  <td className="py-3 px-4">{account.accountName}</td>
+                  <td className="py-3 px-4">{account.owners}</td>
                   <td className="py-3 px-4">
                     {getBranchName(account.branchCode)}
                   </td>
-
+                  <td className="py-3 px-4">{account.accountTypeCode}</td>
+                  <td className="py-3 px-4">{account.entityTypeCode}</td>
                   <td className="py-3 px-4">{account.balance}</td>
-                  <td className="py-3 px-4">
-                    {account.owners && account.owners.length > 0
-                      ? account.owners.map((owner, idx) => (
-                          <div key={idx} className="block">
-                            <p>
-                              Client ID: {owner.clientId} | Ownership Type:{" "}
-                              {owner.ownershipType} | Ownership Percentage:{" "}
-                              {owner.ownershipPercentage}%
-                            </p>
-                          </div>
-                        ))
-                      : "No owners"}
-                  </td>
 
                   <td className="py-3 px-4">
                     {account.isActive ? (
@@ -244,12 +231,25 @@ const Accounts = () => {
                       </p>
                     )}
                   </td>
+                  <td className="py-3 px-4">
+                    {account.openDate.toLocaleDateString()}
+                  </td>
+                  <td className="py-3 px-4">
+                    {account.closeDate.toLocaleDateString()}
+                  </td>
+                  <td className="py-3 px-4">
+                    {account.createdAt.toLocaleDateString()}
+                  </td>
+                  <td className="py-3 px-4">
+                    {account.updatedAt.toLocaleDateString()}
+                  </td>
+                  <td className="py-3 px-4">{account.performedBy}</td>
                 </tr>
               ))}
               {paginatedClients.length === 0 && (
                 <tr>
                   <td
-                    colSpan="7"
+                    colSpan="14"
                     className="px-4 py-6 text-center text-gray-500"
                   >
                     No Accounts available.
@@ -259,19 +259,40 @@ const Accounts = () => {
             </tbody>
           </table>
         </div>
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 mt-4">
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              className="px-3 py-1 text-sm border rounded hover:bg-gray-100"
+              disabled={currentPage === 1}
+            >
+              Prev
+            </button>
+            {[...Array(totalPages)].map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentPage(i + 1)}
+                className={`px-3 py-1 text-sm border rounded ${
+                  currentPage === i + 1
+                    ? "bg-[#3D873B] text-white"
+                    : "hover:bg-gray-100"
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+            <button
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
+              className="px-3 py-1 text-sm border rounded hover:bg-gray-100"
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
-      <Modal
-        isOpen={addModalOpen}
-        onClose={() => setAddModalOpen(false)}
-        title={"Add Account"}
-        description="Fill in the form to add an account."
-      >
-        <AddAccount
-          onClose={() => setAddModalOpen(false)}
-          onAdd={fetchAccounts}
-          branchCode={user?.BranchCode}
-        />
-      </Modal>
     </Layout>
   );
 };

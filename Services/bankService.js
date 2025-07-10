@@ -26,5 +26,14 @@ const bankService = {
       throw error.response?.data || error.message || "Failed to fetch banks";
     }
   },
+  getNigerianBanks: async () => {
+    try {
+      const response = await axios.get("https://nigerianbanks.xyz");
+      console.log(response.data);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 export default bankService;

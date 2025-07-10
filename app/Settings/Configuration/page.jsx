@@ -6,19 +6,11 @@ import DepositInterestTableConfiguration from "./DepositInterest";
 import Layout from "@/app/components/Layout";
 import EntityTypeTab from "./EntityType";
 import LoanTransactionTypeTab from "./LoanTransactionType.";
-import EquitySettings from "./Equity";
+// import EquitySettings from "./Equity";
 import Bank from "./Bank";
-import roleService from "@/Services/roleService";
-import { useAuth } from "@/Services/authService";
 
 const SettingsTabs = () => {
-  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("Bank Toggle");
-  const [depositTypes, setDepositTypes] = useState([]);
-  const [loanTypes, setLoanTypes] = useState([]);
-  const [depositInterest, setDepositInterest] = useState([]);
-  const [entityTypes, setEntityTypes] = useState([]);
-  const [loanTransactionTypes, setLoanTransactionTypes] = useState([]);
 
   return (
     <Layout>
@@ -33,7 +25,7 @@ const SettingsTabs = () => {
         >
           Company Banks
         </button>
-        <button
+        {/* <button
           className={`${
             activeTab === "Interest Type Toggle"
               ? "text-[#3D873B] bg-gray-100 p-1 rounded-lg min-w-40"
@@ -42,7 +34,7 @@ const SettingsTabs = () => {
           onClick={() => setActiveTab("Interest Type Toggle")}
         >
           Equity Contribution
-        </button>
+        </button> */}
 
         <button
           className={`${
@@ -98,39 +90,17 @@ const SettingsTabs = () => {
       <div className="tab-content">
         {activeTab === "Bank Toggle" && <Bank />}
 
-        {activeTab === "Interest Type Toggle" && <EquitySettings />}
+        {/* {activeTab === "Interest Type Toggle" && <EquitySettings />} */}
         {activeTab === "Deposit Type Configuration" && (
-          <DepositTypeConfiguration
-            depositTypes={depositTypes}
-            setDepositTypes={setDepositTypes}
-          />
+          <DepositTypeConfiguration />
         )}
-        {activeTab === "Entity Type Configuration" && (
-          <EntityTypeTab
-            entityTypes={entityTypes}
-            setEntityTypes={setEntityTypes}
-          />
-        )}
-        {activeTab === "Loan Type Configuration" && (
-          <LoanTypeConfiguration
-            loanTypes={loanTypes}
-            setLoanTypes={setLoanTypes}
-          />
-        )}
+        {activeTab === "Entity Type Configuration" && <EntityTypeTab />}
+        {activeTab === "Loan Type Configuration" && <LoanTypeConfiguration />}
         {activeTab === "Deposit Interest Table Configuration" && (
-          <DepositInterestTableConfiguration
-            depositTypes={depositTypes}
-            depositInterest={depositInterest}
-            setDepositInterest={setDepositInterest}
-          />
+          <DepositInterestTableConfiguration />
         )}
 
-        {activeTab === "Loan Transaction Type" && (
-          <LoanTransactionTypeTab
-            loanTransactionTypes={loanTransactionTypes}
-            setLoanTransactionTypes={setLoanTransactionTypes}
-          />
-        )}
+        {activeTab === "Loan Transaction Type" && <LoanTransactionTypeTab />}
       </div>
     </Layout>
   );

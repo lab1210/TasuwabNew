@@ -34,7 +34,7 @@ const DeletePosition = ({ position, onClose, onDelete }) => {
       {error && <p className="text-red-500 font-bold text-sm">{error}</p>}
 
       <div className="text-gray-400 flex justify-center">
-        <FaTrashAlt size={30} />
+        <FaTrashAlt size={20} />
       </div>
       <p className="mt-6 font-bold text-gray-500">
         Are you sure you want to delete "

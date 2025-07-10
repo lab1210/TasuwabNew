@@ -34,5 +34,15 @@ const categoryService = {
       );
     }
   },
+  deleteCategory: async (categoryId) => {
+    try {
+      const response = await axios.delete(`${API_BASE_URL}/${categoryId}`);
+      return response.data;
+    } catch (error) {
+      throw (
+        error.response?.data || error.message || "Failed to delete category"
+      );
+    }
+  },
 };
 export default categoryService;

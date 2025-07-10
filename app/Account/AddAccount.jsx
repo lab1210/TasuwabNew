@@ -12,10 +12,13 @@ const AddAccount = ({ onClose, onAdd, branchCode }) => {
   const [clients, setClients] = useState([]);
 
   const [formData, setFormData] = useState({
-    accountType: "",
-    entityType: "",
-    branch: branchCode,
-    owners: [],
+    accountCode: "",
+    accountTypeCode: "",
+    entityTypeCode: "",
+    branchCode: "",
+    owners: "",
+    accountName: "",
+    performedBy: "",
   });
 
   useEffect(() => {

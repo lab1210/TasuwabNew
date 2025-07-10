@@ -159,7 +159,7 @@ const AddRole = () => {
                         privilegeIds: allPrivileges.map((p) => p.privilegeId),
                       }))
                     }
-                    className="text-sm text-blue-600 hover:underline"
+                    className="text-sm text-[#3D873B] hover:underline"
                   >
                     Select All
                   </button>

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { BsGenderFemale, BsGenderMale } from "react-icons/bs";
-import { FaRegBuilding, FaRegMap, FaUsers } from "react-icons/fa";
+import { FaRegBuilding, FaRegMap, FaUsers, FaFileAlt } from "react-icons/fa";
 import { GiHutsVillage, GiRelationshipBounds } from "react-icons/gi";
 import { HiOutlineIdentification } from "react-icons/hi2";
 import { IoIosClose, IoMdLocate } from "react-icons/io";
@@ -39,8 +39,16 @@ const Clientinfo = ({ client, onClose, isOpen }) => {
       </div>
 
       <div className="flex justify-center">
-        <div className="flex items-center justify-center w-20 h-20 p-3 text-[#3D873B] rounded-full bg-gray-100 object-contain">
-          <FaUsers className="w-full h-full" />
+        <div className="flex items-center justify-center w-20 h-20  text-[#3D873B] rounded-full bg-gray-100 object-contain">
+          {client?.clientImage === null ? (
+            <FaUsers className="w-full h-full" />
+          ) : (
+            <img
+              src={client?.clientImage}
+              alt=""
+              className="w-full h-full rounded-full"
+            />
+          )}
         </div>
       </div>
 
@@ -49,7 +57,7 @@ const Clientinfo = ({ client, onClose, isOpen }) => {
       </div>
 
       {/* Tabs */}
-      <div className="flex justify-around border-b border-b-gray-100">
+      <div className="flex justify-around border-b border-b-gray-100 overflow-x-auto gap-2">
         <div
           className={tabClass("personal")}
           onClick={() => setActiveTab("personal")}
@@ -67,6 +75,12 @@ const Clientinfo = ({ client, onClose, isOpen }) => {
           onClick={() => setActiveTab("employment")}
         >
           Employment
+        </div>
+        <div
+          className={tabClass("documents")}
+          onClick={() => setActiveTab("documents")}
+        >
+          Documents
         </div>
       </div>
 
@@ -108,7 +122,7 @@ const Clientinfo = ({ client, onClose, isOpen }) => {
             <InfoItem
               icon={<GiRelationshipBounds />}
               label="Marital Status"
-              value={client?.maritalStatus}
+              value={client?.martialStatus}
             />
           </>
         )}
@@ -156,6 +170,32 @@ const Clientinfo = ({ client, onClose, isOpen }) => {
               value={client?.employerAddress}
             />
           </>
+        )}
+
+        {activeTab === "documents" && (
+          <div className="space-y-4">
+            <h3 className="font-bold text-[#3D873B]">Uploaded Documents</h3>
+            {client?.clientCreationForm ? (
+              <div className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center gap-2">
+                  <FaFileAlt className="text-gray-500" />
+                  <span className="text-sm">
+                    {client.clientCreationForm.name || "Client Document"}
+                  </span>
+                  <a
+                    href={client.clientCreationForm}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-auto text-[#3D873B] text-sm hover:underline"
+                  >
+                    View
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm">No documents uploaded</p>
+            )}
+          </div>
         )}
       </div>
     </div>

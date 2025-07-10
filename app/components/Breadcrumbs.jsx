@@ -31,6 +31,8 @@ const menuStructure = {
   },
   "Account Management": {
     "/Account": "View Account List",
+    "/Account/AddAccount": "Create Account",
+    "/Account/EditAccount": "Edit Account",
   },
   "Transaction Management": {
     "/Account/Transaction": "View Transactions",

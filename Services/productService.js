@@ -14,5 +14,17 @@ const productService = {
       );
     }
   },
+  deleteProductFromCategory: async (productId) => {
+    try {
+      const response = await axios.delete(`${API_BASE_URL}/${productId}`);
+      return response.data;
+    } catch (error) {
+      throw (
+        error.response?.data ||
+        error.message ||
+        "Failed to delete product from category"
+      );
+    }
+  },
 };
 export default productService;

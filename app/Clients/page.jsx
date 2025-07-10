@@ -10,7 +10,7 @@ import roleService from "@/Services/roleService";
 import { useRouter } from "next/navigation";
 import Clientinfo from "./Clientinfo";
 
-const ITEMS_PER_PAGE = 4;
+const ITEMS_PER_PAGE = 10;
 
 export default function ClientList() {
   const { user } = useAuth();
@@ -139,11 +139,9 @@ export default function ClientList() {
             <div
               id="add-client-icon"
               className="w-7 h-7 rounded-full cursor-pointer hover:bg-gray-100 p-1"
+              onClick={() => router.push("/Clients/AddClient")}
             >
-              <FaPlus
-                onClick={() => router.push("/Clients/AddClient")}
-                className="text-[#3D873B] w-full h-full"
-              />
+              <FaPlus className="text-[#3D873B] w-full h-full" />
             </div>
           )}
           <Tooltip
@@ -225,11 +223,6 @@ export default function ClientList() {
                           }
                         />
                       )}
-                      {/* <FaTrashAlt
-                        onClick={() => handleDeleteClient()}
-                        size={18}
-                        className="cursor-pointer text-red-500 hover:text-red-700"
-                      /> */}
                     </div>
                   </td>
                 </tr>

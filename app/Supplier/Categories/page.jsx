@@ -34,19 +34,27 @@ export default function CategoryManager() {
       toast.error("Category name cannot be empty");
       return;
     }
+
+    // Check if category already exists
+    const categoryExists = categories.some(
+      (cat) => cat.name.toLowerCase() === newCategoryName.trim().toLowerCase()
+    );
+
+    if (categoryExists) {
+      toast.error(`Category "${newCategoryName}" already exists!`);
+      return;
+    }
+
     try {
       await categoryService.addCategory({ name: newCategoryName.trim() });
-
       const updatedCategories = await categoryService.getCategories();
       setCategories(updatedCategories);
-
       toast.success(`Category "${newCategoryName}" added!`);
       setNewCategoryName("");
     } catch (e) {
       toast.error(e.message);
     }
   }
-
   async function handleAddProduct() {
     if (!selectedCategoryId) {
       toast.error("Select a category first");
@@ -93,39 +101,30 @@ export default function CategoryManager() {
     }
   }
 
-  // function handleDeleteCategory(id) {
-  //   if (window.confirm("Are you sure you want to delete this category?")) {
-  //     try {
-  //       categoryService.deleteCategory(id);
-  //       toast.success("Category deleted");
-  //       if (selectedCategoryId === id) setSelectedCategoryId(null);
-  //       setCurrentPage(1);
-  //     } catch (e) {
-  //       toast.error(e.message);
-  //     }
-  //   }
-  // }
+  async function handleRemoveProduct(productId) {
+    if (window.confirm("Remove this product?")) {
+      try {
+        await productService.deleteProductFromCategory(productId);
+        toast.success("Product removed");
 
-  // function handleRemoveProduct(categoryId, productId) {
-  //   if (window.confirm("Remove this product?")) {
-  //     try {
-  //       categoryService.removeProductFromCategory(categoryId, productId);
-  //       toast.success("Product removed");
-  //       setCurrentPage(1);
-  //     } catch (e) {
-  //       toast.error(e.message);
-  //     }
-  //   }
-  // }
+        setAllProducts((prevProducts) =>
+          prevProducts.filter((product) => product.id !== productId)
+        );
 
+        setCurrentPage(1);
+      } catch (e) {
+        toast.error(e.message);
+      }
+    }
+  }
   useEffect(() => {
     setCurrentPage(1);
     setSearchQuery("");
   }, [selectedCategoryId]);
 
-  const selectedCategory = categories.find(
-    (cat) => String(cat.id) === selectedCategoryId
-  );
+  // const selectedCategory = categories.find(
+  //   (cat) => String(cat.id) === selectedCategoryId
+  // );
 
   const filteredProducts = allProducts.filter((product) =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -251,9 +250,7 @@ export default function CategoryManager() {
                       <td className="py-3 px-4">{product.name}</td>
                       <td className="py-3 px-4">
                         <button
-                          // onClick={() =>
-                          //   handleRemoveProduct(selectedCategoryId, product.id)
-                          // }
+                          onClick={() => handleRemoveProduct(product.id)}
                           className="text-red-500 hover:text-red-700 font-semibold cursor-pointer"
                           aria-label={`Remove ${product.name}`}
                         >
@@ -296,13 +293,6 @@ export default function CategoryManager() {
                 </button>
               </div>
             )}
-
-            <button
-              // onClick={() => handleDeleteCategory(selectedCategoryId)}
-              className="w-full py-3 bg-red-600 hover:bg-red-700 rounded text-white font-semibold transition mt-6"
-            >
-              Delete This Category
-            </button>
           </>
         )}
       </div>

@@ -5,7 +5,7 @@ import Layout from "@/app/components/Layout";
 import { FaEdit, FaEye, FaPlus, FaTrashAlt } from "react-icons/fa";
 import { Tooltip } from "react-tooltip";
 import toast, { Toaster } from "react-hot-toast";
-import { deleteSupplier, getSuppliers } from "@/Services/supplierService";
+import supplierService, { getSuppliers } from "@/Services/supplierService";
 
 const Suppliers = () => {
   const [suppliers, setSuppliers] = useState([]);
@@ -14,17 +14,24 @@ const Suppliers = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 5;
 
-  useEffect(() => {
-    setSuppliers(getSuppliers());
-  }, []);
-
-  const handleDelete = (id) => {
-    if (!window.confirm("Are you sure you want to delete this supplier?"))
-      return;
-    deleteSupplier(id);
-    setSuppliers(getSuppliers());
-    toast.success("Supplier deleted");
+  const fetchSuppliers = async () => {
+    try {
+      const response = await supplierService.getSuppliers();
+      const data = Array.isArray(response?.data) ? response.data : response;
+      if (Array.isArray(data)) {
+        setSuppliers(data);
+      } else {
+        setSuppliers([]);
+      }
+    } catch (err) {
+      toast.error(err.message || "Failed to fetch clients");
+      setSuppliers([]);
+    }
   };
+
+  useEffect(() => {
+    fetchSuppliers();
+  }, []);
 
   // Filter suppliers based on search term (case-insensitive)
   const filteredSuppliers = suppliers.filter((supplier) =>
@@ -129,12 +136,6 @@ const Suppliers = () => {
                             )
                           }
                           title="Edit"
-                        />
-                        <FaTrashAlt
-                          size={18}
-                          className="cursor-pointer text-red-500 hover:text-red-700"
-                          onClick={() => handleDelete(supplier.id)}
-                          title="Delete"
                         />
                       </div>
                     </td>

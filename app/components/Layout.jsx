@@ -14,7 +14,7 @@ const Layout = ({ children }) => {
 
   useEffect(() => {
     const checkScreenSize = () => {
-      setIsSmallScreen(window.innerWidth < 768);
+      setIsSmallScreen(window.innerWidth < 520);
     };
 
     checkScreenSize();
@@ -91,7 +91,7 @@ const Layout = ({ children }) => {
           onOpenProfile={handleOpenProfileSidebar}
         />
         <Toaster />
-        <div className="p-8 py-4 w-full h-full overflow-y-scroll custom-scrollbar">
+        <div className="md:p-8 p-2 py-4 w-full h-full overflow-y-scroll custom-scrollbar">
           {children}
         </div>
       </div>

@@ -41,7 +41,6 @@ const Positions = () => {
         setLoadingPrivileges(false);
       }
     };
-
     fetchPrivileges();
   }, [user?.role]);
 
@@ -111,107 +110,101 @@ const Positions = () => {
 
   return (
     <Layout>
-      <div className="grid grid-rows-[100px_1fr] gap-5 w-full">
-        <div className="bg-[#DFF6DD] w-full flex justify-between items-center rounded-md p-5">
-          <div className="flex flex-col gap-3">
-            <p className="font-bold text-lg">Total Positions</p>
-            <p className="font-extrabold text-4xl">{positions.length}</p>
-          </div>
-          <div>
-            {hasPrivilege("AddPosition") && (
-              <button
-                onClick={() => setAddModalOpen(true)}
-                className="bg-[#333] text-white p-2 rounded-md cursor-pointer hover:scale-90"
-              >
-                + Add Position
-              </button>
-            )}
-          </div>
+      <div className="flex justify-between items-center bg-[#DFF6DD] p-5 rounded-md mb-4">
+        <div>
+          <p className="font-bold text-lg">Total Positions</p>
+          <p className="font-extrabold text-4xl">{positions.length}</p>
         </div>
-        <div className="flex flex-col w-full gap-10">
-          <div className="bg-white">
-            <input
-              type="text"
-              placeholder="Search..."
-              value={filterText}
-              onChange={(e) => setFilterText(e.target.value)}
-              className="placeholder:text-sm border p-1 w-full rounded-md border-gray-200 outline-0"
-            />
-          </div>
-          <div className="w-full overflow-x-hidden">
-            {filteredPositions.map((position) => (
-              <div>
-                <div
-                  className="w-full shadow-md flex flex-col lg:grid lg:grid-cols-2 p-5 lg:items-start rounded-md"
-                  key={position.position_id}
-                >
-                  <div>
-                    <div className="flex-1 lg:mb-0 mb-4">
-                      <p className="font-extrabold text-lg mb-1.5">
-                        {position.name}
-                      </p>
-                      <p className="text-[#3D873B] text-sm">
-                        {position.description}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col">
-                    <div className="flex gap-3 flex-wrap lg:justify-end ">
-                      <div className="text-xs flex items-center gap-2">
-                        <p className="font-bold text-sm">ID:</p>{" "}
-                        {position.position_id}
-                      </div>
-                    </div>
-                    <div className="flex justify-end gap-2 mt-2">
-                      {hasPrivilege("UpdatePosition") && (
-                        <FaEdit
-                          size={20}
-                          className="cursor-pointer"
-                          onClick={() => {
-                            setSelectedPosition(position);
-                            setEditModalOpen(true);
-                          }}
-                        />
-                      )}
-                      {hasPrivilege("DeletePosition") && (
-                        <FaTrash
-                          size={20}
-                          className="text-red-500 cursor-pointer"
-                          onClick={() => {
-                            setSelectedPosition(position);
-                            setDeleteModalOpen(true);
-                          }}
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        {hasPrivilege("AddPosition") && (
+          <button
+            onClick={() => setAddModalOpen(true)}
+            className="bg-[#333] text-white px-4 py-2 rounded-md hover:scale-95"
+          >
+            + Add Position
+          </button>
+        )}
       </div>
+
+      <input
+        type="text"
+        placeholder="Search by ID, name or description..."
+        value={filterText}
+        onChange={(e) => setFilterText(e.target.value)}
+        className="mb-4 p-2 border border-gray-300 rounded-md w-full"
+      />
+
+      <div className="overflow-x-auto">
+        <table className="w-full table-auto divide-y divide-gray-200 shadow-lg rounded-md">
+          <thead className="bg-gray-50 text-gray-500 text-sm">
+            <tr>
+              <th className="text-left py-3 px-4">ID</th>
+              <th className="text-left py-3 px-4">Name</th>
+              <th className="text-left py-3 px-4">Description</th>
+              <th className="text-left py-3 px-4">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="text-sm divide-y divide-gray-200">
+            {filteredPositions.length === 0 ? (
+              <tr>
+                <td colSpan="4" className="text-center p-4">
+                  No positions found.
+                </td>
+              </tr>
+            ) : (
+              filteredPositions.map((position) => (
+                <tr key={position.position_id}>
+                  <td className="py-3 px-4">{position.position_id}</td>
+                  <td className="py-3 px-4">{position.name}</td>
+                  <td className="py-3 px-4">{position.description}</td>
+                  <td className="py-3 px-4 flex gap-3">
+                    {hasPrivilege("UpdatePosition") && (
+                      <FaEdit
+                        size={18}
+                        className="cursor-pointer text-[#333]                ]"
+                        onClick={() => {
+                          setSelectedPosition(position);
+                          setEditModalOpen(true);
+                        }}
+                      />
+                    )}
+                    {hasPrivilege("DeletePosition") && (
+                      <FaTrash
+                        size={18}
+                        className="cursor-pointer text-red-500"
+                        onClick={() => {
+                          setSelectedPosition(position);
+                          setDeleteModalOpen(true);
+                        }}
+                      />
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Modals */}
       <Modal
         isOpen={addModalOpen}
         onClose={() => setAddModalOpen(false)}
         title="Add Position"
         description="Fill in the form to add a position."
       >
-        {hasPrivilege("AddPosition") && (
-          <AddPosition
-            onClose={() => setAddModalOpen(false)}
-            onAdd={fetchPositions}
-          />
-        )}
+        <AddPosition
+          onClose={() => setAddModalOpen(false)}
+          onAdd={fetchPositions}
+        />
       </Modal>
 
       <Modal
         isOpen={editModalOpen}
         onClose={() => setEditModalOpen(false)}
         title="Edit Position"
-        description="Fill in the form to edit a position."
+        description="Fill in the form to edit the position."
       >
-        {selectedPosition && hasPrivilege("UpdatePosition") && (
+        {selectedPosition && (
           <EditPosition
             position={selectedPosition}
             onClose={() => setEditModalOpen(false)}
@@ -221,7 +214,7 @@ const Positions = () => {
       </Modal>
 
       <Modal isOpen={deleteModalOpen} onClose={() => setDeleteModalOpen(false)}>
-        {selectedPosition && hasPrivilege("DeletePosition") && (
+        {selectedPosition && (
           <DeletePosition
             position={selectedPosition}
             onClose={() => setDeleteModalOpen(false)}

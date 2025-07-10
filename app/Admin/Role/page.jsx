@@ -4,7 +4,6 @@ import { useAuth } from "@/Services/authService";
 import roleService from "@/Services/roleService";
 import React, { useEffect, useState } from "react";
 import { FaChevronDown, FaChevronUp, FaEdit, FaTrash } from "react-icons/fa";
-import AddRole from "./AddRole";
 import DeleteRole from "./DeleteRole";
 import Modal from "@/app/components/Modal";
 import { useRouter } from "next/navigation";

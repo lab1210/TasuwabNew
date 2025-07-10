@@ -153,19 +153,17 @@ const Departments = () => {
             <p className="font-bold text-lg">Total Departments</p>
             <p className="font-extrabold text-4xl">{departments.length}</p>
           </div>
-          <div>
-            {hasPrivilege("AddDepartment") && (
-              <button
-                onClick={() => setAddModalOpen(true)}
-                className="bg-[#333] text-white p-2 rounded-md cursor-pointer hover:scale-90"
-              >
-                + Add Department
-              </button>
-            )}
-          </div>
+          {hasPrivilege("AddDepartment") && (
+            <button
+              onClick={() => setAddModalOpen(true)}
+              className="bg-[#333] text-white p-2 rounded-md cursor-pointer hover:scale-90"
+            >
+              + Add Department
+            </button>
+          )}
         </div>
 
-        <div className="flex flex-col w-full gap-10">
+        <div className="flex flex-col w-full gap-5">
           <div className="bg-white">
             <input
               type="text"
@@ -175,106 +173,106 @@ const Departments = () => {
               className="placeholder:text-sm border p-1 w-full rounded-md border-gray-200 outline-0"
             />
           </div>
-          <div className="w-full overflow-x-hidden">
-            {filteredDepartments.map((department) => (
-              <div
-                className="w-full shadow-md flex flex-col lg:grid lg:grid-cols-2 p-5 lg:items-start rounded-md"
-                key={department.department_id}
-              >
-                <div>
-                  <div className="flex-1 lg:mb-0 mb-4">
-                    <p className="font-extrabold text-lg mb-1.5">
-                      {department.name}
-                    </p>
-                    <p className="text-[#3D873B] text-sm">
-                      {department.description}
-                    </p>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex gap-3 flex-wrap lg:justify-end ">
-                    <div className="text-xs flex items-center gap-2">
-                      <p className="font-bold text-sm">ID:</p>{" "}
-                      {department.department_id}
-                    </div>
-                    <div className="text-xs flex items-center gap-2">
-                      <p className="font-bold text-sm">Email:</p>{" "}
-                      {department.email}
-                    </div>
-                    <div className="text-xs flex items-center gap-2">
-                      <p className="font-bold text-sm">Phone:</p>{" "}
-                      {department.phone}
-                    </div>
-                    <div className="text-xs flex items-center gap-2">
-                      <p className="font-bold text-sm">Status:</p>{" "}
-                      {department.is_active ? "Active" : "Inactive"}
-                    </div>
-                  </div>
-                  <div className="flex justify-end gap-2 mt-2">
-                    {hasPrivilege("UpdateDepartment") && (
-                      <FaEdit
-                        className="cursor-pointer"
-                        size={20}
-                        onClick={() => {
-                          setSelectedDepartment(department);
-                          setEditModalOpen(true);
-                        }}
-                      />
-                    )}
-                    {hasPrivilege("DeleteDepartment") && (
-                      <FaTrash
-                        size={20}
-                        className="text-red-500 cursor-pointer"
-                        onClick={() => {
-                          setSelectedDepartment(department);
-                          setDeleteModalOpen(true);
-                        }}
-                      />
-                    )}
-                  </div>
-                </div>
 
-                <div>
-                  {department.is_active
-                    ? hasPrivilege("DeactivateDepartment") && (
+          <div className="overflow-x-auto ">
+            <table className="w-full table-auto divide-y divide-gray-200 shadow-lg rounded-md">
+              <thead className="bg-gray-50 text-gray-500 text-sm">
+                <tr>
+                  <th className="text-left py-3 px-4">ID</th>
+                  <th className="text-left py-3 px-4">Name</th>
+                  <th className="text-left py-3 px-4">Description</th>
+                  <th className="text-left py-3 px-4">Email</th>
+                  <th className="text-left py-3 px-4">Phone</th>
+                  <th className="text-left py-3 px-4">Status</th>
+                  <th className="text-left py-3 px-4">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="text-sm divide-y divide-gray-200">
+                {filteredDepartments.map((dept) => (
+                  <tr
+                    key={dept.department_id}
+                    className="text-sm text-gray-700"
+                  >
+                    <td className="py-3 px-4">{dept.department_id}</td>
+                    <td className="py-3 px-4 font-semibold">{dept.name}</td>
+                    <td className="py-3 px-4">{dept.description}</td>
+                    <td className="py-3 px-4">{dept.email}</td>
+                    <td className="py-3 px-4">{dept.phone}</td>
+                    <td className="py-3 px-4">
+                      <span
+                        className={`px-2 py-1 text-xs font-bold rounded ${
+                          dept.is_active
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {dept.is_active ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 whitespace-nowrap space-x-2">
+                      {hasPrivilege("UpdateDepartment") && (
                         <button
-                          onClick={() =>
-                            handleDeactivate(department.department_id)
-                          }
-                          disabled={deactivatingId === department.department_id}
-                          className="bg-red-600 text-white text-sm p-2 rounded-md mt-8 cursor-pointer"
+                          onClick={() => {
+                            setSelectedDepartment(dept);
+                            setEditModalOpen(true);
+                          }}
+                          className="text-[#333] cursor-pointer"
                         >
-                          {deactivatingId === department.department_id
-                            ? "Deactivating..."
-                            : "Deactivate"}
-                        </button>
-                      )
-                    : hasPrivilege("DeactivateDepartment") && (
-                        <button
-                          onClick={() =>
-                            handleActivate(department.department_id)
-                          }
-                          disabled={activatingId === department.department_id}
-                          className="bg-green-600 text-white text-sm p-2 rounded-md mt-8 cursor-pointer"
-                        >
-                          {deactivatingId === department.department_id
-                            ? "Activating..."
-                            : "Activate"}
+                          <FaEdit />
                         </button>
                       )}
-                  {activationError && (
-                    <p className="text-xs text-red-500">{activationError}</p>
-                  )}
-                  {deactivationError && (
-                    <p className="text-xs text-red-500">{deactivationError}</p>
-                  )}
-                </div>
-              </div>
-            ))}
+                      {hasPrivilege("DeleteDepartment") && (
+                        <button
+                          onClick={() => {
+                            setSelectedDepartment(dept);
+                            setDeleteModalOpen(true);
+                          }}
+                          className="text-red-500 cursor-pointer hover:text-red-700"
+                        >
+                          <FaTrash />
+                        </button>
+                      )}
+                      {dept.is_active
+                        ? hasPrivilege("DeactivateDepartment") && (
+                            <button
+                              onClick={() =>
+                                handleDeactivate(dept.department_id)
+                              }
+                              disabled={deactivatingId === dept.department_id}
+                              className="text-xs bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded"
+                            >
+                              {deactivatingId === dept.department_id
+                                ? "..."
+                                : "Deactivate"}
+                            </button>
+                          )
+                        : hasPrivilege("DeactivateDepartment") && (
+                            <button
+                              onClick={() => handleActivate(dept.department_id)}
+                              disabled={activatingId === dept.department_id}
+                              className="text-xs bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded"
+                            >
+                              {activatingId === dept.department_id
+                                ? "..."
+                                : "Activate"}
+                            </button>
+                          )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {activationError && (
+              <p className="text-xs text-red-500 px-4">{activationError}</p>
+            )}
+            {deactivationError && (
+              <p className="text-xs text-red-500 px-4">{deactivationError}</p>
+            )}
           </div>
         </div>
       </div>
 
+      {/* Modals */}
       <Modal
         isOpen={editModalOpen}
         onClose={() => setEditModalOpen(false)}

@@ -3,23 +3,50 @@ import React, { useEffect, useState } from "react";
 import Table from "./Table";
 import toast from "react-hot-toast";
 import { MdModeEditOutline } from "react-icons/md";
+import Select from "react-select";
 import bankService from "@/Services/bankService";
 
 const Bank = () => {
   const [editIndex, setEditIndex] = useState(null);
   const [banks, setBanks] = useState([]);
+  const [bankOptions, setBankOptions] = useState([]);
+  const [isLoadingBanks, setIsLoadingBanks] = useState(false);
+  const [inputValue, setInputValue] = useState("");
+
   const [formData, setFormData] = useState({
     bankName: "",
-    accountNumber: "",
+    supplierAccountNumber: "",
     accountName: "",
     accountType: "",
     status: true,
   });
 
+  // Fetch banks from your local API
   useEffect(() => {
     fetchBanks();
   }, []);
 
+  // Fetch Nigerian banks from external API
+  useEffect(() => {
+    const fetchNigerianBanks = async () => {
+      setIsLoadingBanks(true);
+      try {
+        const data = await bankService.getNigerianBanks();
+        const options = data.map((bank) => ({
+          value: bank.name,
+          label: bank.name,
+          logo: bank.logo,
+        }));
+        setBankOptions(options);
+      } catch (err) {
+        toast.error("Failed to fetch bank list");
+      } finally {
+        setIsLoadingBanks(false);
+      }
+    };
+
+    fetchNigerianBanks();
+  }, []);
   const fetchBanks = async () => {
     try {
       const data = await bankService.getBank();
@@ -33,7 +60,7 @@ const Bank = () => {
     const selected = banks[index];
     setFormData({
       bankName: selected.bankName,
-      accountNumber: selected.accountNumber,
+      supplierAccountNumber: selected.supplierAccountNumber,
       accountName: selected.accountName,
       accountType: selected.accountType,
       status: selected.status || true,
@@ -44,7 +71,7 @@ const Bank = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    if (name === "accountNumber") {
+    if (name === "supplierAccountNumber") {
       const digitsOnly = value.replace(/\D/g, "");
       setFormData((prev) => ({
         ...prev,
@@ -58,10 +85,39 @@ const Bank = () => {
     }
   };
 
+  const handleBankNameChange = (selectedOption, { action }) => {
+    if (action === "select-option") {
+      setFormData((prev) => ({
+        ...prev,
+        bankName: selectedOption.value,
+      }));
+    } else if (action === "input-change") {
+      setInputValue(selectedOption);
+    } else if (action === "clear") {
+      setFormData((prev) => ({
+        ...prev,
+        bankName: "",
+      }));
+      setInputValue("");
+    }
+  };
+
+  const handleInputBlur = () => {
+    if (
+      inputValue &&
+      !bankOptions.some((option) => option.value === inputValue)
+    ) {
+      setFormData((prev) => ({
+        ...prev,
+        bankName: inputValue,
+      }));
+    }
+  };
+
   const handleAddBank = async () => {
     if (
       !formData.bankName ||
-      !formData.accountNumber ||
+      !formData.supplierAccountNumber ||
       !formData.accountName
     ) {
       toast.error("Please fill in all required fields.");
@@ -86,7 +142,7 @@ const Bank = () => {
       }
       setFormData({
         bankName: "",
-        accountNumber: "",
+        supplierAccountNumber: "",
         accountName: "",
         accountType: "",
         status: true,
@@ -103,18 +159,61 @@ const Bank = () => {
       <h3 className="font-semibold text-[#333] mb-4">Add Bank Account</h3>
       <div className="flex gap-3 items-end">
         <div className="flex gap-3 flex-wrap">
+          <div className="min-w-[200px]">
+            <Select
+              options={bankOptions}
+              value={
+                formData.bankName
+                  ? {
+                      value: formData.bankName,
+                      label: formData.bankName,
+                    }
+                  : null
+              }
+              onChange={handleBankNameChange}
+              onInputChange={(value) => setInputValue(value)}
+              onBlur={handleInputBlur}
+              isClearable
+              isSearchable
+              placeholder="Search or type bank name"
+              isLoading={isLoadingBanks}
+              noOptionsMessage={() => "Type to enter a custom bank name"}
+              formatOptionLabel={(bank, { context }) => (
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  {bank.logo && context === "menu" && (
+                    <img
+                      src={bank.logo}
+                      alt={bank.label}
+                      style={{
+                        width: "20px",
+                        height: "20px",
+                        marginRight: "10px",
+                      }}
+                    />
+                  )}
+                  {bank.label}
+                </div>
+              )}
+              className="basic-single"
+              classNamePrefix="select"
+              styles={{
+                control: (base) => ({
+                  ...base,
+                  minHeight: "42px",
+                  borderColor: "#d1d5db",
+                  boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+                  "&:hover": {
+                    borderColor: "#3D873B",
+                  },
+                }),
+              }}
+            />
+          </div>
           <input
-            name="bankName"
-            className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
-            placeholder="Bank Name"
-            value={formData.bankName}
-            onChange={handleChange}
-          />
-          <input
-            name="accountNumber"
+            name="supplierAccountNumber"
             className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
             placeholder="Account Number"
-            value={formData.accountNumber}
+            value={formData.supplierAccountNumber}
             onChange={handleChange}
           />
           <input
@@ -164,7 +263,7 @@ const Bank = () => {
         ]}
         rows={banks.map((bank, idx) => [
           bank.bankName,
-          bank.accountNumber,
+          bank.supplierAccountNumber,
           bank.accountName,
           bank.accountType,
           bank.status === true || bank.status === "true" ? (

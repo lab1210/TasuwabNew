@@ -153,10 +153,10 @@ const SideBar = () => {
             {
               label: "View Account List",
               href: "/Account",
-              privilege: "ViewAccount",
+              privilege: "ViewAccounts",
             },
           ],
-          privilege: "ViewAccount",
+          privilege: "ViewAccounts" || "ViewClients",
         },
         {
           key: "transactionManagement",
@@ -179,33 +179,33 @@ const SideBar = () => {
             {
               label: "Manage Categories",
               href: "/Supplier/Categories",
-              // privilege: "ViewAccount",
+              privilege: "ViewSuppliers",
             },
 
             {
               label: "View Supplier List",
               href: "/Supplier/Suppliers",
 
-              // privilege: "ViewAccount",
+              privilege: "ViewSuppliers",
             },
             {
               label: " Supplier Transactions",
               href: "/Supplier/Transactions",
 
-              // privilege: "ViewAccount",
+              privilege: "ViewSupplierPayments",
             },
             {
               label: "Completed Supplier Payments",
               href: "/Supplier/Transactions/Completed-Payments",
-              // privilege: "ViewAccount",
+              privilege: "ViewSupplierPayments",
             },
             {
               label: "Pending Supplier Payments",
               href: "/Supplier/Transactions/Pending-Payments",
-              // privilege: "ViewAccount",
+              privilege: "ViewSupplierPayments",
             },
           ],
-          // privilege: "ViewAccount",
+          privilege: "ViewSuppliers",
         },
 
         {

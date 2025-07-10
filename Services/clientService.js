@@ -6,7 +6,15 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const clientService = {
   createClient: async (clientData) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/Client`, clientData);
+      const response = await axios.post(
+        `${API_BASE_URL}/Client/new-client`,
+        clientData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
       return response.data;
     } catch (error) {
       console.error("Error creating client:", error);
@@ -27,7 +35,7 @@ const clientService = {
 
   getAllClients: async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/Client`);
+      const response = await axios.get(`${API_BASE_URL}/Client/all-client`);
       return response.data;
     } catch (error) {
       console.error("Error fetching all clients:", error);
@@ -37,9 +45,14 @@ const clientService = {
 
   updateClient: async (clientId, clientData) => {
     try {
-      const response = await axios.patch(
-        `${API_BASE_URL}/Client/update/${clientId}`,
-        clientData
+      const response = await axios.put(
+        `${API_BASE_URL}/Client/update-client/${clientId}`,
+        clientData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
       return response.data;
     } catch (error) {
@@ -48,17 +61,13 @@ const clientService = {
     }
   },
 
-  getClientAccounts: async (clientId) => {
+  checkExistingClient: async (clientId) => {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/Client/${clientId}/accounts`
+        `${API_BASE_URL}/Client/exists/${clientId}`
       );
       return response.data;
     } catch (error) {
-      console.error(
-        `Error fetching accounts for client ID ${clientId}:`,
-        error
-      );
       throw error;
     }
   },

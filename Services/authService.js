@@ -66,6 +66,27 @@ export const AuthProvider = ({ children }) => {
   const [isTokenExpiringWarningVisible, setIsTokenExpiringWarningVisible] =
     useState(false);
 
+  useEffect(() => {
+    const initializeAuth = async () => {
+      const token = localStorage.getItem("accessToken");
+      const userDetails = JSON.parse(localStorage.getItem("user"));
+
+      if (token && userDetails) {
+        // Verify token is still valid
+        if (!checkTokenExpiry(token)) {
+          setUser({ token, ...userDetails });
+        } else {
+          // Token is expired, clear it
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("user");
+          Cookies.remove("refreshToken", { path: "/" });
+        }
+      }
+      setLoading(false);
+    };
+
+    initializeAuth();
+  }, []);
   const logout = useCallback(
     async (isExpired = false) => {
       try {

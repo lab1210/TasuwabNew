@@ -3,7 +3,7 @@ import Layout from "@/app/components/Layout";
 import React, { useEffect, useState } from "react";
 import Select from "react-select";
 import categoryService from "@/Services/categoryService";
-import { addSupplier } from "@/Services/supplierService";
+import supplierService from "@/Services/supplierService";
 
 const AddSupplier = () => {
   const [name, setName] = useState("");
@@ -108,7 +108,7 @@ const AddSupplier = () => {
     };
 
     try {
-      await addSupplier(payload);
+      await supplierService.addSupplier(payload);
       alert("Supplier added successfully!");
 
       // Reset form
