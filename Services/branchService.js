@@ -64,6 +64,7 @@ const branchService = {
   getAllBranches: async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/all`);
+      console.log("API Response:", response.data); // Debugging
       return response.data;
     } catch (error) {
       console.error("Error fetching all branches:", error);

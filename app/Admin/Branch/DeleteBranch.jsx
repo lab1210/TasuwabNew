@@ -34,7 +34,7 @@ const DeleteBranch = ({ branch = {}, onClose, onDelete }) => {
       <div className="text-gray-400 flex justify-center">
         <FaTrashAlt size={30} />
       </div>
-      <p className="mt-6 font-bold text-gray-500">
+      <p className="mt-6 font-bold text-gray-500 text-center">
         Are you sure you want to delete "
         <span className="text-[#3D873B]">{branch?.name}</span>"
       </p>

@@ -60,7 +60,7 @@ const staffService = {
   getStaffs: async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/Staff/get-allstaffs`);
-      console.log("API Response:", response.data); // Debugging
+      console.log("API Response:", response.data.staffs); // Debugging
       return response.data.staffs; // ✅ Return only the array
     } catch (error) {
       console.error("Error fetching staffs:", error);

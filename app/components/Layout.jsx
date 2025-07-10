@@ -91,7 +91,7 @@ const Layout = ({ children }) => {
           onOpenProfile={handleOpenProfileSidebar}
         />
         <Toaster />
-        <div className="md:p-8 p-2 py-4 w-full h-full overflow-y-scroll custom-scrollbar">
+        <div className="md:p-8 md:py-5 p-2 py-4 w-full h-full overflow-y-scroll custom-scrollbar">
           {children}
         </div>
       </div>

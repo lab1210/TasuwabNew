@@ -10,8 +10,6 @@ import { useRouter } from "next/navigation";
 
 const Role = () => {
   const [filterText, setFilterText] = useState("");
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [addModalOpen, setAddModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState(null);
   const [roles, setRoles] = useState([]);
@@ -94,7 +92,13 @@ const Role = () => {
     return (
       <Layout>
         <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
-          <div className="w-12 h-12 border-4 border-[#333] border-t-[#3D873B] rounded-full animate-spin"></div>
+          <div className="relative w-14 h-14">
+            <div className="absolute w-full h-full border-4 border-[#333] border-t-[#3D873B] rounded-full animate-spin"></div>
+
+            <div className="absolute inset-0 flex items-center justify-center font-bold text-[#3D873B] text-xl">
+              T
+            </div>
+          </div>
         </div>
       </Layout>
     );
