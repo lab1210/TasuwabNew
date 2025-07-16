@@ -5,14 +5,27 @@ import React, { useEffect, useState } from "react";
 import Breadcrumbs from "./Breadcrumbs";
 import Link from "next/link";
 import { LuCircleUser } from "react-icons/lu";
-import { RxActivityLog } from "react-icons/rx";
-import { IoIosNotificationsOutline } from "react-icons/io";
-import { GoSidebarCollapse, GoSidebarExpand } from "react-icons/go";
+import { IoIosNotifications } from "react-icons/io";
+import announcementService from "@/Services/announcementService";
 
-const Header = ({ isSidebarOpen, onToggleSidebar, onOpenProfile }) => {
+const Header = ({ onOpenProfile }) => {
   const { user } = useAuth();
   const [roleName, setRoleName] = useState(null);
   const userNameCaps = user?.firstName?.toUpperCase() || "";
+  const [AnnouncementCounter, setAnnouncementCounter] = useState([]);
+
+  useEffect(() => {
+    const fetchAnnouncement = async () => {
+      try {
+        const response = await announcementService.getActiveAnnouncements();
+        setAnnouncementCounter(Array.isArray(response) ? response : []);
+      } catch (err) {
+        toast.error("Failed to fetch Announcements", err);
+      }
+    };
+
+    fetchAnnouncement();
+  }, []);
 
   useEffect(() => {
     const fetchRoleName = async () => {
@@ -32,13 +45,6 @@ const Header = ({ isSidebarOpen, onToggleSidebar, onOpenProfile }) => {
   return (
     <div className="flex items-center justify-between pl-3 pr-3 bg-[#fdfefd] w-full shadow-md sticky top-0 z-10">
       <div className="flex items-center gap-2">
-        {/* <div className="lg:mr-0 mr-5 cursor-pointer" onClick={onToggleSidebar}>
-          {isSidebarOpen ? (
-            <GoSidebarExpand size={20} />
-          ) : (
-            <GoSidebarCollapse size={20} />
-          )}
-        </div> */}
         <div className="hidden lg:block">
           <Breadcrumbs />
         </div>
@@ -51,11 +57,18 @@ const Header = ({ isSidebarOpen, onToggleSidebar, onOpenProfile }) => {
           <div onClick={onOpenProfile} className="cursor-pointer">
             <LuCircleUser size={24} />
           </div>
-          <Link href={`/Activity-Log`}>
+          {/* <Link href={`/Activity-Log`}>
             <RxActivityLog size={24} />
-          </Link>
+          </Link> */}
           <Link href={`/Notifications`}>
-            <IoIosNotificationsOutline size={24} />
+            <div className="relative">
+              <IoIosNotifications size={28} />
+              {AnnouncementCounter.length > 0 && (
+                <div className="bg-red-600 absolute top-0 right-0 rounded-full w-3 h-3 text-white flex items-center p-2 justify-center text-xs font-bold">
+                  {AnnouncementCounter.length}
+                </div>
+              )}
+            </div>
           </Link>
         </div>
       </div>

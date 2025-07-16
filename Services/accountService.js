@@ -40,7 +40,7 @@ const useAccountService = {
   getAllAccounts: async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/all`);
-      return response.data;
+      return response.data.items;
     } catch (error) {
       console.error("Error fetching all accounts:", error);
       throw (
@@ -56,13 +56,16 @@ const useAccountService = {
       throw error;
     }
   },
-  deleteAccount: async (accountCode) => {
+  closeAccount: async (accountCode, data) => {
     try {
-      const response = await axios.delete(`${API_BASE_URL}/${accountCode}`);
+      const response = await axios.post(
+        `${API_BASE_URL}/${accountCode}/close`,
+        data
+      );
       return response.data;
     } catch (error) {
-      console.error(`Error deleting  accountCode ${accountCode}:`, error);
-      throw error.response?.data || error.message || "Failed to delete account";
+      console.error(`Error closing  accountCode ${accountCode}:`, error);
+      throw error.response?.data || error.message || "Failed to close account";
     }
   },
 };

@@ -1,19 +1,21 @@
 "use client";
 import Layout from "@/app/components/Layout";
 import useAccountService from "@/Services/accountService";
-import accountTypeService from "@/Services/accountTypeService";
 import { useAuth } from "@/Services/authService";
 import branchService from "@/Services/branchService";
 import clientService from "@/Services/clientService";
+import depositTypeService from "@/Services/depositTypeService";
+import entityTypeService from "@/Services/entityTypeService";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import Select from "react-select";
 import { HashLoader } from "react-spinners";
-import { toast } from "react-toastify";
 
 const CreateAccount = () => {
   const { user, loading: authLoading } = useAuth();
   const [accountTypes, setAccountTypes] = useState([]);
+  const [isCheckingAccount, setIsCheckingAccount] = useState(false);
   const [entityTypes, setEntityTypes] = useState([]);
   const [clients, setClients] = useState([]);
   const [isloading, setisLoading] = useState(false);
@@ -21,9 +23,9 @@ const CreateAccount = () => {
   const router = useRouter();
   const [formData, setFormData] = useState({
     accountCode: "",
-    accountTypeCode: "",
+    depositTypeCode: "",
     entityTypeCode: "",
-    branchCode: user?.BranchCode || "",
+    branch_id: user?.BranchCode || "",
     owners: [],
     accountName: "",
     performedBy: user?.StaffCode || "",
@@ -31,16 +33,48 @@ const CreateAccount = () => {
 
   const [errors, setErrors] = useState({
     accountCode: "",
-    accountTypeCode: "",
+    depositTypeCode: "",
     entityTypeCode: "",
     owners: "",
   });
+
+  const checkAccountCode = async (code) => {
+    if (!code) return;
+
+    setIsCheckingAccount(true);
+    try {
+      const exists = await useAccountService.checkExistingAccount(code);
+      if (exists) {
+        toast.error("Account code already exists");
+      } else {
+        setErrors((prev) => ({
+          ...prev,
+          accountCode: "",
+        }));
+      }
+    } catch (error) {
+      console.error("Error checking account code:", error);
+      toast.error("Failed to validate account code");
+    } finally {
+      setIsCheckingAccount(false);
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (formData.accountCode) {
+        checkAccountCode(formData.accountCode);
+      }
+    }, 500); // 500ms debounce delay
+
+    return () => clearTimeout(timer);
+  }, [formData.accountCode]);
 
   useEffect(() => {
     if (user) {
       setFormData((prev) => ({
         ...prev,
-        branchCode: user.BranchCode || "",
+        branch_id: user.BranchCode || "",
         performedBy: user.StaffCode || "",
       }));
     }
@@ -48,26 +82,26 @@ const CreateAccount = () => {
 
   useEffect(() => {
     const fetchBranchName = async () => {
-      if (formData.branchCode) {
+      if (formData.branch_id) {
         try {
-          const data = await branchService.getBranchById(formData.branchCode);
-          setBranchName(data?.name || formData.branchCode); // Fallback to branch code if name not found
+          const data = await branchService.getBranchById(formData.branch_id);
+          setBranchName(data?.name || formData.branch_id); // Fallback to branch code if name not found
         } catch (error) {
           console.error("Error fetching branch name:", error);
-          setBranchName(formData.branchCode); // Fallback to branch code on error
+          setBranchName(formData.branch_id); // Fallback to branch code on error
         }
       }
     };
 
     fetchBranchName();
-  }, [formData.branchCode]);
+  }, [formData.branch_id]);
 
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
         const [accounts, entities, clientsRes] = await Promise.all([
-          accountTypeService.getAllAccountTypes(),
-          accountTypeService.getAllEntityTypes(),
+          depositTypeService.getallDepositTypes(),
+          entityTypeService.getAllEntityTypes(),
           clientService.getAllClients(),
         ]);
 
@@ -95,7 +129,7 @@ const CreateAccount = () => {
   const validateForm = () => {
     const newErrors = {
       accountCode: "",
-      accountTypeCode: "",
+      depositTypeCode: "",
       entityTypeCode: "",
       owners: "",
     };
@@ -107,8 +141,13 @@ const CreateAccount = () => {
       isValid = false;
     }
 
-    if (!formData.accountTypeCode) {
-      newErrors.accountTypeCode = "Account type is required";
+    if (!formData.depositTypeCode) {
+      newErrors.depositTypeCode = "Account type is required";
+      isValid = false;
+    } else if (
+      !accountTypes.some((type) => type.code === formData.depositTypeCode)
+    ) {
+      newErrors.depositTypeCode = "Selected account type is not valid";
       isValid = false;
     }
 
@@ -143,9 +182,9 @@ const CreateAccount = () => {
 
       const accountPayload = {
         accountCode: formData.accountCode,
-        accountTypeCode: formData.accountTypeCode,
+        depositTypeCode: formData.depositTypeCode,
         entityTypeCode: formData.entityTypeCode,
-        branchCode: formData.branchCode,
+        branch_id: Number(formData.branch_id),
         owners: ownersString, // Now sending as comma-separated string
         accountName: formData.accountName,
         performedBy: formData.performedBy,
@@ -175,16 +214,24 @@ const CreateAccount = () => {
           <label className="block text-sm font-medium">Account Code</label>
           <input
             name="accountCode"
+            onChange={(e) => {
+              setFormData({ ...formData, accountCode: e.target.value });
+              if (errors.accountCode) {
+                setErrors((prev) => ({ ...prev, accountCode: "" }));
+              }
+            }}
             className={`w-full p-2 border rounded focus:border-[#3D873B] focus:border-2 outline-none focus:border-[#3D873B] focus:border-2 outline-none ${
               errors.accountCode ? "border-red-500" : "border-gray-300"
             }`}
             placeholder="Enter account code"
             value={formData.accountCode}
-            onChange={(e) =>
-              setFormData({ ...formData, accountCode: e.target.value })
-            }
             required
           />
+          {isCheckingAccount && (
+            <div className="absolute right-3 top-2.5">
+              <HashLoader color="#3D873B" size={20} />
+            </div>
+          )}
           {errors.accountCode && (
             <p className="text-red-500 text-xs mt-1">{errors.accountCode}</p>
           )}
@@ -208,26 +255,28 @@ const CreateAccount = () => {
         <div>
           <label className="block text-sm font-medium">Account Type</label>
           <select
-            name="accountTypeCode"
-            value={formData.accountTypeCode}
+            name="depositTypeCode"
+            value={formData.depositTypeCode}
             onChange={(e) =>
-              setFormData({ ...formData, accountTypeCode: e.target.value })
+              setFormData({ ...formData, depositTypeCode: e.target.value })
             }
             className={`w-full p-2 border rounded focus:border-[#3D873B] focus:border-2 outline-none ${
-              errors.accountTypeCode ? "border-red-500" : "border-gray-300"
+              errors.depositTypeCode ? "border-red-500" : "border-gray-300"
             }`}
             required
           >
-            <option value="">Select Account Type</option>
+            <option value="" disabled>
+              Select Deposit Type
+            </option>
             {accountTypes.map((type) => (
               <option key={type.code} value={type.code}>
                 {type.name}
               </option>
             ))}
           </select>
-          {errors.accountTypeCode && (
+          {errors.depositTypeCode && (
             <p className="text-red-500 text-xs mt-1">
-              {errors.accountTypeCode}
+              {errors.depositTypeCode}
             </p>
           )}
         </div>
@@ -246,7 +295,9 @@ const CreateAccount = () => {
             }`}
             required
           >
-            <option value="">Select Entity Type</option>
+            <option value="" disabled>
+              Select Entity Type
+            </option>
             {entityTypes.map((et) => (
               <option key={et.code} value={et.code}>
                 {et.name}
@@ -273,7 +324,10 @@ const CreateAccount = () => {
         <div>
           <label className="block text-sm font-medium">Owners</label>
           <Select
+            isClearable
+            isSearchable
             isMulti
+            noOptionsMessage={() => "No customer found"}
             options={clients.map((c) => ({
               label: `${c.firstName} ${c.lastName} (${c.clientId})`,
               value: c.clientId,
@@ -283,7 +337,21 @@ const CreateAccount = () => {
               setFormData({ ...formData, owners: selected || [] });
               setErrors({ ...errors, owners: "" });
             }}
-            className={`${errors.owners ? "border-red-500" : ""}`}
+            className={`${
+              errors.owners ? "border-red-500 basic-single" : "basic-single"
+            }`}
+            classNamePrefix="select"
+            styles={{
+              control: (base) => ({
+                ...base,
+                minHeight: "42px",
+                borderColor: "#d1d5db",
+                boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+                "&:hover": {
+                  borderColor: "#3D873B",
+                },
+              }),
+            }}
           />
           {errors.owners && (
             <p className="text-red-500 text-xs mt-1">{errors.owners}</p>
@@ -295,7 +363,7 @@ const CreateAccount = () => {
             type="text"
             value={formData.performedBy}
             disabled
-            className="w-full p-2 border rounded bg-gray-100"
+            className="w-full p-2 border rounded bg-[#3D873B]/20"
           />
         </div>
 

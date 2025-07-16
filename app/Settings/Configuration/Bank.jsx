@@ -3,9 +3,15 @@ import React, { useEffect, useState } from "react";
 import Table from "./Table";
 import toast from "react-hot-toast";
 import { MdModeEditOutline } from "react-icons/md";
-import Select from "react-select";
 import bankService from "@/Services/bankService";
-
+import { FaTrash } from "react-icons/fa";
+import dynamic from "next/dynamic";
+const Select = dynamic(() => import("react-select"), {
+  ssr: false,
+  loading: () => (
+    <div className="min-w-[200px] h-[42px] border border-gray-400 rounded-md"></div>
+  ),
+});
 const Bank = () => {
   const [editIndex, setEditIndex] = useState(null);
   const [banks, setBanks] = useState([]);
@@ -15,10 +21,10 @@ const Bank = () => {
 
   const [formData, setFormData] = useState({
     bankName: "",
-    supplierAccountNumber: "",
+    accountNumber: "",
     accountName: "",
     accountType: "",
-    status: true,
+    isActive: true,
   });
 
   // Fetch banks from your local API
@@ -60,18 +66,27 @@ const Bank = () => {
     const selected = banks[index];
     setFormData({
       bankName: selected.bankName,
-      supplierAccountNumber: selected.supplierAccountNumber,
+      accountNumber: selected.accountNumber,
       accountName: selected.accountName,
       accountType: selected.accountType,
-      status: selected.status || true,
+      isActive: selected.isActive || true,
     });
     setEditIndex(index);
   };
 
+  const handleDelete = async (id) => {
+    try {
+      await bankService.deleteBank(id);
+      toast.success("Bank deleted successfully.");
+      fetchBanks();
+    } catch (error) {
+      toast.error(error.message || "Failed to delete bank.");
+    }
+  };
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    if (name === "supplierAccountNumber") {
+    if (name === "accountNumber") {
       const digitsOnly = value.replace(/\D/g, "");
       setFormData((prev) => ({
         ...prev,
@@ -117,18 +132,19 @@ const Bank = () => {
   const handleAddBank = async () => {
     if (
       !formData.bankName ||
-      !formData.supplierAccountNumber ||
+      !formData.accountNumber ||
       !formData.accountName
     ) {
       toast.error("Please fill in all required fields.");
       return;
     }
 
-    const parsedStatus = formData.status === "true" || formData.status === true;
+    const parsedisActive =
+      formData.isActive === "true" || formData.isActive === true;
 
     const bankData = {
       ...formData,
-      status: parsedStatus,
+      isActive: parsedisActive,
     };
 
     try {
@@ -142,10 +158,10 @@ const Bank = () => {
       }
       setFormData({
         bankName: "",
-        supplierAccountNumber: "",
+        accountNumber: "",
         accountName: "",
         accountType: "",
-        status: true,
+        isActive: true,
       });
       setEditIndex(null);
       fetchBanks();
@@ -210,10 +226,10 @@ const Bank = () => {
             />
           </div>
           <input
-            name="supplierAccountNumber"
+            name="accountNumber"
             className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
             placeholder="Account Number"
-            value={formData.supplierAccountNumber}
+            value={formData.accountNumber}
             onChange={handleChange}
           />
           <input
@@ -235,8 +251,8 @@ const Bank = () => {
           </select>
           {editIndex !== null && (
             <select
-              name="status"
-              value={formData.status}
+              name="isActive"
+              value={formData.isActive}
               onChange={handleChange}
               className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
             >
@@ -263,10 +279,10 @@ const Bank = () => {
         ]}
         rows={banks.map((bank, idx) => [
           bank.bankName,
-          bank.supplierAccountNumber,
+          bank.accountNumber,
           bank.accountName,
           bank.accountType,
-          bank.status === true || bank.status === "true" ? (
+          bank.isActive === true || bank.isActive === "true" ? (
             <p className="text-green-500 max-w-20 font-bold rounded-md bg-green-50 text-center p-1">
               Active
             </p>
@@ -280,6 +296,11 @@ const Bank = () => {
             size={22}
             className="hover:text-gray-500 cursor-pointer"
             onClick={() => handleEdit(idx)}
+          />,
+          <FaTrash
+            key={bank.id || idx}
+            onClick={() => handleDelete(bank.id)}
+            className="hover:text-gray-500 text-red-500 cursor-pointer"
           />,
         ])}
       />

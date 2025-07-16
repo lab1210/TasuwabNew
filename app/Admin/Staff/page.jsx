@@ -188,7 +188,7 @@ const Staff = () => {
                       <div className="flex items-center gap-2 justify-center flex-wrap">
                         {hasPrivilege("UpdateStaff") && (
                           <FaEdit
-                            className="cursor-pointer text-blue-600"
+                            className="cursor-pointer text-[#333]"
                             onClick={() => {
                               setSelectedStaff(staff);
                               setEditModalOpen(true);

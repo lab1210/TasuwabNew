@@ -5,65 +5,68 @@ import { FaPlus } from "react-icons/fa";
 import { Tooltip } from "react-tooltip";
 import AddDeposit from "./AddTransaction/page";
 import Layout from "@/app/components/Layout";
-import Modal from "@/app/components/Modal";
-import dummyTransactions from "./dummyDeposit";
-import { MdOutlineMoreVert } from "react-icons/md";
+import transactionService from "@/Services/transactionService";
+import branchService from "@/Services/branchService";
+import roleService from "@/Services/roleService";
+import formatDate from "@/app/components/formatdate";
+import { useRouter } from "next/navigation";
 
 const ITEMS_PER_PAGE = 3;
 
-const DepositList = () => {
+const TransactionPage = () => {
   const { user } = useAuth();
-  const [addModalOpen, setAddModalOpen] = useState(false);
   const [selectedDescription, setSelectedDescription] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const [deposits, setDeposits] = useState([]);
+  const [transactions, setTransactions] = useState([]);
   const [filterText, setFilterText] = useState("");
-  const [filteredDeposits, setFilteredDeposits] = useState([]);
+  const [filteredTransactions, setFilteredTransactions] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [rolePrivileges, setRolePrivileges] = useState([]);
   const [loadingPrivileges, setLoadingPrivileges] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
   const [branches, setBranches] = useState([]);
-
+  const router = useRouter();
   const openDocumentInNewTab = (documentId) => {
     const documentUrl = `/documents/${documentId}`;
     window.open(documentUrl, "_blank");
   };
+
   useEffect(() => {
-    const fetchMetadata = async () => {
+    const fetchData = async () => {
       try {
-        // Dummy branches data
-        setBranches([
-          { branch_id: "1", name: "Lagos Branch" },
-          { branch_id: "2", name: "Abuja Branch" },
-          { branch_id: "3", name: "Port Harcourt Branch" },
-        ]);
+        // Fetch branches
+        const branchesResponse = await branchService.getAllBranches();
+        setBranches(branchesResponse || []);
+
+        // Fetch transactions
+        const transactionsResponse = await transactionService.getTransactions({
+          // Add any required parameters here
+          // accountCode: 'ACC123',
+          // startDate: '2023-01-01',
+          // endDate: '2023-12-31'
+        });
+        setTransactions(transactionsResponse || []);
+        setLoading(false);
       } catch (err) {
-        console.error("Failed to fetch metadata:", err);
+        console.error("Failed to fetch data:", err);
+        setError(err.message || "Failed to load data");
+        setLoading(false);
       }
     };
 
-    fetchMetadata();
+    fetchData();
   }, []);
 
   const getBranchName = (code) =>
     branches.find((branch) => branch.branch_id === code)?.name || code;
 
   useEffect(() => {
-    setDeposits(dummyTransactions);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
     const fetchPrivileges = async () => {
       if (user?.role) {
         setLoadingPrivileges(true);
         try {
-          // Dummy role privileges (replace with real role fetching logic when available)
-          setRolePrivileges(["CreateDeposit", "ViewDeposit"]);
+          const role = await roleService.getRoleById(user.role);
+          setRolePrivileges(role?.privileges?.map((p) => p.name) || []);
         } catch (error) {
           console.error("Error fetching role by ID:", error);
           setRolePrivileges([]);
@@ -82,25 +85,25 @@ const DepositList = () => {
   useEffect(() => {
     const handleFilter = () => {
       const lowerCaseFilter = filterText.toLowerCase();
-      const results = deposits.filter((deposit) =>
-        Object.values(deposit).some(
+      const results = transactions.filter((transaction) =>
+        Object.values(transaction).some(
           (value) =>
             value && value.toString().toLowerCase().includes(lowerCaseFilter)
         )
       );
-      setFilteredDeposits(results);
-      setCurrentPage(1); // reset to first page on search
+      setFilteredTransactions(results);
+      setCurrentPage(1);
     };
     handleFilter();
-  }, [deposits, filterText]);
+  }, [transactions, filterText]);
 
   const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedDeposits = filteredDeposits.slice(
+  const paginatedTransactions = filteredTransactions.slice(
     startIdx,
     startIdx + ITEMS_PER_PAGE
   );
 
-  const totalPages = Math.ceil(filteredDeposits.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
 
   const hasPrivilege = (privilegeName) => {
     return !loadingPrivileges && rolePrivileges.includes(privilegeName);
@@ -115,14 +118,15 @@ const DepositList = () => {
       </Layout>
     );
   }
+
   if (error) {
     return (
       <Layout>
-        <div className="flex items-center gap-2 ">
+        <div className="flex items-center gap-2">
           <p className="font-bold">{error}</p>
           <button
-            className="bg-red-500 cursor-pointer shadow-md text-white p-1 rounded-lg "
-            onClick={() => setError(null)}
+            className="bg-red-500 cursor-pointer shadow-md text-white p-1 rounded-lg"
+            onClick={() => window.location.reload()}
           >
             Retry
           </button>
@@ -139,17 +143,17 @@ const DepositList = () => {
             <p className="text-4xl font-extrabold">Transactions</p>
             <p className="text-sm text-gray-600">View all transactions.</p>
           </div>
-          {hasPrivilege("CreateDeposit") && (
+          {hasPrivilege("ManageAccountTransactions") && (
             <div
-              onClick={() => setAddModalOpen(true)}
-              id="add-deposit-icon"
+              onClick={() => router.push("/Account/Transaction/AddTransaction")}
+              id="add-transaction-icon"
               className="w-7 h-7 rounded-full cursor-pointer hover:bg-gray-100 p-1"
             >
               <FaPlus className="text-[#3D873B] w-full h-full" />
             </div>
           )}
           <Tooltip
-            anchorId="add-deposit-icon"
+            anchorId="add-transaction-icon"
             content="Add Transaction"
             place="top"
             style={{
@@ -173,57 +177,80 @@ const DepositList = () => {
             <thead className="bg-gray-50 text-gray-500 text-sm">
               <tr>
                 <th className="text-left py-3 px-4">S/N</th>
-                <th className="text-left py-3 px-4">DocNbr</th>
-                <th className="text-left py-3 px-4">Customer</th>
-                <th className="text-left py-3 px-4">Account </th>
+                <th className="text-left py-3 px-4">Transaction Code</th>
+                <th className="text-left py-3 px-4">Account Code</th>
                 <th className="text-left py-3 px-4">Transaction Type</th>
-                <th className="text-left py-3 px-4"> Amount</th>
-                <th className="text-left py-3 px-4">Branch</th>
-                <th className="text-left py-3 px-4">Date</th>
-                <th className="text-left py-3 px-4"></th>
-                <th className="text-left py-3 px-4"></th>
+                <th className="text-left py-3 px-4">Transaction Date</th>
+                <th className="text-left py-3 px-4">Amount</th>
+                <th className="text-left py-3 px-4">Previous balance</th>
+                <th className="text-left py-3 px-4">New balance</th>
+                <th className="text-left py-3 px-4">Narration</th>
+                <th className="text-left py-3 px-4">Reference</th>
+                <th className="text-left py-3 px-4">Status</th>
               </tr>
             </thead>
             <tbody className="text-sm text-gray-700">
-              {paginatedDeposits.map((deposit, index) => (
-                <tr key={index} className="hover:bg-gray-50">
+              {paginatedTransactions.map((transaction, index) => (
+                <tr key={transaction.id} className="hover:bg-gray-50">
                   <td className="py-3 px-4">{startIdx + index + 1}</td>
-                  <td className="py-3 px-4">{deposit.DocNbr}</td>
-                  <td className="py-3 px-4">{deposit.Customer}</td>
-                  <td className="py-3 px-4">{deposit.Accountnumber}</td>
-                  <td className="py-3 px-4">{deposit.TransactionType}</td>
-
+                  <td className="py-3 px-4">{transaction.transactionCode}</td>
+                  <td className="py-3 px-4">{transaction.accountCode}</td>
                   <td className="py-3 px-4">
-                    {new Intl.NumberFormat("en-NG", {
+                    {transaction.transactionTypeIndicator}
+                  </td>
+                  <td className="py-3 px-4">
+                    {formatDate(transaction.transactionDate)}
+                  </td>
+                  <td className="py-3 px-4">
+                    {transaction.amount.toLocaleString("en-NG", {
                       style: "currency",
                       currency: "NGN",
-                    }).format(deposit.amount)}
+                    })}
                   </td>
-                  <td className="py-3 px-4">{getBranchName(deposit.Branch)}</td>
                   <td className="py-3 px-4">
-                    {new Date(deposit.Date).toLocaleDateString()}
+                    {transaction.balanceBefore.toLocaleString("en-NG", {
+                      style: "currency",
+                      currency: "NGN",
+                    })}
                   </td>
+                  <td className="py-3 px-4">
+                    {transaction.balanceAfter.toLocaleString("en-NG", {
+                      style: "currency",
+                      currency: "NGN",
+                    })}
+                  </td>
+                  <td className="py-3 px-4">
+                    {transaction.narration || "No narration provided"}
+                  </td>
+                  <td className="py-3 px-4">
+                    {transaction.reference || "No reference provided"}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        transaction.status === "approved"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
+                      {transaction.status === "approved"
+                        ? "Approved"
+                        : "Pending"}
+                    </span>
+                  </td>
+
                   <td
-                    onClick={() => openDocumentInNewTab(deposit.DocumentUrl)}
-                    className="py-3 px-4 text-[#3D873B] text-sm cursor-pointer hover:text-gray-500 "
+                    onClick={() => openDocumentInNewTab(transaction.documentId)}
+                    className="py-3 px-4 text-[#3D873B] text-sm cursor-pointer hover:text-gray-500"
                   >
                     View Document
                   </td>
-                  <td className="py-3 px-4 cursor-pointer">
-                    <MdOutlineMoreVert
-                      size={20}
-                      onClick={() => {
-                        setSelectedDescription(deposit.OtherInfo);
-                        setIsModalOpen(true);
-                      }}
-                    />
-                  </td>
                 </tr>
               ))}
-              {paginatedDeposits.length === 0 && (
+              {paginatedTransactions.length === 0 && (
                 <tr>
                   <td
-                    colSpan="7"
+                    colSpan="10"
                     className="px-4 py-6 text-center text-gray-500"
                   >
                     No Transactions available.
@@ -233,7 +260,6 @@ const DepositList = () => {
             </tbody>
           </table>
         </div>
-        {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex justify-center items-center gap-2 mt-4">
             <button
@@ -268,48 +294,8 @@ const DepositList = () => {
           </div>
         )}
       </div>
-      <Modal
-        isOpen={addModalOpen}
-        onClose={() => setAddModalOpen(false)}
-        title={"Add Transaction"}
-        description="Fill in the form to add a transaction."
-      >
-        <AddDeposit
-          onClose={() => setAddModalOpen(false)}
-          onAdd={() =>
-            setDeposits([
-              ...deposits,
-              {
-                depositId: "D007",
-                amount: 1200,
-                depositType: "Savings",
-                branchId: "2",
-                date: new Date().toISOString(),
-                status: "Active",
-              },
-            ])
-          }
-          branchcode={user?.BranchCode}
-        />
-      </Modal>
-      {isModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-bold mb-2">Other Information</h3>
-            <p className="text-sm text-gray-700 whitespace-pre-wrap">
-              {selectedDescription}
-            </p>
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="mt-4 px-4 py-2 bg-[#3D873B] text-white rounded hover:bg-green-300 cursor-pointer"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
     </Layout>
   );
 };
 
-export default DepositList;
+export default TransactionPage;

@@ -1,50 +1,59 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import chargeService from "@/Services/chargeService";
+import React, { useEffect, useState } from "react";
 import Table from "./Table";
-import toast from "react-hot-toast";
-import LoanTypeService from "@/Services/loanTypeService";
 import { MdModeEditOutline } from "react-icons/md";
 import { FaTrash } from "react-icons/fa";
+import toast from "react-hot-toast";
 
-const LoanTypeConfiguration = () => {
+const Charges = () => {
   const [loading, setLoading] = useState(false);
-  const [loanTypes, setloanTypes] = useState([]);
+  const [chargeCodes, setchargeCodes] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
-  const [deletingId, setDeletingId] = useState(null); // Track which item is being deleted
+  const [deletingId, setDeletingId] = useState(null);
 
-  const [formData, setFormData] = useState({
+  const [formData, setformData] = useState({
     code: "",
     name: "",
     description: "",
+    amount: "",
     isActive: true,
   });
 
   useEffect(() => {
-    const fetchTypes = async () => {
+    const fetchChargeCodes = async () => {
       try {
-        const response = await LoanTypeService.getLoanTypes();
-        setloanTypes(Array.isArray(response) ? response : []);
+        const response = await chargeService.getChargeCodes();
+        setchargeCodes(
+          Array.isArray(response?.items)
+            ? response.items
+            : Array.isArray(response)
+            ? response
+            : []
+        );
       } catch (err) {
-        toast.error("Failed to fetch Loan types", err);
+        toast.error(err?.message || "Failed to load charge codes");
+        setchargeCodes([]); // Reset to empty array on error
       }
     };
 
-    fetchTypes();
+    fetchChargeCodes();
   }, []);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData({
+    setformData({
       ...formData,
       [name]: type === "checkbox" ? checked : value,
     });
   };
 
   const clearForm = () => {
-    setFormData({
+    setformData({
       code: "",
       name: "",
       description: "",
+      amount: "",
       isActive: true,
     });
     setIsEditing(false);
@@ -52,8 +61,13 @@ const LoanTypeConfiguration = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.code || !formData.name || !formData.description) {
-      toast.error("Loan Type Code, Name, Description  are required");
+    if (
+      !formData.code ||
+      !formData.name ||
+      !formData.description ||
+      !formData.amount
+    ) {
+      toast.error("Charge Code, Name, Description and Amount are required");
       return;
     }
 
@@ -63,74 +77,80 @@ const LoanTypeConfiguration = () => {
         code: formData.code,
         name: formData.name,
         description: formData.description,
-        isActive: formData.isActive,
+        amount: formData.amount,
       };
-      console.log("Final payload:", payload);
 
       if (isEditing) {
-        await LoanTypeService.updateLoanType(formData.code, payload);
-        toast.success("Loan type updated successfully");
+        await chargeService.updateChargeCode(formData.code, payload);
+        toast.success("Charge code updated successfully");
       } else {
-        await LoanTypeService.createLoanType(payload);
-        toast.success("Loan type added successfully");
+        await chargeService.createChargeCode(payload);
+        toast.success("Charge code added successfully");
       }
-      const updatedTypes = await LoanTypeService.getLoanTypes();
-      setloanTypes(Array.isArray(updatedTypes) ? updatedTypes : []);
 
+      const updatedTypes = await chargeService.getChargeCodes();
+      setchargeCodes(Array.isArray(updatedTypes) ? updatedTypes : []);
+
+      setchargeCodes(updatedTypes);
       clearForm();
     } catch (err) {
-      console.error("Failed to process Loan type", err);
-      toast.error(err.response?.data?.message || "Operation failed");
+      toast.error(err?.message || "Failed to process charge code");
+      console.error("Failed to process charge code", err);
     } finally {
       setLoading(false);
     }
   };
 
   const handleEditClick = (type) => {
-    setFormData({
+    setformData({
       code: type.code,
       name: type.name,
       description: type.description,
       isActive: type.isActive,
+      amount: type.amount,
     });
     setIsEditing(true);
   };
 
   const handleDelete = async (code) => {
-    if (!window.confirm("Are you sure you want to delete this Loan type?")) {
+    if (!window.confirm("Are you sure you want to delete this charge code?")) {
       return;
     }
 
     try {
       setDeletingId(code); // Set the ID of the item being deleted
-      await LoanTypeService.deleteLoanType(code);
-      toast.success("Loan type deleted successfully");
-      const refreshedTypes = await LoanTypeService.getLoanTypes();
-      setloanTypes(Array.isArray(refreshedTypes) ? refreshedTypes : []);
+      await chargeService.deleteChargeCode(code);
+      toast.success("Charge code deleted successfully");
+      const refreshedTypes = await chargeService.getChargeCodes(); // Refresh the table after delete
+      setchargeCodes(Array.isArray(refreshedTypes) ? refreshedTypes : []);
     } catch (err) {
-      console.error("Failed to delete Loan type", err);
-      toast.error(err.response?.data?.message || "Delete operation failed");
+      toast.error(
+        err.response?.data?.message || " Failed to delete charge code"
+      );
     } finally {
       setDeletingId(null); // Reset deleting state
     }
   };
-
   return (
     <div className="p-6">
       <div className="flex flex-col mb-4">
         <h3 className="font-bold text-[#333] ">
-          {isEditing ? "Edit Loan Type" : "Add Loan Type"}
+          {isEditing ? "Edit Charges" : "Add Charges"}
         </h3>
         <p className="text-sm text-gray-500">
-          ( <span className="italic">Asset Financing, Car Loans,... </span>)
+          <span className="italic">
+            for your transaction types (e.g. withdrawal,deposit,....){" "}
+          </span>
         </p>
       </div>
+
       <form onSubmit={handleSubmit} className="flex flex-col  gap-3 ">
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 w-full">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 w-full">
           <input
             name="code"
+            type="text"
             className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
-            placeholder="Loan Type Code"
+            placeholder="Charge Code"
             value={formData.code}
             onChange={handleInputChange}
             disabled={isEditing}
@@ -138,28 +158,38 @@ const LoanTypeConfiguration = () => {
           />
           <input
             name="name"
+            type="text"
             className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
-            placeholder="Loan Type Name"
+            placeholder="Charge Name"
             value={formData.name}
             onChange={handleInputChange}
             required
           />
-
+          <input
+            type="number"
+            name="amount"
+            min={0}
+            className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
+            placeholder="Charge Amount"
+            value={formData.amount}
+            onChange={handleInputChange}
+            required
+          />
           <textarea
             name="description"
-            className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
+            className="border w-full border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
             placeholder="Description"
             value={formData.description}
             onChange={handleInputChange}
             rows={1}
-            required
           />
+
           {isEditing && (
             <div className="flex items-center gap-2 mt-2">
               <input
                 type="checkbox"
                 id="status"
-                name="status"
+                name="isActive"
                 checked={formData.isActive}
                 onChange={handleInputChange}
               />
@@ -198,12 +228,17 @@ const LoanTypeConfiguration = () => {
           )}
         </div>
       </form>
+
       <Table
-        headers={["Code", "Loan Type", "Description", "Status", "", ""]}
-        rows={loanTypes.map((dt) => [
+        headers={["Code", "Charge Name", "Description", "Amount", "Status", ""]}
+        rows={chargeCodes.map((dt) => [
           dt.code,
           dt.name,
           dt.description,
+          dt.amount.toLocaleString("en-NG", {
+            style: "currency",
+            currency: "NGN",
+          }),
           dt.isActive ? (
             <p className="text-green-500 max-w-20 font-bold rounded-md bg-green-50 text-center p-1">
               Active
@@ -239,4 +274,4 @@ const LoanTypeConfiguration = () => {
   );
 };
 
-export default LoanTypeConfiguration;
+export default Charges;

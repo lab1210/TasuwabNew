@@ -1,20 +1,17 @@
 "use client";
 import { useAuth } from "@/Services/authService";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useRef, useState } from "react";
-import { MdAccountBalance, MdOutlinePending } from "react-icons/md";
+import React, { useEffect, useState } from "react";
+import { MdAccountBalance } from "react-icons/md";
 import { LuLayoutDashboard } from "react-icons/lu";
 import { GrTransaction } from "react-icons/gr";
 import {
   FaBoxOpen,
   FaBriefcase,
   FaBuilding,
-  FaCalculator,
-  FaChartBar,
   FaChevronDown,
   FaChevronUp,
   FaCog,
-  FaHistory,
   FaMoneyBill,
   FaQuestionCircle,
   FaRegCheckCircle,
@@ -26,6 +23,7 @@ import {
 import { HashLoader } from "react-spinners";
 import roleService from "@/Services/roleService";
 import Link from "next/link";
+import { IoMdMegaphone } from "react-icons/io";
 const SideBar = () => {
   const { user, loading: authLoading, logout } = useAuth();
   const router = useRouter();
@@ -166,10 +164,10 @@ const SideBar = () => {
             {
               label: "View transactions",
               href: "/Account/Transaction",
-              privilege: "ViewAccount",
+              privilege: "ViewAccounts",
             },
           ],
-          privilege: "ViewAccount",
+          privilege: "ViewAccounts",
         },
         {
           key: "supplierManagement",
@@ -192,20 +190,11 @@ const SideBar = () => {
               label: " Supplier Transactions",
               href: "/Supplier/Transactions",
 
-              privilege: "ViewSupplierPayments",
+              privilege: "ViewSupplierReports",
             },
-            {
-              label: "Completed Supplier Payments",
-              href: "/Supplier/Transactions/Completed-Payments",
-              privilege: "ViewSupplierPayments",
-            },
-            {
-              label: "Pending Supplier Payments",
-              href: "/Supplier/Transactions/Pending-Payments",
-              privilege: "ViewSupplierPayments",
-            },
+          
           ],
-          privilege: "ViewSuppliers",
+          privilege: "ViewSuppliers" || "ViewSupplierReports",
         },
 
         {
@@ -303,10 +292,23 @@ const SideBar = () => {
             {
               label: "System Configuration",
               href: "/Settings/Configuration",
-              privilege: "SystemConfiguration",
+              privilege: "ManageFinanceCodes",
             },
           ],
-          privilege: "SystemConfiguration",
+          privilege: "ManageFinanceCodes",
+        },
+        {
+          key: "Announce",
+          label: "Announcements",
+          icon: <IoMdMegaphone />,
+          subItems: [
+            {
+              label: "Manage Announcements",
+              href: "/Announcement",
+              privilege: "ManageCompanyAnnouncement",
+            },
+          ],
+          privilege: "ManageCompanyAnnouncement",
         },
       ];
 

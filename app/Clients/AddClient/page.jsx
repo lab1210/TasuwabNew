@@ -10,6 +10,8 @@ import { FaCamera, FaFileUpload, FaTimes, FaUser } from "react-icons/fa";
 
 const AddClient = () => {
   const { user } = useAuth();
+  const [branchName, setBranchName] = useState("");
+
   const [formData, setFormData] = useState({
     clientId: "",
     firstName: "",
@@ -32,9 +34,6 @@ const AddClient = () => {
     performedBy: user?.StaffCode,
   });
   const [clientIdError, setClientIdError] = useState(null);
-  const [branches, setBranches] = useState([]);
-  const [loadingBranches, setLoadingBranches] = useState(true);
-  const [errorBranches, setErrorBranches] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [clientPhoto, setClientPhoto] = useState(null);
   const [clientDocuments, setClientDocuments] = useState(null);
@@ -44,19 +43,29 @@ const AddClient = () => {
   const router = useRouter();
 
   useEffect(() => {
-    const fetchBranches = async () => {
-      try {
-        const data = await branchService.getAllBranches();
-        setBranches(data);
-      } catch (error) {
-        setErrorBranches(error.message || "Failed to fetch branches");
-      } finally {
-        setLoadingBranches(false);
+    if (user) {
+      setFormData((prev) => ({
+        ...prev,
+        branchCode: user.BranchCode || "",
+      }));
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const fetchBranchName = async () => {
+      if (formData.branchCode) {
+        try {
+          const data = await branchService.getBranchById(formData.branchCode);
+          setBranchName(data?.name || formData.branchCode); // Fallback to branch code if name not found
+        } catch (error) {
+          console.error("Error fetching branch name:", error);
+          setBranchName(formData.branchCode); // Fallback to branch code on error
+        }
       }
     };
 
-    fetchBranches();
-  }, []);
+    fetchBranchName();
+  }, [formData.branchCode]);
 
   const handleChange = async (e) => {
     const { name, value } = e.target;
@@ -181,7 +190,7 @@ const AddClient = () => {
         employer: "",
         employerAddress: "",
         branchCode: "",
-        performedBy: user?.StaffCode || "SYSTEM",
+        performedBy: user?.StaffCode,
       });
       setClientPhoto(null);
       setPreviewImage(null);
@@ -388,7 +397,9 @@ const AddClient = () => {
                 required
                 className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#3D873B] focus:border-transparent transition-all"
               >
-                <option value="">Select Gender</option>
+                <option value="" disabled>
+                  Select Gender
+                </option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
                 <option value="Other">Other</option>
@@ -406,7 +417,9 @@ const AddClient = () => {
                 required
                 className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#3D873B] focus:border-transparent transition-all"
               >
-                <option value="">Select Marital Status</option>
+                <option value="" disabled>
+                  Select Marital Status
+                </option>
                 <option value="Single">Single</option>
                 <option value="Married">Married</option>
                 <option value="Divorced">Divorced</option>
@@ -550,29 +563,13 @@ const AddClient = () => {
           </div>
           <div className="grid md:grid-cols-3 gap-3">
             <div className="flex flex-col gap-2">
-              <label htmlFor="branchCode" className="font-bold text-sm">
-                Branch<span className="text-red-500">*</span>
-              </label>
-              <select
-                name="branchCode"
-                value={formData.branchCode}
-                onChange={handleChange}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#3D873B] focus:border-transparent transition-all"
-                disabled={loadingBranches}
-              >
-                <option value="">Select Branch</option>
-                {loadingBranches ? (
-                  <option disabled>Loading branches...</option>
-                ) : errorBranches ? (
-                  <option disabled>{errorBranches}</option>
-                ) : (
-                  branches.map((branch) => (
-                    <option key={branch.branch_id} value={branch.branch_id}>
-                      {branch.name}
-                    </option>
-                  ))
-                )}
-              </select>
+              <label className="block text-sm font-medium">Branch</label>
+              <input
+                type="text"
+                value={branchName}
+                readOnly
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#3D873B] focus:border-transparent transition-all bg-[#3D873B]/20"
+              />
             </div>
             <div className="flex flex-col gap-2">
               <label className="font-bold text-sm" htmlFor="performedBy">

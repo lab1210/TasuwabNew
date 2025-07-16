@@ -33,7 +33,6 @@ const EditClient = () => {
     PerformedBy: user?.StaffCode || "SYSTEM",
   });
 
-  const [branches, setBranches] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [clientPhoto, setClientPhoto] = useState(null);
   const [clientDocuments, setClientDocuments] = useState(null);
@@ -43,16 +42,30 @@ const EditClient = () => {
   const router = useRouter();
   const params = useParams();
   const clientId = params.clientId;
+  const [branchName, setBranchName] = useState("");
+
+  useEffect(() => {
+    const fetchBranchName = async () => {
+      if (formData.BranchCode) {
+        try {
+          const data = await branchService.getBranchById(formData.BranchCode);
+          setBranchName(data?.name || formData.BranchCode); // Fallback to branch code if name not found
+        } catch (error) {
+          console.error("Error fetching branch name:", error);
+          setBranchName(formData.BranchCode); // Fallback to branch code on error
+        }
+      }
+    };
+
+    fetchBranchName();
+  }, [formData.BranchCode]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [branchesData, clientData] = await Promise.all([
-          branchService.getAllBranches(),
+        const [clientData] = await Promise.all([
           clientService.getClientById(clientId),
         ]);
-
-        setBranches(branchesData);
 
         const client = clientData;
         setFormData({
@@ -197,7 +210,7 @@ const EditClient = () => {
         console.log(key, value);
       }
 
-      await clientService.updateClient(formDataToSend);
+      await clientService.updateClient(formData.ClientId, formDataToSend);
       toast.success(`Client ${formData.ClientId} updated successfully!`);
       setTimeout(() => router.push("/Clients"), 2000);
     } catch (error) {
@@ -566,22 +579,13 @@ const EditClient = () => {
           </div>
           <div className="grid md:grid-cols-3 gap-3">
             <div className="flex flex-col gap-2">
-              <label htmlFor="branchCode" className="font-bold text-sm">
-                Branch<span className="text-red-500">*</span>
-              </label>
-              <select
-                name="BranchCode"
-                value={formData.BranchCode}
-                onChange={handleChange}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#3D873B] focus:border-transparent transition-all"
-              >
-                <option value="">Select Branch</option>
-                {branches.map((branch) => (
-                  <option key={branch.branch_id} value={branch.branch_id}>
-                    {branch.name}
-                  </option>
-                ))}
-              </select>
+              <label className="block text-sm font-medium">Branch</label>
+              <input
+                type="text"
+                value={branchName}
+                readOnly
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#3D873B] focus:border-transparent transition-all bg-[#3D873B]/20"
+              />
             </div>
             <div className="flex flex-col gap-2">
               <label className="font-bold text-sm" htmlFor="performedBy">

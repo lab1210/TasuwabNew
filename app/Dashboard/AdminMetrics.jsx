@@ -120,6 +120,7 @@ const AdminMetrics = () => {
     positions: positions.length,
   };
 
+  // Update your staffByDepartmentData configuration
   const staffByDepartmentData = {
     labels: departments.map((d) => d.name),
     datasets: [
@@ -131,15 +132,11 @@ const AdminMetrics = () => {
               (s) => s.departmentID === d.department_id.toString()
             ).length
         ),
-        backgroundColor: [
-          "#3D873B",
-          "#6DC36D",
-          "#B2D8B2",
-          "#F4B400",
-          "#F28B82",
-          "#8C9EFF",
-          "#00BCD4",
-        ],
+        backgroundColor: departments.map((_, index) => {
+          // Base hue for green (~120°), spaced evenly
+          const hue = (120 + (index * 360) / departments.length) % 360;
+          return `hsl(${hue}, 70%, 60%)`; // Adjust saturation & lightness as needed
+        }),
       },
     ],
   };
@@ -242,7 +239,7 @@ const AdminMetrics = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-white rounded-md shadow p-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-2">
-            By Department
+            Staff By Department
           </h3>
           <div className="max-w-xs h-44 mx-auto">
             <Doughnut
@@ -253,7 +250,7 @@ const AdminMetrics = () => {
         </div>
         <div className="bg-white rounded-md shadow p-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-2">
-            By Branch
+            Staff By Branch
           </h3>
           <div className="w-full h-44">
             <Bar

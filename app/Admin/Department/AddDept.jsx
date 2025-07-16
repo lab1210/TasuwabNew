@@ -21,8 +21,8 @@ const AddDept = ({ onClose, onAdd }) => {
       [name]: value,
     }));
     if (name === "description") {
-      if (value.length > 20) {
-        setDescriptionError("Description cannot exceed 20 characters.");
+      if (value.length > 30) {
+        setDescriptionError("Description cannot exceed 30 characters.");
       } else {
         setDescriptionError("");
       }
@@ -126,7 +126,7 @@ const AddDept = ({ onClose, onAdd }) => {
             )}
             {!descriptionError && (
               <p className="text-xs text-right text-[#3D873B]">
-                max characters 20
+                max characters 30
               </p>
             )}
           </div>

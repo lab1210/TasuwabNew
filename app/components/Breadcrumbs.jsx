@@ -34,8 +34,9 @@ const menuStructure = {
     "/Account/AddAccount": "Create Account",
     "/Account/EditAccount": "Edit Account",
   },
-  "Transaction Management": {
+  "Transaction ": {
     "/Account/Transaction": "View Transactions",
+    "/Account/Transaction/AddTransaction": "Create Transactions",
   },
   "Asset Financing": {
     "/Loan": "Asset Financing Records",
@@ -74,6 +75,12 @@ const menuStructure = {
     "/Supplier/Transactions/Pay-Supplier": "Pay Supplier",
     "/Supplier/Transactions/Completed-Payments": "Completed Supplier Payments",
     "/Supplier/Transactions/Pending-Payments": "Pending Supplier Payments",
+  },
+  Announcements: {
+    "/Announcement": "Manage Announcements",
+  },
+  Notification: {
+    "/Notifications": "View Notifications",
   },
 };
 

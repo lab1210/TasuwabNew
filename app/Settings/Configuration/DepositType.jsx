@@ -2,15 +2,19 @@
 import React, { useEffect, useState } from "react";
 import Table from "./Table";
 import { MdModeEditOutline } from "react-icons/md";
-import accountTypeService from "@/Services/accountTypeService";
 import { FaTrash } from "react-icons/fa";
 import toast from "react-hot-toast";
+import depositTypeService from "@/Services/depositTypeService";
+import InterestService from "@/Services/InterestService";
+import Select from "react-select";
 
 const DepositTypeConfiguration = () => {
   const [loading, setLoading] = useState(false);
   const [depositTypes, setDepositTypes] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [deletingId, setDeletingId] = useState(null); // Track which item is being deleted
+  const [interestOptions, setInterestOptions] = useState([]);
+  const [isLoadingInterest, setisLoadingInterest] = useState(false);
 
   const [formData, setFormData] = useState({
     code: "",
@@ -18,16 +22,43 @@ const DepositTypeConfiguration = () => {
     description: "",
     minimumBalance: "",
     maximumBalance: "",
-    status: true,
+    isActive: true,
+    linkedCodes: "",
   });
+
+  const handleInterestTypeChange = (selectedOption) => {
+    setFormData((prev) => ({
+      ...prev,
+      linkedCodes: selectedOption ? selectedOption.value : "",
+    }));
+  };
+  useEffect(() => {
+    const fetchInterestTypes = async () => {
+      setisLoadingInterest(true);
+      try {
+        const data = await InterestService.getInterestTypes();
+        const options = data.map((interestType) => ({
+          value: interestType.code,
+          label: interestType.name,
+        }));
+        setInterestOptions(options);
+      } catch (err) {
+        toast.error("Failed to fetch interest types", err);
+      } finally {
+        setisLoadingInterest(false);
+      }
+    };
+
+    fetchInterestTypes();
+  }, []);
 
   useEffect(() => {
     const fetchTypes = async () => {
       try {
-        const types = await accountTypeService.getAllAccountTypes();
-        setDepositTypes(types);
+        const response = await depositTypeService.getallDepositTypes();
+        setDepositTypes(Array.isArray(response) ? response : []);
       } catch (err) {
-        console.error("Failed to fetch deposit types", err);
+        toast.error("Failed to fetch deposit types", err);
       }
     };
 
@@ -49,7 +80,8 @@ const DepositTypeConfiguration = () => {
       description: "",
       minimumBalance: "",
       maximumBalance: "",
-      status: true,
+      isActive: true,
+      linkedCodes: "",
     });
     setIsEditing(false);
   };
@@ -60,10 +92,11 @@ const DepositTypeConfiguration = () => {
       !formData.code ||
       !formData.name ||
       !formData.description ||
-      !formData.maximumBalance
+      !formData.maximumBalance ||
+      !formData.linkedCodes
     ) {
       toast.error(
-        "Deposit Type Code, Name, Description and Maximum Balance are required"
+        "Deposit Type Code, Name, Description, Maximum Balance and Interest Type are required"
       );
       return;
     }
@@ -76,19 +109,25 @@ const DepositTypeConfiguration = () => {
         description: formData.description,
         minimumBalance: Number(formData.minimumBalance),
         maximumBalance: Number(formData.maximumBalance),
+        linkedCodes: formData.linkedCodes,
+        isActive: formData.isActive,
       };
+      console.log("Final payload:", payload);
 
       if (isEditing) {
-        await accountTypeService.updateAccountType("A", payload, formData.code);
+        await depositTypeService.updateDepositType(formData.code, payload);
+        toast.success("Deposit type updated successfully");
       } else {
-        await accountTypeService.addAccountType(payload);
+        await depositTypeService.createDepositType(payload);
+        toast.success("Deposit type added successfully");
       }
+      const updatedTypes = await depositTypeService.getallDepositTypes();
+      setDepositTypes(Array.isArray(updatedTypes) ? updatedTypes : []);
 
-      const updatedTypes = await accountTypeService.getAllAccountTypes();
-      setDepositTypes(updatedTypes);
       clearForm();
     } catch (err) {
       console.error("Failed to process deposit type", err);
+      toast.error(err.response?.data?.message || "Operation failed");
     } finally {
       setLoading(false);
     }
@@ -101,7 +140,8 @@ const DepositTypeConfiguration = () => {
       description: type.description,
       minimumBalance: type.minimumBalance,
       maximumBalance: type.maximumBalance,
-      status: type.status,
+      linkedCodes: type.linkedCodes,
+      isActive: type.isActive,
     });
     setIsEditing(true);
   };
@@ -113,9 +153,10 @@ const DepositTypeConfiguration = () => {
 
     try {
       setDeletingId(code); // Set the ID of the item being deleted
-      await accountTypeService.deleteAccountType(code, "A");
+      await depositTypeService.deleteDepositType(code);
       toast.success("Deposit type deleted successfully");
-      await accountTypeService.getAllAccountTypes(); // Refresh the table after delete
+      const refreshedTypes = await depositTypeService.getallDepositTypes();
+      setDepositTypes(Array.isArray(refreshedTypes) ? refreshedTypes : []);
     } catch (err) {
       console.error("Failed to delete deposit type", err);
       toast.error(err.response?.data?.message || "Delete operation failed");
@@ -126,12 +167,16 @@ const DepositTypeConfiguration = () => {
 
   return (
     <div className="p-6">
-      <h3 className="font-semibold text-[#333] mb-4">
-        {isEditing ? "Edit Deposit Type" : "Add Deposit Type"}
-      </h3>
-
+      <div className="flex flex-col mb-4">
+        <h3 className="font-bold text-[#333] ">
+          {isEditing ? "Edit Deposit Type" : "Add Deposit Type"}
+        </h3>
+        <p className="text-sm text-gray-500">
+          ( <span className="italic">Savings, Current,... </span>)
+        </p>
+      </div>
       <form onSubmit={handleSubmit} className="flex flex-col  gap-3 ">
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-5 w-full">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 w-full">
           <input
             name="code"
             className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
@@ -175,6 +220,39 @@ const DepositTypeConfiguration = () => {
             placeholder="Description"
             value={formData.description}
             onChange={handleInputChange}
+            rows={1}
+          />
+          <Select
+            options={interestOptions}
+            value={
+              interestOptions.find(
+                (option) => option.value === formData.linkedCodes
+              ) || null
+            }
+            onChange={handleInterestTypeChange}
+            isClearable
+            isSearchable
+            placeholder="Search for Interest Type"
+            noOptionsMessage={() => "Add Interest Type in previous tab"}
+            formatOptionLabel={(I) => (
+              <div style={{ display: "flex", alignItems: "center" }}>
+                {I.label}
+              </div>
+            )}
+            isLoading={isLoadingInterest}
+            className="basic-single"
+            classNamePrefix="select"
+            styles={{
+              control: (base) => ({
+                ...base,
+                minHeight: "42px",
+                borderColor: "#d1d5db",
+                boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+                "&:hover": {
+                  borderColor: "#3D873B",
+                },
+              }),
+            }}
           />
 
           {isEditing && (
@@ -183,7 +261,7 @@ const DepositTypeConfiguration = () => {
                 type="checkbox"
                 id="status"
                 name="status"
-                checked={formData.status}
+                checked={formData.isActive}
                 onChange={handleInputChange}
               />
               <label
@@ -229,6 +307,7 @@ const DepositTypeConfiguration = () => {
           "Description",
           "Min Balance",
           "Max Balance",
+          "Interest Type",
           "Status",
           "",
         ]}
@@ -244,7 +323,8 @@ const DepositTypeConfiguration = () => {
             style: "currency",
             currency: "NGN",
           }),
-          dt.status ? (
+          dt.linkedCodes,
+          dt.isActive ? (
             <p className="text-green-500 max-w-20 font-bold rounded-md bg-green-50 text-center p-1">
               Active
             </p>

@@ -6,85 +6,84 @@ import DepositInterestTableConfiguration from "./DepositInterest";
 import Layout from "@/app/components/Layout";
 import EntityTypeTab from "./EntityType";
 import LoanTransactionTypeTab from "./LoanTransactionType.";
-// import EquitySettings from "./Equity";
 import Bank from "./Bank";
+import Charges from "./Charges";
 
 const SettingsTabs = () => {
   const [activeTab, setActiveTab] = useState("Bank Toggle");
 
   return (
     <Layout>
-      <div className="flex gap-3 font-extrabold overflow-x-auto custom-scrollbar ">
+      <div className="grid lg:grid-cols-7 md:grid-cols-4 grid-cols-2  gap-3 font-extrabold overflow-x-auto custom-scrollbar ">
         <button
           className={`${
             activeTab === "Bank Toggle"
-              ? "text-[#3D873B] bg-gray-100 p-1 rounded-lg min-w-40"
-              : "text-[#333] min-w-40"
+              ? "text-[#3D873B] font-extrabold bg-green-100 p-2 rounded-lg "
+              : "text-[#333]  bg-gray-100 rounded-lg p-2"
           }`}
           onClick={() => setActiveTab("Bank Toggle")}
         >
           Company Banks
         </button>
-        {/* <button
+        <button
           className={`${
-            activeTab === "Interest Type Toggle"
-              ? "text-[#3D873B] bg-gray-100 p-1 rounded-lg min-w-40"
-              : "text-[#333] min-w-40"
+            activeTab === "Deposit Interest Table Configuration"
+              ? "text-[#3D873B] font-extrabold  bg-green-100 p-2 rounded-lg"
+              : "text-[#333]  bg-gray-100 rounded-lg p-2"
           }`}
-          onClick={() => setActiveTab("Interest Type Toggle")}
+          onClick={() => setActiveTab("Deposit Interest Table Configuration")}
         >
-          Equity Contribution
-        </button> */}
-
+          Interest Type
+        </button>
         <button
           className={`${
             activeTab === "Deposit Type Configuration"
-              ? "text-[#3D873B] min-w-40 bg-gray-100 p-1 rounded-lg"
-              : "text-[#333] min-w-40"
+              ? "text-[#3D873B] font-extrabold  bg-green-100 p-2 rounded-lg"
+              : "text-[#333]  bg-gray-100 rounded-lg p-2 "
           }`}
           onClick={() => setActiveTab("Deposit Type Configuration")}
         >
-          Deposit Type Configuration
+          Deposit Type
         </button>
         <button
           className={`${
             activeTab === "Entity Type Configuration"
-              ? "text-[#3D873B] min-w-40 bg-gray-100 p-1 rounded-lg"
-              : "text-[#333] min-w-40"
+              ? "text-[#3D873B] font-extrabold  bg-green-100 p-2 rounded-lg"
+              : "text-[#333]  bg-gray-100 rounded-lg p-2"
           }`}
           onClick={() => setActiveTab("Entity Type Configuration")}
         >
-          Entity Type Configuration
+          Entity Type
         </button>
         <button
           className={`${
-            activeTab === "Loan Type Configuration"
-              ? "text-[#3D873B] min-w-40 bg-gray-100 p-1 rounded-lg"
-              : "text-[#333] min-w-40"
+            activeTab === "Charges"
+              ? "text-[#3D873B] font-extrabold  bg-green-100 p-2 rounded-lg"
+              : "text-[#333]  bg-gray-100 rounded-lg p-2"
           }`}
-          onClick={() => setActiveTab("Loan Type Configuration")}
+          onClick={() => setActiveTab("Charges")}
         >
-          Loan Type Configuration
-        </button>
-        <button
-          className={`${
-            activeTab === "Deposit Interest Table Configuration"
-              ? "text-[#3D873B] min-w-40 bg-gray-100 p-1 rounded-lg"
-              : "text-[#333] min-w-40"
-          }`}
-          onClick={() => setActiveTab("Deposit Interest Table Configuration")}
-        >
-          Deposit Interest Table
+          Charges
         </button>
         <button
           className={`${
             activeTab === "Loan Transaction Type"
-              ? "text-[#3D873B] min-w-40 bg-gray-100 p-1 rounded-lg"
-              : "text-[#333] min-w-40"
+              ? "text-[#3D873B] font-extrabold  bg-green-100 p-2 rounded-lg"
+              : "text-[#333]  bg-gray-100 rounded-lg p-2"
           }`}
           onClick={() => setActiveTab("Loan Transaction Type")}
         >
           Transaction Type
+        </button>
+        <button
+          className={`${
+            activeTab === "Loan Type Configuration"
+              ? "text-[#3D873B] font-extrabold  bg-green-100 p-2 rounded-lg"
+              : "text-[#333]  bg-gray-100 rounded-lg p-2"
+          }`}
+          onClick={() => setActiveTab("Loan Type Configuration")}
+        >
+          Loan Type
         </button>
       </div>
       <div className="tab-content">
@@ -95,12 +94,13 @@ const SettingsTabs = () => {
           <DepositTypeConfiguration />
         )}
         {activeTab === "Entity Type Configuration" && <EntityTypeTab />}
-        {activeTab === "Loan Type Configuration" && <LoanTypeConfiguration />}
         {activeTab === "Deposit Interest Table Configuration" && (
           <DepositInterestTableConfiguration />
         )}
+        {activeTab === "Charges" && <Charges />}
 
         {activeTab === "Loan Transaction Type" && <LoanTransactionTypeTab />}
+        {activeTab === "Loan Type Configuration" && <LoanTypeConfiguration />}
       </div>
     </Layout>
   );

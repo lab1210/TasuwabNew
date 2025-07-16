@@ -1,12 +1,10 @@
 "use client";
-
 import React, { useEffect, useState } from "react";
 import Table from "./Table";
-import { status } from "nprogress";
-import accountTypeService from "@/Services/accountTypeService";
-import toast from "react-hot-toast";
 import { MdModeEditOutline } from "react-icons/md";
 import { FaTrash } from "react-icons/fa";
+import entityTypeService from "@/Services/entityTypeService";
+import toast from "react-hot-toast";
 
 const EntityTypeTab = () => {
   const [loading, setLoading] = useState(false);
@@ -18,16 +16,17 @@ const EntityTypeTab = () => {
     code: "",
     name: "",
     description: "",
-    status: true,
+    isActive: true,
   });
 
   useEffect(() => {
     const fetchEntityTypes = async () => {
       try {
-        const data = await accountTypeService.getAllEntityTypes();
-        setEntityTypes(data);
+        const response = await entityTypeService.getAllEntityTypes();
+        setEntityTypes(Array.isArray(response) ? response : []);
       } catch (err) {
         toast.error(err?.message || "Failed to load entity types");
+        setEntityTypes([]); // Reset to empty array on error
       }
     };
 
@@ -47,7 +46,7 @@ const EntityTypeTab = () => {
       code: "",
       name: "",
       description: "",
-      status: true,
+      isActive: true,
     });
     setIsEditing(false);
   };
@@ -68,13 +67,15 @@ const EntityTypeTab = () => {
       };
 
       if (isEditing) {
-        await accountTypeService.updateAccountType("E", payload, formData.code);
+        await entityTypeService.updateEntityType(formData.code, payload);
+        toast.success("Entity type updated successfully");
       } else {
-        await accountTypeService.addEntityType(payload);
+        await entityTypeService.createEntityType(payload);
+        toast.success("Entity type added successfully");
       }
 
-      const updatedTypes = await accountTypeService.getAllEntityTypes();
-      setEntityTypes(updatedTypes);
+      const updatedTypes = await entityTypeService.getAllEntityTypes();
+      setEntityTypes(Array.isArray(updatedTypes) ? updatedTypes : []);
       clearForm();
     } catch (err) {
       toast.error(err?.message || "Failed to process entity type");
@@ -89,7 +90,7 @@ const EntityTypeTab = () => {
       code: type.code,
       name: type.name,
       description: type.description,
-      status: type.status,
+      isActive: type.isActive,
     });
     setIsEditing(true);
   };
@@ -101,9 +102,10 @@ const EntityTypeTab = () => {
 
     try {
       setDeletingId(code); // Set the ID of the item being deleted
-      await accountTypeService.deleteAccountType(code, "E");
+      await entityTypeService.deleteAccountType(code);
       toast.success("Entity type deleted successfully");
-      await accountTypeService.getAllEntityTypes(); // Refresh the table after delete
+      const refreshedTypes = await entityTypeService.getAllEntityTypes(); // Refresh the table after delete
+      setEntityTypes(Array.isArray(refreshedTypes) ? refreshedTypes : []);
     } catch (err) {
       console.error("Failed to delete entity type", err);
       toast.error(err.response?.data?.message || "Delete operation failed");
@@ -114,12 +116,17 @@ const EntityTypeTab = () => {
 
   return (
     <div className="p-6">
-      <h3 className="font-semibold text-[#333] mb-4">
-        {isEditing ? "Edit Entity Type" : "Add Entity Type"}
-      </h3>
+      <div className="flex flex-col mb-4">
+        <h3 className="font-bold text-[#333] ">
+          {isEditing ? "Edit Entity Type" : "Add Entity Type"}
+        </h3>
+        <p className="text-sm text-gray-500">
+          ( <span className="italic">Individual, Joint,... </span>)
+        </p>
+      </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col  gap-3 ">
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-5 w-full">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 w-full">
           <input
             name="code"
             className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
@@ -143,10 +150,11 @@ const EntityTypeTab = () => {
           />
           <textarea
             name="description"
-            className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
+            className="border w-full border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
             placeholder="Description"
             value={formData.description}
             onChange={handleInputChange}
+            rows={1}
           />
 
           {isEditing && (
@@ -154,8 +162,8 @@ const EntityTypeTab = () => {
               <input
                 type="checkbox"
                 id="status"
-                name="status"
-                checked={formData.status}
+                name="isActive"
+                checked={formData.isActive}
                 onChange={handleInputChange}
               />
               <label
@@ -200,7 +208,7 @@ const EntityTypeTab = () => {
           dt.code,
           dt.name,
           dt.description,
-          dt.status ? (
+          dt.isActive ? (
             <p className="text-green-500 max-w-20 font-bold rounded-md bg-green-50 text-center p-1">
               Active
             </p>

@@ -2,16 +2,19 @@
 import React, { useEffect, useRef, useState } from "react";
 import SideBar from "./SideBar";
 import Header from "./Header";
-import { MdWarning } from "react-icons/md";
+import { MdWarning, MdTask } from "react-icons/md";
 import Profile from "./Profile";
-import { Toaster } from "react-hot-toast";
+import { Toaster, toast } from "react-hot-toast";
+import announcementService from "@/Services/announcementService";
 
 const Layout = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSmallScreen, setIsSmallScreen] = useState(false);
   const [isProfileSidebarOpen, setIsProfileSidebarOpen] = useState(false);
   const sidebarRef = useRef(null);
+  const [shownAnnouncements, setShownAnnouncements] = useState(new Set());
 
+  // Check screen size
   useEffect(() => {
     const checkScreenSize = () => {
       setIsSmallScreen(window.innerWidth < 520);
@@ -23,6 +26,7 @@ const Layout = ({ children }) => {
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
+  // Load sidebar state from localStorage
   useEffect(() => {
     const savedState = localStorage.getItem("sidebarState");
     if (savedState !== null) {
@@ -30,7 +34,7 @@ const Layout = ({ children }) => {
     }
   }, []);
 
-  // 👉 Hover effect: open sidebar on left edge
+  // Sidebar hover effect
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (e.clientX < 10 && !isSidebarOpen) {
@@ -45,12 +49,13 @@ const Layout = ({ children }) => {
     };
   }, [isSidebarOpen]);
 
-  // 👉 Auto-close when mouse leaves sidebar area
+  // Auto-close sidebar
   const handleSidebarMouseLeave = () => {
     setIsSidebarOpen(false);
     localStorage.setItem("sidebarState", JSON.stringify(false));
   };
 
+  // Profile sidebar handlers
   const handleOpenProfileSidebar = () => {
     setIsProfileSidebarOpen(true);
   };
@@ -59,6 +64,81 @@ const Layout = ({ children }) => {
     setIsProfileSidebarOpen(false);
   };
 
+  // Check for task reminders
+  const checkTaskReminders = async () => {
+    try {
+      const response = await announcementService.getAnnouncements();
+      const announcements = Array.isArray(response) ? response : [];
+
+      announcements.forEach((announcement) => {
+        if (!announcement.expirationDate) return;
+
+        const deadline = new Date(announcement.expirationDate);
+        const now = new Date();
+        const hoursRemaining = (deadline - now) / (1000 * 60 * 60);
+
+        if (
+          hoursRemaining > 0 &&
+          hoursRemaining <= 24 &&
+          !shownAnnouncements.has(announcement.id)
+        ) {
+          toast.custom(
+            (t) => (
+              <div
+                className={`${t.visible ? "animate-enter" : "animate-leave"}
+              max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}
+              >
+                <div className="flex-1 w-0 p-4">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0 pt-0.5">
+                      <MdTask className="h-6 w-6 text-[#3D873B]" />
+                    </div>
+                    <div className="ml-3 flex-1">
+                      <p className="text-sm font-medium text-[#333]">
+                        Task Reminder
+                      </p>
+                      <p className="mt-1 text-sm text-[#333]">
+                        {announcement.title}
+                      </p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        Due:{" "}
+                        {new Date(announcement.expirationDate).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex border-l border-gray-200">
+                  <button
+                    onClick={() => toast.dismiss(t.id)}
+                    className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-[#3D873B] hover:text-[#2d6b2a] focus:outline-none"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            ),
+            {
+              duration: 10000,
+              position: "bottom-right",
+            }
+          );
+
+          setShownAnnouncements((prev) => new Set(prev).add(announcement.id));
+        }
+      });
+    } catch (err) {
+      console.error("Failed to check task reminders", err);
+    }
+  };
+
+  // Set up interval for checking reminders
+  useEffect(() => {
+    checkTaskReminders();
+    const interval = setInterval(checkTaskReminders, 60 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [shownAnnouncements]);
+
+  // Small screen warning
   if (isSmallScreen) {
     return (
       <div className="flex flex-col items-center justify-center h-screen text-center px-4">
@@ -84,13 +164,12 @@ const Layout = ({ children }) => {
           <SideBar />
         </div>
       )}
-      <div className="h-screen w-full grid grid-rows-[80px_1fr]">
+      <div className="h-screen w-full grid grid-rows-[60px_1fr]">
         <Header
           onToggleSidebar={() => {}}
           isSidebarOpen={isSidebarOpen}
           onOpenProfile={handleOpenProfileSidebar}
         />
-        <Toaster />
         <div className="md:p-8 md:py-5 p-2 py-4 w-full h-full overflow-y-scroll custom-scrollbar">
           {children}
         </div>
@@ -101,6 +180,7 @@ const Layout = ({ children }) => {
           isProfileSidebarOpen={isProfileSidebarOpen}
         />
       )}
+      <Toaster position="top-right" />
     </div>
   );
 };

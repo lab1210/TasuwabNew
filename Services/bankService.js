@@ -1,5 +1,5 @@
 import axios from "axios";
-const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/Supplier/banks`;
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/CompanyBank`;
 
 const bankService = {
   addBank: async (bankData) => {
@@ -16,6 +16,14 @@ const bankService = {
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message || "Failed to edit bank";
+    }
+  },
+  deleteBank: async (id) => {
+    try {
+      const response = await axios.delete(`${API_BASE_URL}/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message || "Failed to delete bank";
     }
   },
   getBank: async () => {
