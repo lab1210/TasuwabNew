@@ -57,7 +57,7 @@ const AccountMetrics = () => {
   const [accountTypes, setAccountTypes] = useState([]);
   const [transactionTypes, setTransactionTypes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState("thisYear");
+  const [timeRange, setTimeRange] = useState("thisWeek");
   const [customRange, setCustomRange] = useState({
     startDate: "",
     endDate: "",

@@ -1,5 +1,5 @@
 import axios from "axios";
-const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/Supplier/products`;
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/suppliers/products`;
 
 const productService = {
   addProductToCategory: async (productData) => {
@@ -23,6 +23,16 @@ const productService = {
         error.response?.data ||
         error.message ||
         "Failed to delete product from category"
+      );
+    }
+  },
+  getAllProducts: async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}`);
+      return response.data.items;
+    } catch (error) {
+      throw (
+        error.response?.data || error.message || "Failed to get all products"
       );
     }
   },

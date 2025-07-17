@@ -92,10 +92,11 @@ export default function CategoryManager() {
       setNewProductName("");
       setCurrentPage(1);
 
-      const updatedProducts = await categoryService.getallProductsunderCategory(
-        selectedCategoryId
+      const updatedAllProducts = await productService.getAllProducts();
+      const filteredProducts = updatedAllProducts.filter(
+        (product) => product.categoryId === selectedCategoryId
       );
-      setAllProducts(updatedProducts);
+      setAllProducts(filteredProducts);
     } catch (e) {
       toast.error(e.message || "Failed to add product");
     }
@@ -174,18 +175,26 @@ export default function CategoryManager() {
             Select Category:
           </label>
           <select
-            className="w-full p-3 rounded   border border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-500"
+            className="w-full p-3 rounded border border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-500"
             value={selectedCategoryId || ""}
             onChange={async (e) => {
               const value = e.target.value;
               setSelectedCategoryId(value);
               try {
-                const products =
-                  await categoryService.getallProductsunderCategory(value);
-                setAllProducts(products);
+                // First get all products
+                const allProducts = await productService.getAllProducts();
+
+                // Then filter by category if a category is selected
+                const filteredProducts = value
+                  ? allProducts.filter(
+                      (product) => product.categoryId === value
+                    )
+                  : allProducts;
+
+                setAllProducts(filteredProducts);
               } catch (err) {
-                toast.error("Failed to load products for selected category");
-                setAllProducts([]); // clear in case of failure
+                toast.error("Failed to load products");
+                setAllProducts([]);
               }
             }}
           >
