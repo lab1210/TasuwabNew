@@ -15,6 +15,8 @@ const DepositTypeConfiguration = () => {
   const [deletingId, setDeletingId] = useState(null); // Track which item is being deleted
   const [interestOptions, setInterestOptions] = useState([]);
   const [isLoadingInterest, setisLoadingInterest] = useState(false);
+  const [noLimitMaxBalance, setNoLimitMaxBalance] = useState(false);
+  const MAX_BALANCE_LIMIT = 1e12;
 
   const [formData, setFormData] = useState({
     code: "",
@@ -92,7 +94,7 @@ const DepositTypeConfiguration = () => {
       !formData.code ||
       !formData.name ||
       !formData.description ||
-      !formData.maximumBalance ||
+      (!noLimitMaxBalance && !formData.maximumBalance) ||
       !formData.linkedCodes
     ) {
       toast.error(
@@ -108,7 +110,11 @@ const DepositTypeConfiguration = () => {
         name: formData.name,
         description: formData.description,
         minimumBalance: Number(formData.minimumBalance),
-        maximumBalance: Number(formData.maximumBalance),
+        // maximumBalance: Number(formData.maximumBalance),
+        maximumBalance: noLimitMaxBalance
+          ? MAX_BALANCE_LIMIT
+          : Number(formData.maximumBalance),
+
         linkedCodes: formData.linkedCodes,
         isActive: formData.isActive,
       };
@@ -144,6 +150,7 @@ const DepositTypeConfiguration = () => {
       isActive: type.isActive,
     });
     setIsEditing(true);
+    setNoLimitMaxBalance(type.maximumBalance >= MAX_BALANCE_LIMIT);
   };
 
   const handleDelete = async (code) => {
@@ -206,14 +213,30 @@ const DepositTypeConfiguration = () => {
             value={formData.minimumBalance}
             onChange={handleInputChange}
           />
-          <input
-            name="maximumBalance"
-            type="number"
-            className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
-            placeholder="Maximum Balance"
-            value={formData.maximumBalance}
-            onChange={handleInputChange}
-          />
+          <div className="col-span-1">
+            <input
+              name="maximumBalance"
+              type="number"
+              className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0 w-full"
+              placeholder="Maximum Balance"
+              value={noLimitMaxBalance ? "" : formData.maximumBalance}
+              onChange={handleInputChange}
+              disabled={noLimitMaxBalance}
+            />
+            <div className="flex items-center mt-1">
+              <input
+                type="checkbox"
+                id="noLimitMax"
+                checked={noLimitMaxBalance}
+                onChange={() => setNoLimitMaxBalance(!noLimitMaxBalance)}
+                className="mr-2"
+              />
+              <label htmlFor="noLimitMax" className="text-sm text-gray-700">
+                No Limit
+              </label>
+            </div>
+          </div>
+
           <textarea
             name="description"
             className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
@@ -323,6 +346,7 @@ const DepositTypeConfiguration = () => {
             style: "currency",
             currency: "NGN",
           }),
+
           dt.linkedCodes,
           dt.isActive ? (
             <p className="text-green-500 max-w-20 font-bold rounded-md bg-green-50 text-center p-1">

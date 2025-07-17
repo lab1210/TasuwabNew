@@ -499,7 +499,10 @@ const Accounts = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {account.balance}
+                        {account.balance.toLocaleString("en-NG", {
+                          style: "currency",
+                          currency: "NGN",
+                        })}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span

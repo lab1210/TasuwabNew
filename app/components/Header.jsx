@@ -7,6 +7,7 @@ import Link from "next/link";
 import { LuCircleUser } from "react-icons/lu";
 import { IoIosNotifications } from "react-icons/io";
 import announcementService from "@/Services/announcementService";
+import toast from "react-hot-toast";
 
 const Header = ({ onOpenProfile }) => {
   const { user } = useAuth();
@@ -43,7 +44,7 @@ const Header = ({ onOpenProfile }) => {
   }, [user?.role]);
 
   return (
-    <div className="flex items-center justify-between pl-3 pr-3 bg-[#fdfefd] w-full shadow-md sticky top-0 z-10">
+    <div className="flex items-center justify-between pl-3 pr-3 bg-[#eaf4ea] w-full shadow-md sticky top-0 z-10">
       <div className="flex items-center gap-2">
         <div className="hidden lg:block">
           <Breadcrumbs />

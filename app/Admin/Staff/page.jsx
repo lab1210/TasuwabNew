@@ -128,7 +128,7 @@ const Staff = () => {
   return (
     <Layout>
       <div className="grid grid-rows-[100px_1fr] gap-5 w-full">
-        <div className="bg-[#DFF6DD] w-full flex justify-between items-center rounded-md p-5">
+        <div className="bg-[#cbf7c7] w-full flex justify-between items-center rounded-md p-5">
           <div className="flex flex-col gap-3">
             <p className="font-bold text-lg">Total Staff</p>
             <p className="font-extrabold text-4xl">{staff.length}</p>
@@ -157,34 +157,55 @@ const Staff = () => {
               className="placeholder:text-sm border p-1 w-full rounded-md border-gray-200 outline-0"
             />
           </div>
-          <div className="overflow-x-auto w-full">
-            <table className="w-full table-auto divide-y divide-gray-200 shadow-lg rounded-md">
-              <thead className="bg-gray-50 text-gray-500 text-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-full table-auto divide-y divide-gray-200 shadow-lg rounded-md">
+              <thead className="bg-gray-50 ">
                 <tr>
-                  <th className="text-left py-3 px-4">Name</th>
-                  <th className="text-left py-3 px-4">Code</th>
-                  <th className="text-left py-3 px-4">Branch</th>
-                  <th className="text-left py-3 px-4">Department</th>
-                  <th className="text-left py-3 px-4">Position</th>
-                  <th className="text-left py-3 px-4">Role</th>
-                  <th className="text-left py-3 px-4 ">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Name
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Code
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Branch
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Department
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Position
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Role
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="text-sm divide-y divide-gray-200">
                 {currentItems.map((staff) => (
-                  <tr
-                    key={staff.staffCode}
-                    className="border-t hover:bg-gray-50"
-                  >
-                    <td className="py-3 px-4">
+                  <tr key={staff.staffCode} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap ">
                       {staff.firstName + " " + staff.lastName}
                     </td>
-                    <td className="py-3 px-4">{staff.staffCode}</td>
-                    <td className="py-3 px-4">{staff.branchID}</td>
-                    <td className="py-3 px-4">{staff.departmentID}</td>
-                    <td className="py-3 px-4">{staff.positionID}</td>
-                    <td className="py-3 px-4">{staff.roleID}</td>
-                    <td className="py-3 px-4 ">
+                    <td className="px-6 py-4 whitespace-nowrap ">
+                      {staff.staffCode}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap ">
+                      {staff.branchID}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap ">
+                      {staff.departmentID}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap ">
+                      {staff.positionID}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap ">
+                      {staff.roleID}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap  ">
                       <div className="flex items-center gap-2 justify-center flex-wrap">
                         {hasPrivilege("UpdateStaff") && (
                           <FaEdit
@@ -193,6 +214,7 @@ const Staff = () => {
                               setSelectedStaff(staff);
                               setEditModalOpen(true);
                             }}
+                            size={20}
                           />
                         )}
                         {hasPrivilege("DeleteStaff") && (
@@ -202,14 +224,16 @@ const Staff = () => {
                               setSelectedStaff(staff);
                               setDeleteModalOpen(true);
                             }}
+                            size={18}
                           />
                         )}
                         <FaEye
-                          className="cursor-pointer text-green-600"
+                          className="cursor-pointer text-gray-600"
                           onClick={() => {
                             setSelectedStaff(staff);
                             setDetailModalOpen(true);
                           }}
+                          size={18}
                         />
                       </div>
                     </td>

@@ -116,7 +116,7 @@ const Positions = () => {
 
   return (
     <Layout>
-      <div className="flex justify-between items-center bg-[#DFF6DD] p-5 rounded-md mb-4">
+      <div className="flex justify-between items-center bg-[#cbf7c7] p-5 rounded-md mb-4">
         <div>
           <p className="font-bold text-lg">Total Positions</p>
           <p className="font-extrabold text-4xl">{positions.length}</p>

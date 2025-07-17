@@ -19,7 +19,7 @@ const AddTransaction = () => {
     Reference: "",
     AccountCode: "",
     TransactionCode: "",
-    Amount: "",
+    Amount: 0,
     Narration: "",
     PerformedBy: user?.StaffCode || "",
     BranchId: user?.BranchCode || "",
@@ -151,13 +151,10 @@ const AddTransaction = () => {
       formDataToSend.append("Reference", formData.Reference || "");
       formDataToSend.append("AccountCode", formData.AccountCode);
       formDataToSend.append("TransactionCode", formData.TransactionCode);
-      formDataToSend.append("Amount", formData.Amount);
       formDataToSend.append("Narration", formData.Narration || "");
       formDataToSend.append("PerformedBy", formData.PerformedBy || "");
-      formDataToSend.append(
-        "BranchId",
-        formData.BranchId ? Number(formData.BranchId) : ""
-      );
+      formDataToSend.append("Amount", parseFloat(formData.Amount).toString());
+      formDataToSend.append("BranchId", parseInt(formData.BranchId).toString());
 
       if (TransactionDocument) {
         formDataToSend.append("DocumentFile", TransactionDocument);
@@ -339,7 +336,7 @@ const AddTransaction = () => {
             </div>
             <div className="flex flex-col gap-2">
               <label className="font-bold text-sm" htmlFor="Narration">
-                Narration
+                Narration <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -364,7 +361,7 @@ const AddTransaction = () => {
             </div>
             <div className="flex flex-col gap-2">
               <label className="font-bold text-sm" htmlFor="Reference">
-                Created By
+                Created By<span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -377,7 +374,7 @@ const AddTransaction = () => {
 
             <div className="flex flex-col gap-2">
               <label className="font-bold text-sm" htmlFor="BranchId">
-                Branch
+                Branch<span className="text-red-500">*</span>
               </label>
               <input
                 type="text"

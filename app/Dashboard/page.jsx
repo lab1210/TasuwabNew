@@ -6,8 +6,8 @@ import { useAuth } from "@/Services/authService";
 import roleService from "@/Services/roleService";
 import Layout from "../components/Layout";
 import LoanMetrics from "./LoanMetrics";
-import BankingMetrics from "./BankMetrics";
 import AdminMetrics from "./AdminMetrics";
+import AccountMetrics from "./BankMetrics";
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -50,23 +50,22 @@ const AdminDashboard = () => {
         "ViewDepartments" ||
         "ViewStaffs",
     },
-    {
-      key: "loans",
-      label: "Loan Management",
-      icon: <CreditCard className="inline-block w-5 h-5 mr-2" />,
-      privilege: "ViewLoanApplications",
-    },
+
     {
       key: "banking",
       label: "Banking Operations",
       icon: <Wallet className="inline-block w-5 h-5 mr-2" />,
-      privilege: "ViewAccount",
+      privilege:
+        "ViewAccounts" || "ManageAccountTransactions" || "ViewAccountReports",
     },
     {
-      key: "supplier",
-      label: "Supplier",
-      icon: <FaBoxOpen className="inline-block w-5 h-5 mr-2" />,
-      privilege: "ViewSupplierPayments",
+      key: "loans",
+      label: "Loan Management",
+      icon: <CreditCard className="inline-block w-5 h-5 mr-2" />,
+      privilege:
+        "ManageLoanTransactions" ||
+        "ViewLoanTransactions" ||
+        "ViewLoanAccounts",
     },
   ];
 
@@ -87,21 +86,6 @@ const AdminDashboard = () => {
       setActiveTab(availableTabs[0].key);
     }
   }, [availableTabs]);
-
-  const getPeriodLabel = () => {
-    switch (selectedPeriod) {
-      case "today":
-        return "Today";
-      case "thisWeek":
-        return "This Week";
-      case "thisMonth":
-        return "This Month";
-      case "thisYear":
-        return "This Year";
-      default:
-        return "This Month";
-    }
-  };
 
   // Messages to show in carousel when no privileges
   const noAccessMessages = [
@@ -178,22 +162,7 @@ const AdminDashboard = () => {
 
   return (
     <Layout>
-      <div className="mb-8">
-        {activeTab !== "admin" && availableTabs.length > 0 && (
-          <div className="flex items-center justify-end mb-2">
-            <select
-              value={selectedPeriod}
-              onChange={(e) => setSelectedPeriod(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D873B] bg-white"
-            >
-              <option value="today">Today</option>
-              <option value="thisWeek">This Week</option>
-              <option value="thisMonth">This Month</option>
-              <option value="thisYear">This Year</option>
-            </select>
-          </div>
-        )}
-
+      <div className="mb-3">
         {availableTabs.length > 0 && (
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-8">
@@ -216,11 +185,9 @@ const AdminDashboard = () => {
         )}
       </div>
 
-      {activeTab === "loans" && <LoanMetrics periodLabel={getPeriodLabel()} />}
+      {activeTab === "loans" && <LoanMetrics />}
 
-      {activeTab === "banking" && (
-        <BankingMetrics periodLabel={getPeriodLabel()} />
-      )}
+      {activeTab === "banking" && <AccountMetrics />}
 
       {activeTab === "supplier" && (
         <div className="mb-8 text-center text-gray-700">

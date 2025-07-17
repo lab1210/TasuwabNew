@@ -97,7 +97,7 @@ const EditRole = () => {
       setMessage(`✅ "${res.name}" updated!`);
       setTimeout(() => {
         setMessage("");
-        router.push("/roles");
+        router.push("/Admin/Role");
       }, 1500);
     } catch (err) {
       setMessage("❌ Failed to update role.");

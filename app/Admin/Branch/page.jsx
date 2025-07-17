@@ -145,7 +145,7 @@ const BranchList = () => {
   return (
     <Layout>
       <div className="grid grid-rows-[100px_1fr] gap-5 w-full">
-        <div className="bg-[#DFF6DD] w-full flex justify-between items-center rounded-md p-5 sticky top-0">
+        <div className="bg-[#cbf7c7] w-full flex justify-between items-center rounded-md p-5 sticky top-0">
           <div className="flex flex-col gap-3">
             <p className="font-bold text-lg">Total Branches</p>
             <p className="font-extrabold text-4xl">{branches.length}</p>

@@ -118,7 +118,7 @@ const Role = () => {
   return (
     <Layout>
       <div className="grid grid-rows-[100px_1fr] gap-5 w-full">
-        <div className="bg-[#DFF6DD] w-full flex justify-between items-center rounded-md p-5">
+        <div className="bg-[#cbf7c7] w-full flex justify-between items-center rounded-md p-5">
           <div className="flex flex-col gap-3">
             <p className="font-bold text-lg">Total Roles</p>
             <p className="font-extrabold text-4xl">{roles.length}</p>
@@ -144,27 +144,41 @@ const Role = () => {
               className="placeholder:text-sm border p-1 w-full rounded-md border-gray-200 outline-0"
             />
           </div>
-          <div className="overflow-x-auto w-full">
-            <table className="w-full table-auto divide-y divide-gray-200 shadow-lg rounded-md">
-              <thead className="bg-gray-50 text-gray-500 text-sm">
+          <div className="overflow-x-auto ">
+            <table className="min-w-full table-auto divide-y divide-gray-200 shadow-lg rounded-md">
+              <thead className="bg-gray-50 ">
                 <tr>
-                  <th className="text-left py-3 px-4">Name</th>
-                  <th className="text-left py-3 px-4">Description</th>
-                  <th className="text-left py-3 px-4">Role ID</th>
-                  <th className="text-left py-3 px-4">Privileges</th>
-                  <th className="text-left py-3 px-4 ">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Name
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Description
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Role ID
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Privileges
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ">
+                    Actions
+                  </th>
                 </tr>
               </thead>
-              <tbody className="text-sm divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-gray-200">
                 {filteredRoles.map((role) => (
                   <React.Fragment key={role.role_id}>
-                    <tr className="border-t hover:bg-gray-50">
-                      <td className="py-3 px-4 ">{role.name}</td>
-                      <td className="py-3 px-4 text-[#3D873B]">
+                    <tr className="hover:bg-gray-50 cursor-pointer">
+                      <td className="px-6 py-4 whitespace-nowrap ">
+                        {role.name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-[#3D873B]">
                         {role.description}
                       </td>
-                      <td className="py-3 px-4">{role.role_id}</td>
-                      <td className="py-3 px-4">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {role.role_id}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <button
                           onClick={() => togglePrivileges(role.role_id)}
                           className="border border-[#ccc] rounded-md px-2 py-1 text-xs flex items-center gap-1 hover:border-[#999] transition-all"

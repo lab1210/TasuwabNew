@@ -3,16 +3,20 @@ import axios from "axios";
 const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/transactions`;
 
 const transactionService = {
-  getTransactions: async ({ accountCode, startDate, endDate }) => {
+  // In transactionService.js
+  getTransactions: async (params = {}) => {
     try {
-      const params = new URLSearchParams();
+      const queryParams = new URLSearchParams();
 
-      if (accountCode) params.append("accountCode", accountCode);
-      if (startDate) params.append("startDate", startDate);
-      if (endDate) params.append("endDate", endDate);
+      if (params.accountCode)
+        queryParams.append("accountCode", params.accountCode);
+      if (params.startDate) queryParams.append("startDate", params.startDate);
+      if (params.endDate) queryParams.append("endDate", params.endDate);
 
-      const response = await axios.get(`${API_BASE_URL}?${params.toString()}`);
-      return response.data.items;
+      const response = await axios.get(
+        `${API_BASE_URL}?${queryParams.toString()}`
+      );
+      return response.data.items || []; // Ensure we always return an array
     } catch (error) {
       console.error("Error fetching transactions:", error);
       throw (
@@ -53,10 +57,21 @@ const transactionService = {
       );
     }
   },
-  exportTransactions: async () => {
+  exportTransactions: async ({ accountCode, startDate, endDate, format }) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/export`);
-      return response.data;
+      const queryParams = new URLSearchParams();
+      if (accountCode) queryParams.append("accountCode", accountCode);
+      if (startDate) queryParams.append("startDate", startDate);
+      if (endDate) queryParams.append("endDate", endDate);
+      if (format) queryParams.append("format", format);
+
+      const response = await axios.get(
+        `${API_BASE_URL}/export?${queryParams.toString()}`,
+        {
+          responseType: "blob", // Important for file downloads
+        }
+      );
+      return response;
     } catch (error) {
       console.error("Error exporting transactions:", error);
       throw (

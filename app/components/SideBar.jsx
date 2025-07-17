@@ -192,7 +192,6 @@ const SideBar = () => {
 
               privilege: "ViewSupplierReports",
             },
-          
           ],
           privilege: "ViewSuppliers" || "ViewSupplierReports",
         },
@@ -240,12 +239,12 @@ const SideBar = () => {
             {
               label: "Client Statement of Account",
               href: "/Enquiries/Statement-of-account",
-              privilege: "ViewEnquiry",
+              privilege: "ViewAccountReports",
             },
             {
               label: "Client Loan Enquiry",
               href: "/Enquiries/loan",
-              privilege: "ViewEnquiry",
+              privilege: "ViewAccountReports",
             },
             {
               label: "Client Deposit Enquiry",
@@ -263,7 +262,7 @@ const SideBar = () => {
               privilege: "ViewEnquiry",
             },
           ],
-          privilege: "ViewEnquiry",
+          privilege: "ViewAccountReports",
         },
 
         {
@@ -339,14 +338,14 @@ const SideBar = () => {
   };
 
   return (
-    <div className="bg-[#fdfefd] shadow-md flex flex-col w-full h-screen">
+    <div className="bg-[#eaf4ea] shadow-md flex flex-col w-full h-screen">
       {authLoading || loadingPrivileges ? (
         <div>
           <HashLoader color="#333" size={60} />
         </div>
       ) : (
         <>
-          <div className=" w-full h-20 object-contain pl-2 pt-2 sticky top-0 bg-[#fdfefd] z-[1000]">
+          <div className="bg-[#eaf4ea] w-full h-20 object-contain pl-2 pt-2 sticky top-0 z-[1000]">
             <img className="w-45 h-full" src="/logo.png" alt="" />
           </div>
           <ul className="pt-5 pl-2 pr-2 w-full h-full overflow-y-auto max-h-screen flex justify-between  custom-scrollbar flex-col">

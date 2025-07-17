@@ -72,7 +72,7 @@ const AddRole = () => {
       const res = await roleService.createRole(formData);
       setMessage(`✅ Role "${res.name}" created!`);
       setTimeout(() => {
-        router.push("/roles");
+        router.push("/Admin/Role");
       }, 1500);
     } catch (err) {
       console.error(err);

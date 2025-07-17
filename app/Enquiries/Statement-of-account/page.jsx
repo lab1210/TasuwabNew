@@ -1,286 +1,457 @@
 "use client";
-import React, { useState } from "react";
-import jsPDF from "jspdf";
-import dummyDeposits from "@/app/Account/Transaction/dummyDeposit";
-import dummyLoans from "@/app/Loan/DummyLoan";
+import React, { useState, useEffect } from "react";
+import { Download, Calendar, ChevronDown, ChevronUp } from "lucide-react";
+import { useAuth } from "@/Services/authService";
+import transactionService from "@/Services/transactionService";
+import formatDate from "@/app/components/formatdate";
 import Layout from "@/app/components/Layout";
-import Select from "react-select";
-import dummyClients from "@/app/Loan/DummyClient";
+import useAccountService from "@/Services/accountService";
+import toast from "react-hot-toast";
 
-const StatementOfAccount = () => {
-  const [selectedClientId, setSelectedClientId] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-
-  const clients = [
-    ...new Set([
-      ...dummyDeposits.map((d) => d.Customer),
-      ...dummyLoans.map((l) => l.clientId),
-    ]),
-  ];
-
-  const allClients = clients.map((clientId) => {
-    const client = dummyClients.find((c) => c.clientId === clientId);
-    const clientName = client
-      ? `${client.firstName} ${client.lastName} (${client.accountnumber})`
-      : `Client ${clientId}`;
-    return { value: clientId, label: clientName };
+const ClientStatementPage = () => {
+  const { user } = useAuth();
+  const [accountCodes, setAccountCodes] = useState([]);
+  const [selectedAccount, setSelectedAccount] = useState("");
+  const [transactions, setTransactions] = useState([]);
+  const [filteredTransactions, setFilteredTransactions] = useState([]);
+  const [expandedRows, setExpandedRows] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [dateRange, setDateRange] = useState({
+    startDate: "",
+    endDate: "",
   });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [currentBalance, setCurrentBalance] = useState(0);
 
-  const filterByDateRange = (items) => {
-    return items.filter((item) => {
-      const itemDate = new Date(item.date || item.Date);
-      const isAfterStart = startDate ? itemDate >= new Date(startDate) : true;
-      const isBeforeEnd = endDate ? itemDate <= new Date(endDate) : true;
-      return isAfterStart && isBeforeEnd;
+  // Fetch account codes on component mount
+  useEffect(() => {
+    const fetchAccountCodes = async () => {
+      try {
+        setLoading(true);
+        const accounts = await useAccountService.getAllAccounts();
+        setAccountCodes(
+          accounts.map((acc) => ({
+            code: acc.accountCode,
+            name: `${acc.accountCode} - ${acc.accountName}`,
+          }))
+        );
+      } catch (err) {
+        toast.error("Failed to load account codes");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAccountCodes();
+  }, []);
+
+  // Fetch transactions when account is selected
+  useEffect(() => {
+    if (!selectedAccount) return;
+
+    const fetchTransactions = async () => {
+      try {
+        setLoading(true);
+        const transactions = await transactionService.getTransactions({
+          accountCode: selectedAccount,
+        });
+        // Sort transactions by date in descending order (newest first)
+        const sortedTransactions = [...transactions].sort(
+          (a, b) => new Date(a.transactionDate) - new Date(b.transactionDate)
+        );
+        setTransactions(sortedTransactions);
+        setFilteredTransactions(sortedTransactions);
+
+        // Calculate current balance from transactions
+        if (sortedTransactions.length > 0) {
+          // The first transaction (most recent) will have the current balance
+          setCurrentBalance(
+            sortedTransactions[sortedTransactions.length - 1].balanceAfter
+          );
+        } else {
+          setCurrentBalance(0);
+        }
+      } catch (err) {
+        toast.error("Failed to load transactions");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTransactions();
+  }, [selectedAccount]);
+
+  useEffect(() => {
+    if (!dateRange.startDate && !dateRange.endDate) {
+      setFilteredTransactions(transactions);
+      return;
+    }
+
+    const filtered = transactions.filter((tx) => {
+      const txDate = new Date(tx.transactionDate);
+      const start = dateRange.startDate ? new Date(dateRange.startDate) : null;
+      const end = dateRange.endDate ? new Date(dateRange.endDate) : null;
+
+      if (start && txDate < start) return false;
+      if (end && txDate > end) return false;
+      return true;
     });
+
+    // Maintain the reversed order after filtering
+    setFilteredTransactions(filtered);
+  }, [dateRange, transactions]);
+
+  const toggleRow = (id) => {
+    setExpandedRows((prev) =>
+      prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]
+    );
   };
 
-  const filteredDeposits = filterByDateRange(
-    dummyDeposits.filter((d) => d.Customer === selectedClientId)
-  );
+  const handleExport = async (format) => {
+    try {
+      if (
+        !selectedAccount ||
+        dateRange.startDate === "" ||
+        dateRange.endDate === ""
+      ) {
+        toast.error("Please select a date range to export");
+        return;
+      }
+      setIsExporting(true);
+      const response = await transactionService.exportTransactions({
+        accountCode: selectedAccount,
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+        format,
+      });
 
-  const filteredLoans = dummyLoans
-    .filter((l) => l.clientId === selectedClientId)
-    .map((loan) => ({
-      ...loan,
-      transactions: filterByDateRange(loan.transactions),
-    }))
-    .filter((loan) => loan.transactions.length > 0);
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
 
-  const handleExportPDF = () => {
-    const doc = new jsPDF();
-    const content = document.getElementById("statement-content");
+      // Set filename
+      const fileName = `Statement_${selectedAccount}_${
+        dateRange.startDate || "all"
+      }_to_${dateRange.endDate || "now"}.${format.toLowerCase()}`;
+      link.setAttribute("download", fileName);
 
-    doc.html(content, {
-      callback: function (doc) {
-        doc.save(`Client_${selectedClientId}_Statement.pdf`);
-      },
-      x: 10,
-      y: 10,
-      width: 180,
-      windowWidth: 1000,
-    });
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+    } catch (error) {
+      toast.error(`Export failed: ${error.message}`);
+    } finally {
+      setIsExporting(false);
+    }
   };
-
-  const allClientDeposits = dummyDeposits.filter(
-    (d) => d.Customer === selectedClientId
-  );
-  const allClientLoanTransactions = dummyLoans
-    .filter((l) => l.clientId === selectedClientId)
-    .flatMap((l) => l.transactions);
-
-  const openingDeposits = allClientDeposits.filter(
-    (d) =>
-      new Date(d.Date) < new Date(startDate) && d.TransactionType === "Deposit"
-  );
-  const openingWithdrawals = allClientDeposits.filter(
-    (d) =>
-      new Date(d.Date) < new Date(startDate) &&
-      d.TransactionType === "Withdrawal"
-  );
-
-  const sum = (arr) => arr.reduce((acc, item) => acc + Number(item.amount), 0);
-
-  const openingDepositAmount = sum(openingDeposits);
-  const openingWithdrawalAmount = sum(openingWithdrawals);
-  const openingLoanPayments = allClientLoanTransactions.filter(
-    (t) => new Date(t.date) < new Date(startDate)
-  );
-
-  const openingLoanPaymentsAmount = sum(openingLoanPayments);
-
-  const openingBalance =
-    openingDepositAmount - openingWithdrawalAmount - openingLoanPaymentsAmount;
-
-  const inRangeDeposits = filteredDeposits;
-  const inRangeLoanPayments = filteredLoans.flatMap(
-    (loan) => loan.transactions
-  );
-
-  const totalDepositsInRange = sum(inRangeDeposits);
-  const totalLoanPaymentsInRange = sum(inRangeLoanPayments);
-  const closingBalance =
-    openingBalance + totalDepositsInRange - totalLoanPaymentsInRange;
 
   return (
     <Layout>
-      <div className="w-full">
-        <div className="flex justify-between items-start">
-          <div>
-            <p className="text-4xl font-extrabold">
-              Client Statement of Account
-            </p>
-            <p className="text-sm text-gray-600">
-              View selected client statement of account.
-            </p>
-          </div>
+      <div className="w-full ">
+        <h1 className="text-2xl font-bold mb-6">Client Statement of Account</h1>
+
+        {/* Account Selection */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Select Account
+          </label>
+          <select
+            value={selectedAccount}
+            onChange={(e) => setSelectedAccount(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded-md"
+            disabled={loading}
+          >
+            <option value="">Select an account</option>
+            {accountCodes.map((account) => (
+              <option key={account.code} value={account.code}>
+                {account.name}
+              </option>
+            ))}
+          </select>
         </div>
 
-        <div className="mt-4 mb-5">
-          <Select
-            id="clientId"
-            isSearchable
-            isClearable
-            options={allClients}
-            value={allClients.find(
-              (client) => client.value === selectedClientId
+        {/* Date Range Filter */}
+        <div className="mb-6 relative">
+          <button
+            onClick={() => setShowDatePicker(!showDatePicker)}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-md hover:bg-gray-200"
+          >
+            <Calendar className="w-5 h-5" />
+            {dateRange.startDate || dateRange.endDate ? (
+              <span>
+                {dateRange.startDate || "Start"} to {dateRange.endDate || "End"}
+              </span>
+            ) : (
+              <span>Filter by date range</span>
             )}
-            onChange={(selectedOption) =>
-              setSelectedClientId(selectedOption ? selectedOption.value : "")
-            }
-            placeholder="Select Client"
-          />
-        </div>
+            {showDatePicker ? <ChevronUp /> : <ChevronDown />}
+          </button>
 
-        <div className="flex gap-4 mt-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Start Date
-            </label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="border border-gray-300 p-2 rounded"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              End Date
-            </label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="border border-gray-300 p-2 rounded"
-            />
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          {selectedClientId && (
-            <div id="statement-content">
-              <div className="flex items-center justify-between mb-4">
-                <p className="font-semibold text-lg text-[#4a5565]">
-                  Statement for Client:{" "}
-                  <span className="text-[#3D873B] font-bold">
-                    {
-                      allClients.find(
-                        (client) => client.value === selectedClientId
-                      )?.label
+          {showDatePicker && (
+            <div className="absolute z-10 mt-2 bg-white p-4 border rounded-md shadow-lg">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Start Date
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={dateRange.startDate}
+                    onChange={(e) =>
+                      setDateRange({ ...dateRange, startDate: e.target.value })
                     }
-                  </span>
-                </p>
-                <button
-                  onClick={handleExportPDF}
-                  className="bg-[#3D873B] text-white px-4 py-2 rounded mt-4 cursor-pointer"
-                >
-                  Export to PDF
-                </button>
-              </div>
-
-              <div className="mb-4">
-                <p className="text-lg font-bold text-[#4a5565] mb-2">
-                  Balance Summary
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-[#364153]">
-                  <div className="p-4 bg-[#f1f5f9] rounded shadow">
-                    <p className="font-semibold">Opening Balance</p>
-                    <p className="text-[#3D873B] font-bold">
-                      {new Intl.NumberFormat("en-NG", {
-                        style: "currency",
-                        currency: "NGN",
-                      }).format(openingBalance)}
-                    </p>
-                  </div>
-                  <div className="p-4 bg-[#f1f5f9] rounded shadow">
-                    <p className="font-semibold">Closing Balance</p>
-                    <p className="text-[#3D873B] font-bold">
-                      {new Intl.NumberFormat("en-NG", {
-                        style: "currency",
-                        currency: "NGN",
-                      }).format(closingBalance)}
-                    </p>
-                  </div>
+                    className="w-full p-2 border rounded-md"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    End Date
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={dateRange.endDate}
+                    onChange={(e) =>
+                      setDateRange({ ...dateRange, endDate: e.target.value })
+                    }
+                    className="w-full p-2 border rounded-md"
+                  />
                 </div>
               </div>
-
-              <div className="mb-4">
-                <p className="font-bold text-xl">Transactions</p>
-                {filteredDeposits.length > 0 ? (
-                  <table className="w-full table-auto divide-y divide-[#e5e7eb] shadow-lg rounded-md">
-                    <thead className="bg-[#f9fafb] text-[#6a7282] text-sm">
-                      <tr>
-                        <th className="text-left py-3 px-4">Date</th>
-                        <th className="text-left py-3 px-4">Amount</th>
-                        <th className="text-left py-3 px-4">Type</th>
-                        <th className="text-left py-3 px-4">
-                          Other Information
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="text-sm text-[#364153]">
-                      {filteredDeposits.map((d, index) => (
-                        <tr key={index}>
-                          <td className="py-3 px-4">{d.Date}</td>
-                          <td className="py-3 px-4">
-                            {new Intl.NumberFormat("en-NG", {
-                              style: "currency",
-                              currency: "NGN",
-                            }).format(d.amount)}
-                          </td>
-                          <td className="py-3 px-4">{d.TransactionType}</td>
-                          <td className="py-3 px-4">{d.OtherInfo}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <p>No transactions found.</p>
-                )}
-              </div>
-
-              <div className="mb-4">
-                <p className="font-bold text-xl">Loan Payments</p>
-                {filteredLoans.length > 0 ? (
-                  filteredLoans.map((loan, index) => (
-                    <div key={index} className="mb-4">
-                      <table className="w-full table-auto divide-y divide-[#e5e7eb] shadow-lg rounded-md">
-                        <thead className="bg-[#f9fafb] text-[#6a7282] text-sm">
-                          <tr>
-                            <th className="text-left py-3 px-4">Date</th>
-                            <th className="text-left py-3 px-4">Amount</th>
-                            <th className="text-left py-3 px-4">Description</th>
-                          </tr>
-                        </thead>
-                        <tbody className="text-sm text-[#364153]">
-                          {loan.transactions.map((t, tIndex) => (
-                            <tr key={tIndex}>
-                              <td className="py-3 px-4">{t.date}</td>
-                              <td className="py-3 px-4">
-                                {new Intl.NumberFormat("en-NG", {
-                                  style: "currency",
-                                  currency: "NGN",
-                                }).format(t.amount)}
-                              </td>
-                              <td className="py-3 px-4">{t.description}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ))
-                ) : (
-                  <p>No loan payment transactions found.</p>
-                )}
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setDateRange({ startDate: "", endDate: "" });
+                    setShowDatePicker(false);
+                  }}
+                  className="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded"
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={() => setShowDatePicker(false)}
+                  className="px-3 py-1 text-sm bg-[#3D873B] text-white rounded hover:bg-[#2d6e2b]"
+                >
+                  Apply
+                </button>
               </div>
             </div>
           )}
         </div>
+
+        {/* Export Buttons */}
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => handleExport("PDF")}
+            disabled={!selectedAccount || isExporting}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+          >
+            <Download className="w-5 h-5" />
+            {isExporting ? "Exporting..." : "Export as PDF"}
+          </button>
+          <button
+            onClick={() => handleExport("CSV")}
+            disabled={!selectedAccount || isExporting}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+          >
+            <Download className="w-5 h-5" />
+            {isExporting ? "Exporting..." : "Export as CSV"}
+          </button>
+        </div>
+        {/* Current Balance Display */}
+        {selectedAccount && (
+          <div className="flex justify-end">
+            <div className="mb-6 p-4 bg-gray-200 rounded-md">
+              <h2 className="text-sm flex flex-col font-medium text-[#333]">
+                Current Account Balance:
+                <span className="font-extrabold text-2xl text-[#3D873B]">
+                  {currentBalance.toLocaleString("en-NG", {
+                    style: "currency",
+                    currency: "NGN",
+                  })}
+                </span>
+              </h2>
+            </div>
+          </div>
+        )}
+
+        {/* Loading Indicator */}
+        {loading && (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#3D873B]"></div>
+          </div>
+        )}
+
+        {/* Transactions Table */}
+        {selectedAccount && !loading && (
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Reference
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Description
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Debit
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Credit
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Balance Before
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Balance After
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredTransactions.length > 0 ? (
+                    filteredTransactions.map((transaction) => (
+                      <React.Fragment key={transaction.transactionId}>
+                        <tr className="hover:bg-gray-50 cursor-pointer">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {formatDate(transaction.transactionDate)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {transaction.reference || "N/A"}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {transaction.narration}
+                          </td>
+                          <td
+                            className="px-6 font-bold py-4 whitespace-nowrap text-sm text-gray-500"
+                            style={{
+                              color:
+                                transaction.transactionTypeIndicator === "D"
+                                  ? "red"
+                                  : "green",
+                            }}
+                          >
+                            {transaction.transactionTypeIndicator === "D"
+                              ? transaction.amount.toLocaleString("en-NG", {
+                                  style: "currency",
+                                  currency: "NGN",
+                                })
+                              : "-"}
+                          </td>
+                          <td
+                            className="px-6 py-4 font-bold whitespace-nowrap text-sm text-gray-500"
+                            style={{
+                              color:
+                                transaction.transactionTypeIndicator === "D"
+                                  ? "red"
+                                  : "green",
+                            }}
+                          >
+                            {transaction.transactionTypeIndicator === "C"
+                              ? transaction.amount.toLocaleString("en-NG", {
+                                  style: "currency",
+                                  currency: "NGN",
+                                })
+                              : "-"}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {transaction.balanceBefore.toLocaleString("en-NG", {
+                              style: "currency",
+                              currency: "NGN",
+                            })}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {transaction.balanceAfter.toLocaleString("en-NG", {
+                              style: "currency",
+                              currency: "NGN",
+                            })}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button
+                              onClick={() =>
+                                toggleRow(transaction.transactionId)
+                              }
+                              className="text-gray-400 hover:text-gray-600"
+                            >
+                              {expandedRows.includes(
+                                transaction.transactionId
+                              ) ? (
+                                <ChevronUp />
+                              ) : (
+                                <ChevronDown />
+                              )}
+                            </button>
+                          </td>
+                        </tr>
+                        {expandedRows.includes(transaction.transactionId) && (
+                          <tr className="bg-gray-50">
+                            <td colSpan="7" className="px-6 py-4">
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <p className="font-medium text-gray-900">
+                                    Transaction ID:
+                                  </p>
+                                  <p className="text-gray-500">
+                                    {transaction.transactionId}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="font-medium text-gray-900">
+                                    Account Code:
+                                  </p>
+                                  <p className="text-gray-500">
+                                    {transaction.accountCode}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="font-medium text-gray-900">
+                                    Transaction Type:
+                                  </p>
+                                  <p className="text-gray-500">
+                                    {transaction.transactionTypeIndicator ===
+                                    "C"
+                                      ? "Credit"
+                                      : "Debit"}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="font-medium text-gray-900">
+                                    Status:
+                                  </p>
+                                  <p className="text-gray-500">
+                                    {transaction.status}
+                                  </p>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan="7"
+                        className="px-6 py-4 text-center text-gray-500"
+                      >
+                        No transactions found for the selected account
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
 };
 
-export default StatementOfAccount;
+export default ClientStatementPage;

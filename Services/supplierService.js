@@ -1,5 +1,5 @@
 import axios from "axios";
-const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/Supplier`;
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/suppliers`;
 
 const supplierService = {
   addSupplier: async (supplierData) => {
@@ -13,7 +13,7 @@ const supplierService = {
   getSuppliers: async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}`);
-      return response.data;
+      return response.data.items;
     } catch (error) {
       throw (
         error.response?.data || error.message || "Failed to fetch suppliers"
@@ -42,6 +42,20 @@ const supplierService = {
     } catch (error) {
       throw (
         error.response?.data || error.message || "Failed to update supplier"
+      );
+    }
+  },
+  getSupplierbyCategory: async (category) => {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/by-category/${category}`
+      );
+      return response.data;
+    } catch (error) {
+      throw (
+        error.response?.data ||
+        error.message ||
+        "Failed to fetch suppliers by category"
       );
     }
   },

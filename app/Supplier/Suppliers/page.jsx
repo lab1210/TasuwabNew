@@ -96,6 +96,9 @@ const Suppliers = () => {
                 <th className="text-left py-3 px-4">Supplier Name</th>
                 <th className="text-left py-3 px-4">Email</th>
                 <th className="text-left py-3 px-4">Phone</th>
+                <th className="text-left py-3 px-4">Account Number</th>
+                <th className="text-left py-3 px-4">Account Name</th>
+                <th className="text-left py-3 px-4">Categories</th>
                 <th className="text-left py-3 px-4">Actions</th>
               </tr>
             </thead>
@@ -114,7 +117,11 @@ const Suppliers = () => {
                     <td className="py-3 px-4">{supplier.name}</td>
                     <td className="py-3 px-4">{supplier.email}</td>
                     <td className="py-3 px-4">{supplier.phone}</td>
-
+                    <td className="py-3 px-4">
+                      {supplier.supplierAccountNumber}
+                    </td>
+                    <td className="py-3 px-4">{supplier.supplierBankName}</td>
+                    <td className="py-3 px-4">{supplier.categoryIds}</td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
                         <FaEye

@@ -1,5 +1,5 @@
 import axios from "axios";
-const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/Supplier/categories`;
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/suppliers/categories`;
 
 const categoryService = {
   addCategory: async (categoryData) => {

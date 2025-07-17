@@ -212,7 +212,22 @@ const EditAccount = () => {
         performedBy: formData.performedBy,
       };
 
-      await useAccountService.updateAccount(accountCode, accountPayload);
+      const updatedAccount = await useAccountService.updateAccount(
+        accountCode,
+        accountPayload
+      );
+
+      // Update local state with the returned data
+      setAccount(updatedAccount);
+      setFormData({
+        ...formData,
+        ...updatedAccount,
+        owners:
+          updatedAccount.owners?.split(",").map((owner) => ({
+            value: owner,
+            label: owner,
+          })) || [],
+      });
       toast.success("Account updated successfully");
       router.push("/Account");
     } catch (error) {
@@ -299,10 +314,11 @@ const EditAccount = () => {
           <select
             name="depositTypeCode"
             value={formData.depositTypeCode}
+            disabled
             onChange={(e) =>
               setFormData({ ...formData, depositTypeCode: e.target.value })
             }
-            className={`w-full p-2 border rounded focus:border-[#3D873B] focus:border-2 outline-none ${
+            className={`w-full p-2 border rounded bg-[#3D873B]/20 focus:border-[#3D873B] focus:border-2 outline-none ${
               errors.depositTypeCode ? "border-red-500" : "border-gray-300"
             }`}
             required
