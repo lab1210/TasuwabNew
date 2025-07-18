@@ -62,8 +62,6 @@ const AddLoan = () => {
     assetDescription: "",
     assetQuantity: "",
     assetPrice: "",
-    preferredSupplier: "",
-    supplierQuote: "",
     forms: {
       statementOfAccount: null,
       idCard: null,
@@ -812,7 +810,6 @@ const AddLoan = () => {
                   className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
                 />
               </div>
-
               <div className="flex flex-col gap-2">
                 <label className="font-bold text-sm" htmlFor="assetDescription">
                   Asset Description <span className="text-red-500">*</span>
@@ -831,7 +828,6 @@ const AddLoan = () => {
                   className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
                 />
               </div>
-
               <div className="flex flex-col gap-2">
                 <label className="font-bold text-sm" htmlFor="assetQuantity">
                   Quantity <span className="text-red-500">*</span>
@@ -851,7 +847,6 @@ const AddLoan = () => {
                   className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
                 />
               </div>
-
               <div className="flex flex-col gap-2">
                 <label className="font-bold text-sm" htmlFor="assetPrice">
                   Asset Price (per unit) <span className="text-red-500">*</span>
@@ -867,48 +862,6 @@ const AddLoan = () => {
                     setFormData((prev) => ({
                       ...prev,
                       assetPrice: e.target.value,
-                    }))
-                  }
-                  className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                />
-              </div>
-
-              <div className="flex flex-col gap-2 ">
-                <label
-                  className="font-bold text-sm"
-                  htmlFor="preferredSupplier"
-                >
-                  Preferred Supplier
-                </label>
-                <input
-                  type="text"
-                  id="preferredSupplier"
-                  required
-                  value={formData.preferredSupplier}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      preferredSupplier: e.target.value,
-                    }))
-                  }
-                  className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="font-bold text-sm" htmlFor="assetPrice">
-                  Supplier Quote
-                </label>
-                <input
-                  type="number"
-                  id="supplierQuote"
-                  required
-                  min="0"
-                  step="0.01"
-                  value={formData.supplierQuote}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      supplierQuote: e.target.value,
                     }))
                   }
                   className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"

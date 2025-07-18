@@ -156,7 +156,7 @@ const Loans = () => {
               Note: only pending or rejected loans can be edited
             </p>
           </div>
-          {hasPrivilege("CreateLoanApplication") && (
+          {hasPrivilege("ManageLoanTransactions") && (
             <div
               onClick={() => router.push("/Loan/Request-Form")}
               id="add-loan-icon"

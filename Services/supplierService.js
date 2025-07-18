@@ -59,5 +59,20 @@ const supplierService = {
       );
     }
   },
+  toggleSupplierStatus: async (supplierId, data) => {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/${supplierId}/toggle-status`,
+        data
+      );
+      return response.data;
+    } catch (error) {
+      throw (
+        error.response?.data ||
+        error.message ||
+        "Failed to toggle supplier status"
+      );
+    }
+  },
 };
 export default supplierService;

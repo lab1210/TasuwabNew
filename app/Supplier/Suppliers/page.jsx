@@ -2,17 +2,32 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Layout from "@/app/components/Layout";
-import { FaEdit, FaEye, FaPlus, FaTrashAlt } from "react-icons/fa";
+import { FaEdit, FaEye, FaPlus } from "react-icons/fa";
 import { Tooltip } from "react-tooltip";
 import toast, { Toaster } from "react-hot-toast";
-import supplierService, { getSuppliers } from "@/Services/supplierService";
+import supplierService from "@/Services/supplierService";
+import formatDate from "@/app/components/formatdate";
+import { useAuth } from "@/Services/authService";
 
 const Suppliers = () => {
   const [suppliers, setSuppliers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
+  const { user } = useAuth();
   const ITEMS_PER_PAGE = 5;
+  const [formData, setFormData] = useState({
+    performedBy: user?.StaffCode,
+  });
+
+  useEffect(() => {
+    if (user) {
+      setFormData((prev) => ({
+        ...prev,
+        performedBy: user?.StaffCode || "",
+      }));
+    }
+  }, [user]);
 
   const fetchSuppliers = async () => {
     try {
@@ -46,6 +61,33 @@ const Suppliers = () => {
 
   const totalPages = Math.ceil(filteredSuppliers.length / ITEMS_PER_PAGE);
 
+  const handleStatusToggle = async (supplierID) => {
+    try {
+      // Create the payload with current values
+      const payload = {
+        performedBy: user?.StaffCode || "",
+      };
+
+      const response = await supplierService.toggleSupplierStatus(
+        supplierID,
+        payload
+      );
+
+      if (response.status === 200) {
+        const updatedSuppliers = suppliers.map((supplier) => ({
+          ...supplier,
+          status:
+            supplier.id === supplierID ? !supplier.status : supplier.status,
+        }));
+        setSuppliers(updatedSuppliers);
+        toast.success("Supplier status updated successfully");
+      } else {
+        toast.error("Failed to update supplier status");
+      }
+    } catch (err) {
+      toast.error(err.message || "Failed to update supplier status");
+    }
+  };
   return (
     <Layout>
       <Toaster position="top-right" />
@@ -98,7 +140,9 @@ const Suppliers = () => {
                 <th className="text-left py-3 px-4">Phone</th>
                 <th className="text-left py-3 px-4">Account Number</th>
                 <th className="text-left py-3 px-4">Account Name</th>
-                <th className="text-left py-3 px-4">Categories</th>
+                <th className="text-left py-3 px-4">Status</th>
+                <th className="text-left py-3 px-4">Created At</th>
+                <th className="text-left py-3 px-4">Updated At</th>
                 <th className="text-left py-3 px-4">Actions</th>
               </tr>
             </thead>
@@ -106,7 +150,7 @@ const Suppliers = () => {
             <tbody className="text-sm text-gray-700">
               {filteredSuppliers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-10 text-gray-400">
+                  <td colSpan={10} className="text-center py-10 text-gray-400">
                     No suppliers found.
                   </td>
                 </tr>
@@ -121,7 +165,24 @@ const Suppliers = () => {
                       {supplier.supplierAccountNumber}
                     </td>
                     <td className="py-3 px-4">{supplier.supplierBankName}</td>
-                    <td className="py-3 px-4">{supplier.categoryIds}</td>
+                    <td className="py-3 px-4">
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          supplier.status
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {supplier.status ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      {formatDate(supplier.createdAt)}
+                    </td>
+                    <td className="py-3 px-4">
+                      {formatDate(supplier.updatedAt)}
+                    </td>
+
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
                         <FaEye
@@ -144,6 +205,17 @@ const Suppliers = () => {
                           }
                           title="Edit"
                         />
+                        <button
+                          onClick={() => handleStatusToggle(supplier.id)}
+                          className="text-white p-1 rounded-lg cursor-pointer hover:bg-gray-50"
+                          style={
+                            supplier.status
+                              ? { backgroundColor: "red" }
+                              : { backgroundColor: "green" }
+                          }
+                        >
+                          {supplier.status ? "Deactivate" : "Activate"}
+                        </button>
                       </div>
                     </td>
                   </tr>

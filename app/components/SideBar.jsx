@@ -204,7 +204,7 @@ const SideBar = () => {
             {
               label: "View Financed Assets",
               href: "/Loan",
-              privilege: "ViewLoanApplications",
+              privilege: "ViewLoanAccounts",
             },
             {
               label: "Approved Applications",
@@ -229,7 +229,7 @@ const SideBar = () => {
             //   privilege: "ViewApprovedTransactions",
             // },
           ],
-          privilege: "ViewLoanApplications",
+          privilege: "ManageLoanTransactions" || "ViewLoanAccounts",
         },
         {
           key: "enquiries",

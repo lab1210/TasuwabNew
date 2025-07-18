@@ -1,333 +1,476 @@
 "use client";
-import Layout from "@/app/components/Layout";
-import React, { useEffect, useState } from "react";
-import Select from "react-select";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import categoryService from "@/Services/categoryService";
+import productService from "@/Services/productService";
+import Layout from "@/app/components/Layout";
+import toast from "react-hot-toast";
+import bankService from "@/Services/bankService";
+import dynamic from "next/dynamic";
 import supplierService from "@/Services/supplierService";
 
-const AddSupplier = () => {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-
-  const [banks, setBanks] = useState([
-    { label: "First Bank", value: "firstBank" },
-    { label: "Access Bank", value: "accessBank" },
-    { label: "Zenith Bank", value: "zenithBank" },
-    { label: "Ecobank", value: "ecobank" },
-  ]);
-
-  const [selectedBank, setSelectedBank] = useState(null);
-  const [accountNumber, setAccountNumber] = useState("");
-  const [accountName, setAccountName] = useState("");
-
+const Select = dynamic(() => import("react-select"), {
+  ssr: false,
+  loading: () => (
+    <div className="min-w-[200px] h-[42px] border border-gray-400 rounded-md"></div>
+  ),
+});
+const AddSupplierPage = () => {
+  const router = useRouter();
   const [categories, setCategories] = useState([]);
-  const [selectedCategories, setSelectedCategories] = useState([]);
-  const [selectedProducts, setSelectedProducts] = useState({});
+  const [products, setProducts] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [availableProducts, setAvailableProducts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [bankOptions, setBankOptions] = useState([]);
+  const [inputValue, setInputValue] = useState("");
+  const [isLoadingBanks, setIsLoadingBanks] = useState(false);
+
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    supplierAccountNumber: "",
+    supplierBankName: "",
+    categoryIds: [],
+    productPrices: {},
+  });
 
   useEffect(() => {
-    const cats = categoryService.getAllCategories();
-    const formattedCats = cats.map((cat) => ({
-      value: cat.id,
-      label: cat.name,
-      products: cat.products.map((p) => ({
-        value: p.id,
-        label: p.name,
-      })),
-    }));
-    setCategories(formattedCats);
+    const fetchNigerianBanks = async () => {
+      setIsLoadingBanks(true);
+      try {
+        const data = await bankService.getNigerianBanks();
+        const options = data.map((bank) => ({
+          value: bank.name,
+          label: bank.name,
+          logo: bank.logo,
+        }));
+        setBankOptions(options);
+      } catch (err) {
+        toast.error("Failed to fetch bank list");
+      } finally {
+        setIsLoadingBanks(false);
+      }
+    };
+
+    fetchNigerianBanks();
   }, []);
 
-  const handleCategoryChange = (selected) => {
-    setSelectedCategories(selected || []);
-    const updated = {};
-    (selected || []).forEach((cat) => {
-      updated[cat.value] = selectedProducts[cat.value] || [];
+  const handleBankNameChange = (selectedOption, { action }) => {
+    if (action === "select-option") {
+      setFormData((prev) => ({
+        ...prev,
+        supplierBankName: selectedOption.value,
+      }));
+    } else if (action === "input-change") {
+      setInputValue(selectedOption);
+    } else if (action === "clear") {
+      setFormData((prev) => ({
+        ...prev,
+        supplierBankName: "",
+      }));
+      setInputValue("");
+    }
+  };
+  const handleInputBlur = () => {
+    if (
+      inputValue &&
+      !bankOptions.some((option) => option.value === inputValue)
+    ) {
+      setFormData((prev) => ({
+        ...prev,
+        supplierBankName: inputValue,
+      }));
+    }
+  };
+
+  // Fetch categories and all products on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [categoriesRes, productsRes] = await Promise.all([
+          categoryService.getCategories(),
+          productService.getAllProducts(),
+        ]);
+        setCategories(categoriesRes);
+        setProducts(productsRes);
+      } catch (error) {
+        toast.error("Failed to load initial data");
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Update available products when selected category changes
+  useEffect(() => {
+    if (selectedCategory) {
+      const filteredProducts = products.filter(
+        (product) => product.categoryId === selectedCategory
+      );
+      setAvailableProducts(filteredProducts);
+    } else {
+      setAvailableProducts([]);
+    }
+  }, [selectedCategory, products]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value,
     });
-    setSelectedProducts(updated);
   };
 
-  const handleProductChange = (catId, selected) => {
-    setSelectedProducts((prev) => ({
-      ...prev,
-      [catId]: selected.map((p) => {
-        const existing = (prev[catId] || []).find(
-          (item) => item.id === p.value
-        );
-        return {
-          id: p.value,
-          name: p.label,
-          price: existing ? existing.price : "",
-        };
-      }),
-    }));
+  const handleCategoryChange = (e) => {
+    setSelectedCategory(e.target.value);
   };
 
-  const handlePriceChange = (catId, productIndex, newPrice) => {
-    const updated = [...(selectedProducts[catId] || [])];
-    updated[productIndex].price = newPrice;
-    setSelectedProducts((prev) => ({
-      ...prev,
-      [catId]: updated,
-    }));
+  const handleAddCategory = () => {
+    if (selectedCategory && !formData.categoryIds.includes(selectedCategory)) {
+      setFormData({
+        ...formData,
+        categoryIds: [...formData.categoryIds, selectedCategory],
+      });
+      setSelectedCategory("");
+    }
+  };
+
+  const handleRemoveCategory = (categoryId) => {
+    setFormData({
+      ...formData,
+      categoryIds: formData.categoryIds.filter((id) => id !== categoryId),
+      // Remove product prices for products in this category
+      productPrices: Object.fromEntries(
+        Object.entries(formData.productPrices).filter(([productId]) => {
+          const product = products.find((p) => p.id === productId);
+          return product?.categoryId !== categoryId;
+        })
+      ),
+    });
+  };
+
+  const handlePriceChange = (productId, price) => {
+    setFormData({
+      ...formData,
+      productPrices: {
+        ...formData.productPrices,
+        [productId]: parseFloat(price) || 0,
+      },
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (
-      !name ||
-      !email ||
-      !selectedBank ||
-      !accountNumber ||
-      !accountName ||
-      accountName === "Invalid account"
-    ) {
-      alert("Please fill in all required fields with valid information.");
-      return;
-    }
-
-    const payload = {
-      name,
-      email,
-      phone,
-      address,
-      bank: selectedBank.label,
-      accountNumber,
-      accountName,
-      categories: selectedCategories.map((cat) => ({
-        id: cat.value,
-        name: cat.label,
-        products: (selectedProducts[cat.value] || []).map((p) => ({
-          id: p.id,
-          name: p.name,
-          price: p.price,
-        })),
-      })),
-    };
-
     try {
-      await supplierService.addSupplier(payload);
-      alert("Supplier added successfully!");
+      setLoading(true);
 
-      // Reset form
-      setName("");
-      setEmail("");
-      setPhone("");
-      setAddress("");
-      setSelectedBank(null);
-      setAccountNumber("");
-      setAccountName("");
-      setSelectedCategories([]);
-      setSelectedProducts({});
-    } catch (err) {
-      alert("Failed to add supplier.");
+      // Validate required fields
+      if (
+        !formData.name ||
+        !formData.supplierAccountNumber ||
+        !formData.supplierBankName ||
+        formData.categoryIds.length === 0
+      ) {
+        toast.error("Please fill in all required fields");
+        return;
+      }
+
+      // Validate at least one product price is entered
+      if (Object.keys(formData.productPrices).length === 0) {
+        toast.error("Please add at least one product with price");
+        return;
+      }
+
+      const response = await supplierService.addSupplier(formData);
+
+      toast.success("Supplier added successfully");
+      router.push("/Supplier/Suppliers");
+    } catch (error) {
+      console.error("Error adding supplier:", error);
+      toast.error(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to add supplier"
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <Layout>
-      <div className="w-full">
-        <div>
-          <p className="text-4xl font-extrabold mb-2">Create Supplier</p>
-          <p className="text-sm text-gray-600">
-            Fill in the form below to create a new supplier.
-          </p>
-        </div>
-        <form className="mt-6" onSubmit={handleSubmit}>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-2">
-              <label className="font-bold text-sm" htmlFor="name">
-                Supplier Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="font-bold text-sm" htmlFor="email">
-                Email <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="font-bold text-sm" htmlFor="phone">
-                Phone <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="tel"
-                name="phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="font-bold text-sm" htmlFor="address">
-                Address <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="address"
-                name="address"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="font-bold text-sm" htmlFor="bank">
-                Bank <span className="text-red-500">*</span>
-              </label>
-              <Select
-                options={banks}
-                value={selectedBank}
-                onChange={setSelectedBank}
-                placeholder="Select Bank"
-                isClearable
-                isSearchable
-                styles={{
-                  control: (base, state) => ({
-                    ...base,
-                    borderColor: state.isFocused ? "#3D873B" : base.borderColor,
-                    boxShadow: state.isFocused
-                      ? "0 0 0 1px green"
-                      : base.boxShadow,
-                    "&:hover": {
-                      borderColor: state.isFocused
-                        ? "#3D873B"
-                        : base.borderColor,
-                    },
-                  }),
-                }}
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="font-bold text-sm" htmlFor="accountNumber">
-                Account Number <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                maxLength={10}
-                name="accountNumber"
-                value={accountNumber}
-                onChange={(e) => setAccountNumber(e.target.value)}
-                className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-              />
-              {accountName && (
-                <p className="font-bold text-sm">
-                  Account Name:{" "}
-                  <span
-                    className={`${
-                      accountName === "Invalid account"
-                        ? "text-red-500"
-                        : "text-[#3D873B]"
-                    } `}
-                  >
-                    {accountName}
-                  </span>{" "}
-                </p>
-              )}
+      <div className="w-full p-4">
+        <h1 className="text-2xl font-bold mb-6">Add New Supplier</h1>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Basic Information Section */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h2 className="text-lg font-semibold mb-4">Basic Information</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Phone
+                </label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Address
+                </label>
+                <input
+                  type="text"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                />
+              </div>
             </div>
           </div>
-          <div className="mt-4">
-            <div>
-              <label className="font-bold text-sm" htmlFor="categories">
-                Categories
-              </label>
-              <Select
-                isMulti
-                options={categories}
-                value={selectedCategories}
-                onChange={handleCategoryChange}
-                placeholder="Select categories..."
-                styles={{
-                  control: (base, state) => ({
-                    ...base,
-                    borderColor: state.isFocused ? "#3D873B" : base.borderColor,
-                    boxShadow: state.isFocused
-                      ? "0 0 0 1px green"
-                      : base.boxShadow,
-                    "&:hover": {
-                      borderColor: state.isFocused
-                        ? "#3D873B"
-                        : base.borderColor,
-                    },
-                  }),
-                }}
-              />
-            </div>
-            {selectedCategories.map((cat) => (
-              <div key={cat.value} className="mb-6 mt-4">
-                <label htmlFor="products" className="font-bold text-sm">
-                  Product under {cat.label} category
+
+          {/* Banking Information Section */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h2 className="text-lg font-semibold mb-4">Banking Information</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Account Number <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="supplierAccountNumber"
+                  value={formData.supplierAccountNumber}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Bank Name <span className="text-red-500">*</span>
                 </label>
                 <Select
-                  isMulti
-                  options={cat.products}
-                  value={(selectedProducts[cat.value] || []).map((p) => ({
-                    value: p.id,
-                    label: p.name,
-                  }))}
-                  placeholder="Select products..."
-                  onChange={(selected) =>
-                    handleProductChange(cat.value, selected)
+                  options={bankOptions}
+                  value={
+                    formData.supplierBankName
+                      ? {
+                          value: formData.supplierBankName,
+                          label: formData.supplierBankName,
+                        }
+                      : null
                   }
+                  onChange={handleBankNameChange}
+                  onInputChange={(value) => setInputValue(value)}
+                  onBlur={handleInputBlur}
+                  isClearable
+                  isSearchable
+                  placeholder="Search or type bank name"
+                  isLoading={isLoadingBanks}
+                  noOptionsMessage={() => "Type to enter a custom bank name"}
+                  formatOptionLabel={(bank, { context }) => (
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      {bank.logo && context === "menu" && (
+                        <img
+                          src={bank.logo}
+                          alt={bank.label}
+                          style={{
+                            width: "20px",
+                            height: "20px",
+                            marginRight: "10px",
+                          }}
+                        />
+                      )}
+                      {bank.label}
+                    </div>
+                  )}
+                  className="basic-single"
+                  classNamePrefix="select"
                   styles={{
-                    control: (base, state) => ({
+                    control: (base) => ({
                       ...base,
-                      borderColor: state.isFocused
-                        ? "#3D873B"
-                        : base.borderColor,
-                      boxShadow: state.isFocused
-                        ? "0 0 0 1px green"
-                        : base.boxShadow,
+                      minHeight: "42px",
+                      borderColor: "#d1d5db",
+                      boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
                       "&:hover": {
-                        borderColor: state.isFocused
-                          ? "#3D873B"
-                          : base.borderColor,
+                        borderColor: "#3D873B",
                       },
                     }),
                   }}
                 />
-                {(selectedProducts[cat.value] || []).map((product, index) => (
-                  <div
-                    key={product.id}
-                    className="flex items-center justify-evenly gap-4 mt-2"
-                  >
-                    <span className="font-bold text-gray-500">
-                      {product.name}
-                    </span>
-                    <input
-                      type="number"
-                      placeholder="Enter price"
-                      value={product.price}
-                      onChange={(e) =>
-                        handlePriceChange(cat.value, index, e.target.value)
-                      }
-                      className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                    />
-                  </div>
-                ))}
               </div>
-            ))}
+            </div>
           </div>
-          <div className="flex items-center justify-end mt-6">
+
+          {/* Categories Section */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h2 className="text-lg font-semibold mb-4">Categories</h2>
+            <div className="flex items-end gap-2 mb-4">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Select Category
+                </label>
+                <select
+                  value={selectedCategory}
+                  onChange={handleCategoryChange}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                >
+                  <option value="">Select a category</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                onClick={handleAddCategory}
+                disabled={!selectedCategory}
+                className="px-4 py-2 bg-[#333] text-white rounded-md hover:opacity-90 disabled:opacity-50"
+              >
+                Add Category
+              </button>
+            </div>
+
+            {formData.categoryIds.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-gray-700">
+                  Selected Categories:
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {formData.categoryIds.map((categoryId) => {
+                    const category = categories.find(
+                      (c) => c.id === categoryId
+                    );
+                    return (
+                      <div
+                        key={categoryId}
+                        className="flex items-center bg-gray-100 px-3 py-1 rounded-full"
+                      >
+                        <span>{category?.name || categoryId}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveCategory(categoryId)}
+                          className="ml-2 text-red-500 hover:text-red-700"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Products Section */}
+          {formData.categoryIds.length > 0 && (
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-lg font-semibold mb-4">Products & Prices</h2>
+              <div className="space-y-4">
+                {formData.categoryIds.map((categoryId) => {
+                  const category = categories.find((c) => c.id === categoryId);
+                  const categoryProducts = products.filter(
+                    (product) => product.categoryId === categoryId
+                  );
+
+                  return (
+                    <div key={categoryId} className="border rounded-lg p-4">
+                      <h3 className="font-medium mb-3">{category?.name}</h3>
+                      {categoryProducts.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {categoryProducts.map((product) => (
+                            <div
+                              key={product.id}
+                              className="border p-3 rounded-md"
+                            >
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="font-medium">
+                                  {product.name}
+                                </span>
+                              </div>
+                              <div>
+                                <label className="block text-sm text-gray-700 mb-1">
+                                  Price
+                                </label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  value={
+                                    formData.productPrices[product.id] || ""
+                                  }
+                                  onChange={(e) =>
+                                    handlePriceChange(
+                                      product.id,
+                                      e.target.value
+                                    )
+                                  }
+                                  className="w-full p-2 border border-gray-300 rounded-md"
+                                  placeholder="0.00"
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-500">
+                          No products found in this category
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Submit Button */}
+          <div className="flex justify-end">
             <button
               type="submit"
-              className="text-white bg-[#3D873B] px-4 py-2 rounded-md shadow-md hover:opacity-95 cursor-pointer transition-colors duration-200"
+              disabled={loading}
+              className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
             >
-              Add Supplier
+              {loading ? "Saving..." : "Save Supplier"}
             </button>
           </div>
         </form>
@@ -336,4 +479,4 @@ const AddSupplier = () => {
   );
 };
 
-export default AddSupplier;
+export default AddSupplierPage;
