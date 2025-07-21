@@ -1,38 +1,74 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import Layout from "../components/Layout";
-import { useAuth } from "@/Services/authService";
-import { useRouter } from "next/navigation";
-import roleService from "@/Services/roleService";
+import { FaChevronDown, FaChevronUp, FaPlus, FaFilter } from "react-icons/fa";
 import { Tooltip } from "react-tooltip";
-import { FaEdit, FaEye, FaPlus } from "react-icons/fa";
-import LoanInfo from "./LoanInfo";
-import dummyLoans from "./DummyLoan";
-const ITEMS_PER_PAGE = 2;
+import Layout from "@/app/components/Layout";
+import { useAuth } from "@/Services/authService";
+import loanService from "@/Services/loanService";
+import branchService from "@/Services/branchService";
+import roleService from "@/Services/roleService";
+import formatDate from "@/app/components/formatdate";
+import { useRouter } from "next/navigation";
+import LoanTypeService from "@/Services/loanTypeService";
+import toast from "react-hot-toast";
 
-const Loans = () => {
+const ITEMS_PER_PAGE = 10;
+
+const LoanRequestsPage = () => {
   const { user } = useAuth();
+  const [expandedRows, setExpandedRows] = useState([]);
   const [loans, setLoans] = useState([]);
   const [filterText, setFilterText] = useState("");
   const [filteredLoans, setFilteredLoans] = useState([]);
-  const [rolePrivileges, setRolePrivileges] = useState([]);
-  const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
+  const [rolePrivileges, setRolePrivileges] = useState([]);
   const [loadingPrivileges, setLoadingPrivileges] = useState(true);
-  const [selectedLoan, setSelectedLoan] = useState(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState("");
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [loanTypes, setLoanTypes] = useState([]);
+  const router = useRouter();
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    loanType: "",
+    status: "",
+    accountCode: "",
+    startDate: "",
+    endDate: "",
+  });
+
+  const formatCurrency = (value) =>
+    new Intl.NumberFormat("en-NG", {
+      style: "currency",
+      currency: "NGN",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(Number(value) || 0);
 
   useEffect(() => {
-    console.log("Loaded dummyLoans:", dummyLoans);
-    setLoans(dummyLoans);
-    setLoading(false);
-  }, []);
+    const fetchData = async () => {
+      try {
+        const loanTypesResponse = await LoanTypeService.getLoanTypes();
+        setLoanTypes(loanTypesResponse || []);
+
+        const loansResponse = await loanService.getLoans({
+          accountCode: filters.accountCode,
+          startDate: filters.startDate,
+          endDate: filters.endDate,
+        });
+        const sortedLoans = [...(loansResponse || [])].sort((a, b) => {
+          return new Date(a.createdAt) - new Date(b.createdAt);
+        });
+        setLoans(sortedLoans);
+        setLoading(false);
+      } catch (err) {
+        console.error("Failed to fetch data:", err);
+        setError(err.message || "Failed to load data");
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [filters.accountCode, filters.startDate, filters.endDate]);
 
   useEffect(() => {
     const fetchPrivileges = async () => {
@@ -59,53 +95,30 @@ const Loans = () => {
   useEffect(() => {
     const handleFilter = () => {
       const lowerCaseFilter = filterText.toLowerCase();
-      if (!Array.isArray(loans)) {
-        setFilteredLoans([]);
-        return;
-      }
-
-      let results = loans;
-
-      // Filter by text
-      if (filterText) {
-        results = results.filter((loan) =>
-          Object.values(loan).some(
-            (value) =>
-              value && value.toString().toLowerCase().includes(lowerCaseFilter)
-          )
+      const results = loans.filter((loan) => {
+        // Text search
+        const matchesText = Object.values(loan).some(
+          (value) =>
+            value && value.toString().toLowerCase().includes(lowerCaseFilter)
         );
-      }
 
-      // Filter by status
-      if (statusFilter) {
-        results = results.filter(
-          (loan) =>
-            loan.status &&
-            loan.status.toLowerCase() === statusFilter.toLowerCase()
-        );
-      }
+        // Filter by loan type
+        const matchesType =
+          !filters.loanType || loan.loanTypeCode === filters.loanType;
 
-      // Filter by date range
-      if (startDate || endDate) {
-        results = results.filter((loan) => {
-          const loanDate = new Date(loan.createdDate);
-          const start = startDate ? new Date(startDate) : null;
-          const end = endDate ? new Date(endDate) : null;
+        // Filter by status
+        const matchesStatus =
+          filters.status === "" ||
+          loan.status.toLowerCase() === filters.status.toLowerCase();
 
-          if (start && end) return loanDate >= start && loanDate <= end;
-          if (start) return loanDate >= start;
-          if (end) return loanDate <= end;
-
-          return true;
-        });
-      }
+        return matchesText && matchesType && matchesStatus;
+      });
 
       setFilteredLoans(results);
       setCurrentPage(1);
     };
-
     handleFilter();
-  }, [loans, filterText, statusFilter, startDate, endDate]);
+  }, [loans, filterText, filters]);
 
   const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedLoans = filteredLoans.slice(
@@ -119,23 +132,77 @@ const Loans = () => {
     return !loadingPrivileges && rolePrivileges.includes(privilegeName);
   };
 
+  const toggleRow = (id) => {
+    setExpandedRows((prev) =>
+      prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]
+    );
+  };
+
+  const handleFilterChange = (filterName, value) => {
+    setFilters((prev) => ({
+      ...prev,
+      [filterName]: value,
+    }));
+  };
+
+  const resetFilters = () => {
+    setFilters({
+      loanType: "",
+      status: "",
+      accountCode: "",
+      startDate: "",
+      endDate: "",
+    });
+    setFilterText("");
+  };
+
+  const handleApproveLoan = async (loanId) => {
+    try {
+      await loanService.approveLoan(loanId);
+      toast.success("Loan approved successfully");
+      // Refresh loans after approval
+      const loansResponse = await loanService.getLoans();
+      setLoans(loansResponse || []);
+    } catch (error) {
+      toast.error(error.message || "Failed to approve loan");
+    }
+  };
+
+  const handleRejectLoan = async (loanId) => {
+    try {
+      await loanService.rejectLoan(loanId);
+      toast.success("Loan rejected successfully");
+      // Refresh loans after rejection
+      const loansResponse = await loanService.getLoans();
+      setLoans(loansResponse || []);
+    } catch (error) {
+      toast.error(error.message || "Failed to reject loan");
+    }
+  };
+
   if (loading || loadingPrivileges) {
     return (
       <Layout>
         <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
-          <div className="w-12 h-12 border-4 border-[#333] border-t-[#3D873B] rounded-full animate-spin"></div>
+          <div className="relative w-14 h-14">
+            <div className="absolute w-full h-full border-4 border-[#333] border-t-[#3D873B] rounded-full animate-spin"></div>
+            <div className="absolute inset-0 flex items-center justify-center font-bold text-[#3D873B] text-xl">
+              T
+            </div>
+          </div>
         </div>
       </Layout>
     );
   }
+
   if (error) {
     return (
       <Layout>
-        <div className="flex items-center gap-2 ">
+        <div className="flex items-center gap-2">
           <p className="font-bold">{error}</p>
           <button
-            className="bg-red-500 cursor-pointer shadow-md text-white p-1 rounded-lg "
-            onClick={() => setError(null)}
+            className="bg-red-500 cursor-pointer shadow-md text-white p-1 rounded-lg"
+            onClick={() => window.location.reload()}
           >
             Retry
           </button>
@@ -143,20 +210,16 @@ const Loans = () => {
       </Layout>
     );
   }
+
   return (
     <Layout>
       <div className="w-full">
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-4xl font-extrabold">Financed Assets</p>
-            <p className="text-sm text-gray-600">
-              View all your financed assets .
-            </p>
-            <p className="text-sm text-red-500 mt-3">
-              Note: only pending or rejected loans can be edited
-            </p>
+            <p className="text-4xl font-extrabold">Loan Requests</p>
+            <p className="text-sm text-gray-600">View all loan applications.</p>
           </div>
-          {hasPrivilege("ManageLoanTransactions") && (
+          {hasPrivilege("CreateLoanRequests") && (
             <div
               onClick={() => router.push("/Loan/Request-Form")}
               id="add-loan-icon"
@@ -167,7 +230,7 @@ const Loans = () => {
           )}
           <Tooltip
             anchorId="add-loan-icon"
-            content="Fill request form"
+            content="New Loan Application"
             place="top"
             style={{
               backgroundColor: "#3D873B",
@@ -176,144 +239,301 @@ const Loans = () => {
             }}
           />
         </div>
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4 mb-5">
-          <input
-            type="text"
-            placeholder="Search Financed Assets..."
-            value={filterText}
-            onChange={(e) => setFilterText(e.target.value)}
-            className="placeholder:text-sm border p-2 w-full rounded-md border-gray-300 outline-none shadow-sm"
-          />
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="border  w-full p-2 rounded-md shadow-sm border-gray-300"
-          />
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="border p-2 w-full rounded-md shadow-sm border-gray-300"
-          />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="border w-full p-2 rounded-md shadow-sm border-gray-300"
-          >
-            <option value="">All Statuses</option>
-            <option value="Approved">Approved</option>
-            <option value="Rejected">Rejected</option>
-            <option value="Pending">Pending</option>
-            <option value="Active">Active</option>
-          </select>
+
+        {/* Search and Filter Section */}
+        <div className="mt-4 mb-5 space-y-3">
+          <div className="flex gap-3">
+            <input
+              type="text"
+              placeholder="Search Loans..."
+              value={filterText}
+              onChange={(e) => setFilterText(e.target.value)}
+              className="placeholder:text-sm border p-2 w-full rounded-md border-gray-300 outline-none shadow-sm"
+            />
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md ${
+                showFilters
+                  ? "bg-[#3D873B] text-white"
+                  : "bg-gray-100 text-gray-700"
+              }`}
+            >
+              <FaFilter />
+              <span>Filters</span>
+            </button>
+          </div>
+
+          {showFilters && (
+            <div className="bg-gray-50 p-4 rounded-md shadow-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Loan Type Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Loan Type
+                  </label>
+                  <select
+                    value={filters.loanType}
+                    onChange={(e) =>
+                      handleFilterChange("loanType", e.target.value)
+                    }
+                    className="w-full p-2 border border-gray-300 rounded-md"
+                  >
+                    <option value="">All Types</option>
+                    {loanTypes.map((type) => (
+                      <option key={type.code} value={type.code}>
+                        {type.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Status Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Status
+                  </label>
+                  <select
+                    value={filters.status}
+                    onChange={(e) =>
+                      handleFilterChange("status", e.target.value)
+                    }
+                    className="w-full p-2 border border-gray-300 rounded-md"
+                  >
+                    <option value="">All Statuses</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Rejected">Rejected</option>
+                    <option value="Disbursed">Disbursed</option>
+                    <option value="Completed">Completed</option>
+                  </select>
+                </div>
+
+                {/* Date Range Filters */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={filters.startDate}
+                    onChange={(e) =>
+                      handleFilterChange("startDate", e.target.value)
+                    }
+                    className="w-full p-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={filters.endDate}
+                    onChange={(e) =>
+                      handleFilterChange("endDate", e.target.value)
+                    }
+                    className="w-full p-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-3 flex justify-end">
+                <button
+                  onClick={resetFilters}
+                  className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900"
+                >
+                  Reset Filters
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full table-auto divide-y divide-gray-200 shadow-lg rounded-md">
-            <thead className="bg-gray-50 text-gray-500 text-sm">
-              <tr>
-                <th className="text-left py-3 px-4">S/N</th>
-                <th className="text-left py-3 px-4">DocNbr </th>
-                <th className="text-left py-3 px-4">Name</th>
-                <th className="text-left py-3 px-4">Business Name </th>
-                <th className="text-left py-3 px-4">Phone</th>
-                <th className="text-left py-3 px-4">Email</th>
-                <th className="text-left py-3 px-4">Loan Type</th>
-                <th className="text-left py-3 px-4">Loan Amount</th>
-                <th className="text-left py-3 px-4">Payment Period</th>
-                <th className="text-left py-3 px-4">Status</th>
-                <th className="text-left py-3 px-4">Created By</th>
-                <th className="text-left py-3 px-4">Created Date</th>
-                <th className="text-left py-3 px-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="text-sm divide-y divide-gray-200">
-              {paginatedLoans.map((loan, index) => {
-                return (
-                  <tr key={index}>
-                    <td className="py-3 px-4">{startIdx + index + 1}</td>
-                    <td className="py-3 px-4">{loan.fileName}</td>
-                    <td className="py-3 px-4">{loan.name}</td>
-                    <td className="py-3 px-4">{loan.businessName}</td>
-                    <td className="py-3 px-4">{loan.phone}</td>
-                    <td className="py-3 px-4">{loan.email}</td>
-                    <td className="py-3 px-4">{loan.purpose}</td>
-                    <td className="py-3 px-4">
-                      {new Intl.NumberFormat("en-NG", {
-                        style: "currency",
-                        currency: "NGN",
-                      }).format(
-                        loan.loanAmount === "NA"
-                          ? loan.totalCostofAsset
-                          : loan.loanAmount
-                      )}
-                    </td>
-                    <td className="py-3 px-4">{loan.InstallmentPeriod}</td>
-
-                    <td className="py-3 px-4">
-                      {loan.status === "Pending" ? (
-                        <p className="text-yellow-500 font-bold rounded-md bg-yellow-50 text-center p-1">
+        {/* Loans Table */}
+        <div className="mt-6 overflow-hidden rounded-lg border border-gray-200 shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Loan ID
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Client
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Amount
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {paginatedLoans.map((loan) => (
+                  <React.Fragment key={loan.loanId}>
+                    <tr
+                      onClick={() => toggleRow(loan.loanId)}
+                      className="hover:bg-gray-50 cursor-pointer"
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {loan.loanId}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {formatDate(loan.createdAt)}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {loan.accountCode}
+                        </div>
+                        <div className="text-sm text-gray-500">{loan.name}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {formatCurrency(loan.amount)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {loan.loanTypeCode}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            loan.status === "Approved"
+                              ? "bg-green-100 text-green-800"
+                              : loan.status === "Rejected"
+                              ? "bg-red-100 text-red-800"
+                              : loan.status === "Pending"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : loan.status === "Disbursed"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
                           {loan.status}
-                        </p>
-                      ) : loan.status === "Approved" ? (
-                        <p className="text-green-500 font-bold rounded-md bg-green-50 text-center p-1">
-                          {loan.status}
-                        </p>
-                      ) : loan.status === "Rejected" ? (
-                        <p className="text-red-500 font-bold rounded-md bg-red-50 text-center p-1">
-                          {loan.status}
-                        </p>
-                      ) : (
-                        loan.status === "Active" && (
-                          <p className="text-blue-500 font-bold rounded-md bg-blue-50 text-center p-1">
-                            {loan.status}
-                          </p>
-                        )
-                      )}
-                    </td>
-                    <td className="py-3 px-4">{loan.createdBy}</td>
-                    <td className="py-3 px-4">{loan.date}</td>
-
-                    <td className="py-3 px-4 text-center flex items-center justify-center gap-2">
-                      <FaEye
-                        onClick={() => {
-                          setSelectedLoan(loan.loanId);
-                          setIsSidebarOpen(true);
-                        }}
-                        size={18}
-                        className="cursor-pointer text-gray-500 hover:text-black"
-                      />
-                      {(loan.status === "Pending" ||
-                        loan.status === "Rejected") && (
-                        <FaEdit
-                          onClick={() => {
-                            setSelectedLoan(loan.loanId);
-                            router.push(
-                              `/Loan/Update-Request-Form/${loan.loanId}`
-                            );
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleRow(loan.loanId);
                           }}
-                          size={18}
-                          className="cursor-pointer  hover:text-gray-500"
-                        />
-                      )}
+                          className="text-gray-400 hover:text-gray-600"
+                          title="More Details"
+                        >
+                          {expandedRows.includes(loan.loanId) ? (
+                            <FaChevronUp />
+                          ) : (
+                            <FaChevronDown />
+                          )}
+                        </button>
+                      </td>
+                    </tr>
+                    {expandedRows.includes(loan.loanId) && (
+                      <tr className="bg-gray-50">
+                        <td colSpan="6" className="px-6 py-4">
+                          <div className="grid grid-cols-3 gap-4 text-sm">
+                            <div>
+                              <p className="font-medium text-gray-900">
+                                Purpose:
+                              </p>
+                              <p className="text-gray-500">
+                                {loan.purpose || "N/A"}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900">Term:</p>
+                              <p className="text-gray-500">
+                                {loan.paymentPeriod} months
+                              </p>
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900">
+                                Created By:
+                              </p>
+                              <p className="text-gray-500">
+                                {loan.performedBy}
+                              </p>
+                            </div>
+                            {loan.needSupplierRequest && (
+                              <>
+                                <div>
+                                  <p className="font-medium text-gray-900">
+                                    Asset:
+                                  </p>
+                                  <p className="text-gray-500">
+                                    {loan.assetName || "N/A"}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="font-medium text-gray-900">
+                                    Quantity:
+                                  </p>
+                                  <p className="text-gray-500">
+                                    {loan.assetQuantity || "N/A"}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="font-medium text-gray-900">
+                                    Supplier:
+                                  </p>
+                                  <p className="text-gray-500">
+                                    {loan.supplierId || "N/A"}
+                                  </p>
+                                </div>
+                              </>
+                            )}
+                            {hasPrivilege("ApproveLoans") &&
+                              loan.status === "Pending" && (
+                                <div className="col-span-3 flex justify-end gap-3">
+                                  <button
+                                    onClick={() =>
+                                      handleApproveLoan(loan.loanId)
+                                    }
+                                    className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
+                                  >
+                                    Approve
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      handleRejectLoan(loan.loanId)
+                                    }
+                                    className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+                                  >
+                                    Reject
+                                  </button>
+                                </div>
+                              )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
+                {paginatedLoans.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan="6"
+                      className="px-6 py-4 text-center text-gray-500"
+                    >
+                      No loan requests available.
                     </td>
                   </tr>
-                );
-              })}
-              {paginatedLoans.length === 0 && (
-                <tr>
-                  <td
-                    colSpan="7"
-                    className="px-4 py-6 text-center text-gray-500"
-                  >
-                    No Loans available.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
+
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex justify-center items-center gap-2 mt-4">
@@ -349,17 +569,8 @@ const Loans = () => {
           </div>
         )}
       </div>
-      <LoanInfo
-        loans={
-          Array.isArray(loans)
-            ? loans.find((c) => c.loanId === selectedLoan)
-            : null
-        }
-        onClose={() => setIsSidebarOpen(false)}
-        isOpen={isSidebarOpen}
-      />
     </Layout>
   );
 };
 
-export default Loans;
+export default LoanRequestsPage;

@@ -1,1496 +1,1439 @@
 "use client";
 import Layout from "@/app/components/Layout";
-import React, { useEffect, useState } from "react";
-import dummyClients from "../DummyClient";
-import CreatableSelect from "react-select/creatable";
-import Select from "react-select";
-import toast from "react-hot-toast";
-import dummyLoans from "../DummyLoan";
+import { useAuth } from "@/Services/authService";
+import branchService from "@/Services/branchService";
+import LoanTypeService from "@/Services/loanTypeService";
+import supplierService from "@/Services/supplierService";
+import productService from "@/Services/productService";
 import { useRouter } from "next/navigation";
-import useLoanStore from "@/app/components/loanStore";
+import React, { useCallback, useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
+import Select from "react-select";
+import useAccountService from "@/Services/accountService";
+import loanService from "@/Services/loanService";
 
-const AddLoan = () => {
-  const [isExistingClient, setIsExistingClient] = useState(false);
-  const router = useRouter();
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Number(value) || 0);
+
+const RequestForm = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("general");
-  const clientOptions = dummyClients.map((client) => ({
-    label: `${client.firstName} ${client.lastName}`,
-    value: client.clientId,
-  }));
-  const loanOptions = [
-    { label: "New Loan", value: "New Loan" },
-    { label: "Top-up Loan", value: "Top-up Loan" },
-  ];
+  const [isFormValid, setIsFormValid] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [accounts, setAccounts] = useState([]);
+  const [loanTypes, setLoanTypes] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [selectedSupplier, setSelectedSupplier] = useState(null);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [branchName, setBranchName] = useState("");
+  const [hasFetchedInitialData, setHasFetchedInitialData] = useState(false);
+  const router = useRouter();
 
-  const ownershipOptions = [
-    { label: "Sole Proprietorship", value: "Sole Proprietorship" },
-    { label: "Partnership", value: "Partnership" },
-    { label: "Corporation", value: "Corporation" },
-    { label: "Limited", value: "Limited" },
-  ];
-
-  const LoanTypes = [
-    { label: "Asset Financing", value: "Asset Financing" },
-    { label: "Emergency Loan", value: "Emergency Loan" },
-    { label: "Personal Loan", value: "Personal Loan" },
-    { label: "Business Loan", value: "Business Loan" },
-    { label: "Current Deposit", value: "Current Deposit" },
-  ];
   const [formData, setFormData] = useState({
-    filename: "",
-    name: "",
-    dob: "",
-    phone: "",
-    email: "",
-    address: "",
-    businessName: "",
-    date: "",
-    loanDetails: "",
-    ownershipType: "",
-    otherInfo: "",
-    employerId: "",
-    numberOfStaffs: "",
-    businessStartupDate: "",
-    loanType: "",
-    loanAmount: "",
-    paymentPeriodInMonths: "",
-    status: "Pending",
-    comments: "",
-    approvedBy: "",
-    approvedDate: "",
-    assetName: "",
-    assetDescription: "",
-    assetQuantity: "",
-    assetPrice: "",
-    forms: {
-      statementOfAccount: null,
-      idCard: null,
-      passport: null,
-      loanInvoice: null,
-      physicalFormUpload: null,
-    },
-    guarantors: [
-      {
-        name: "",
-        occupation: "",
-        phone: "",
-        email: "",
-        address: "",
-        relationship: "",
-        forms: {
-          idCard: null,
-          passport: null,
-          formUpload: null,
-        },
-      },
-      {
-        name: "",
-        occupation: "",
-        phone: "",
-        email: "",
-        address: "",
-        relationship: "",
-        forms: {
-          idCard: null,
-          passport: null,
-          formUpload: null,
-        },
-      },
-    ],
+    FileNo: "",
+    AccountCode: "",
+    Name: "",
+    PhoneNumber: "",
+    Email: "",
+    Address: "",
+    BusinessName: "",
+    EmployerId: "",
+    BusinessOwnershipType: "",
+    OtherInformation: "",
+    NumberOfStaff: "",
+    BusinessStartDate: "",
+    Amount: 0,
+    Purpose: "",
+    PaymentPeriod: 0,
+    LoanTypeCode: "",
+    BranchCode: user?.BranchCode || "",
+    PerformedBy: user?.StaffCode || "",
+    NeedSupplierRequest: false,
+    SupplierId: "",
+    AssetDescription: "",
+    AssetName: "",
+    AssetQuantity: 0,
+    AssetPricePerUnit: 0,
+    MinimumEquityContribution: 0,
+    AdditionalClientContribution: 0,
+    CostOfAssetFinanced: 0,
+    AvgInflationRate: 0,
+    InflationMultiplier: 0,
+    PostInflationCost: 0,
+    MarketRiskPremium: 0,
+    OperationExpenses: 0,
+    TotalRealOperationalCost: 0,
+    ProfitMargin: 0,
+    MinimumAssetFinancingPrice: 0,
+    EstimatedProfit: 0,
+    PercentOfProfit: 0,
+    Guarantor1Name: "",
+    Guarantor1Occupation: "",
+    Guarantor1Phone: "",
+    Guarantor1Address: "",
+    Guarantor1Relationship: "",
+    Guarantor2Name: "",
+    Guarantor2Occupation: "",
+    Guarantor2Phone: "",
+    Guarantor2Address: "",
+    Guarantor2Relationship: "",
+    StatementOfAccountDoc: null,
+    IdCardDoc: null,
+    PassportDoc: null,
+    LoanInvoiceDoc: null,
+    FormDoc: null,
+    Guarantor1IdCard: null,
+    Guarantor1Passport: null,
+    Guarantor1FormUpload: null,
+    Guarantor2IdCard: null,
+    Guarantor2Passport: null,
+    Guarantor2FormUpload: null,
   });
-  const handleFileChange = (event, formKey) => {
-    const file = event.target.files[0];
+
+  // Fetch initial data only once when component mounts
+  useEffect(() => {
+    if (hasFetchedInitialData) return;
+
+    const fetchData = async () => {
+      try {
+        const [accountsData, loanTypesData, suppliersData] = await Promise.all([
+          useAccountService.getAllAccounts(),
+          LoanTypeService.getLoanTypes(),
+          supplierService.getSuppliers(),
+        ]);
+        setAccounts(accountsData);
+        setLoanTypes(loanTypesData);
+        setSuppliers(suppliersData || []);
+        setHasFetchedInitialData(true);
+      } catch (error) {
+        toast.error("Failed to load initial data");
+        console.error(error);
+      }
+    };
+    fetchData();
+  }, [hasFetchedInitialData]);
+
+  // Set user data and fetch branch (only once when user is available)
+  useEffect(() => {
+    if (!user || branchName) return;
+
     setFormData((prev) => ({
       ...prev,
-      forms: {
-        ...prev.forms,
-        [formKey]: file,
-      },
+      BranchCode: user.BranchCode || "",
+      PerformedBy: user.StaffCode || "",
+    }));
+
+    const fetchBranch = async () => {
+      try {
+        if (user.BranchCode) {
+          const branch = await branchService.getBranchById(user.BranchCode);
+          setBranchName(branch?.name || user.BranchCode);
+        }
+      } catch (error) {
+        console.error("Error fetching branch:", error);
+        setBranchName(user.BranchCode || "");
+      }
+    };
+    fetchBranch();
+  }, [user, branchName]);
+
+  // Restore selected supplier when returning to asset tab
+  useEffect(() => {
+    if (formData.SupplierId && !selectedSupplier) {
+      const currentSupplier = suppliers.find(
+        (s) => s.id === formData.SupplierId
+      );
+      if (currentSupplier) {
+        setSelectedSupplier(currentSupplier);
+      }
+    }
+  }, [formData.SupplierId, selectedSupplier, suppliers]);
+
+  // Fetch products when supplier changes
+  useEffect(() => {
+    if (!selectedSupplier?.productPrices) {
+      setProducts([]);
+      return;
+    }
+
+    const fetchProducts = async () => {
+      // Skip if we already have products for this supplier
+      if (
+        products.length > 0 &&
+        products[0].supplierId === selectedSupplier.id
+      ) {
+        return;
+      }
+
+      setIsLoadingProducts(true);
+      try {
+        const productIds = Object.keys(selectedSupplier.productPrices);
+        const allProducts = await productService.getAllProducts();
+
+        const productsWithDetails = productIds.map((productId) => {
+          const product = allProducts.find((p) => p.id === productId) || {};
+          return {
+            id: productId,
+            supplierId: selectedSupplier.id,
+            name: product.name || `Product ${productId}`,
+            price: selectedSupplier.productPrices[productId] || 0,
+          };
+        });
+
+        setProducts(productsWithDetails);
+      } catch (error) {
+        toast.error("Failed to load products");
+        console.error(error);
+        setProducts([]);
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    };
+
+    fetchProducts();
+  }, [selectedSupplier]);
+
+  // Financial calculations
+  useEffect(() => {
+    if (!isFormValid) return;
+
+    const total = formData.NeedSupplierRequest
+      ? formData.AssetPricePerUnit * formData.AssetQuantity
+      : Number(formData.Amount || 0);
+
+    // Use the stored equity amount directly
+    const equityAmount = Number(formData.MinimumEquityContribution) || 0;
+    const additional = Number(formData.AdditionalClientContribution) || 0;
+    const costFinanced = total - equityAmount - additional;
+
+    // Rest of your calculations remain the same...
+    const rateDecimal = Number(formData.AvgInflationRate || 0) / 100;
+    const years = Number(formData.PaymentPeriod || 0) / 12;
+    const inflationMultiplier = (1 + rateDecimal) ** formData.PaymentPeriod;
+    const postInflation = costFinanced * inflationMultiplier;
+
+    const mrp = Number(formData.MarketRiskPremium || 0) / 100;
+    const opExp = Number(formData.OperationExpenses || 0) / 100;
+    const totalRealOpCost = postInflation * (1 + mrp + opExp);
+
+    const minPrice =
+      totalRealOpCost / (1 - Number(formData.ProfitMargin || 0) / 100);
+    const profit = minPrice - costFinanced;
+    const profitPct = (profit / costFinanced) * 100;
+
+    setFormData((prev) => ({
+      ...prev,
+      Amount: total,
+      // MinimumEquityContribution remains the calculated amount
+      CostOfAssetFinanced: costFinanced >= 0 ? costFinanced : 0,
+      InflationMultiplier: inflationMultiplier,
+      PostInflationCost: postInflation,
+      TotalRealOperationalCost: totalRealOpCost,
+      MinimumAssetFinancingPrice: minPrice,
+      EstimatedProfit: profit,
+      PercentOfProfit: profitPct,
+    }));
+  }, [
+    isFormValid,
+    formData.Amount,
+    formData.AssetPricePerUnit,
+    formData.AssetQuantity,
+    formData.AdditionalClientContribution,
+    formData.PaymentPeriod,
+    formData.AvgInflationRate,
+    formData.MarketRiskPremium,
+    formData.OperationExpenses,
+    formData.ProfitMargin,
+    formData.MinimumEquityContribution,
+    formData.LoanTypeCode, // Add this to recalculate when loan type changes
+  ]);
+
+  useEffect(() => {
+    if (!formData.LoanTypeCode) return;
+
+    const type = loanTypes.find((lt) => lt.code === formData.LoanTypeCode);
+    if (!type) return;
+
+    const total = formData.NeedSupplierRequest
+      ? formData.AssetPricePerUnit * formData.AssetQuantity
+      : Number(formData.Amount || 0);
+
+    const equityAmount = (type.amount / 100) * total;
+
+    setFormData((prev) => ({
+      ...prev,
+      MinimumEquityContribution: equityAmount,
+    }));
+  }, [
+    formData.Amount,
+    formData.AssetPricePerUnit,
+    formData.AssetQuantity,
+    formData.LoanTypeCode,
+    formData.NeedSupplierRequest,
+  ]);
+
+  // Form validation
+  useEffect(() => {
+    const validateForm = () => {
+      const requiredFields = [
+        "AccountCode",
+        "Name",
+        "PhoneNumber",
+        "Purpose",
+        "PaymentPeriod",
+        "LoanTypeCode",
+        "PassportDoc",
+        "IdCardDoc",
+      ];
+
+      const basicValidation = requiredFields.every((field) => {
+        const value = formData[field];
+        return value !== null && value !== undefined && value !== "";
+      });
+
+      if (formData.NeedSupplierRequest) {
+        return (
+          basicValidation &&
+          formData.SupplierId &&
+          formData.AssetName &&
+          formData.AssetQuantity > 0
+        );
+      } else {
+        return basicValidation && formData.Amount > 0;
+      }
+    };
+    setIsFormValid(validateForm());
+  }, [formData]);
+
+  const handleFileChange = (e, fieldName) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFormData((prev) => ({ ...prev, [fieldName]: file }));
+    }
+  };
+
+  const handleLoanTypeChange = (selectedOption) => {
+    const type = loanTypes.find((lt) => lt.code === selectedOption.value);
+    const equityPercentage = type?.amount || 0;
+
+    // Calculate total amount based on current form state
+    const total = formData.NeedSupplierRequest
+      ? formData.AssetPricePerUnit * formData.AssetQuantity
+      : Number(formData.Amount || 0);
+
+    // Calculate and store the actual equity amount
+    const equityAmount = (equityPercentage / 100) * total;
+
+    setFormData((prev) => ({
+      ...prev,
+      LoanTypeCode: selectedOption.value,
+      MinimumEquityContribution: equityAmount, // Store the calculated amount
     }));
   };
 
-  const handleGuarantorFileChange = (event, guarantorIndex, formKey) => {
-    const file = event.target.files[0];
-    setFormData((prev) => {
-      const newGuarantors = [...prev.guarantors];
-      newGuarantors[guarantorIndex] = {
-        ...newGuarantors[guarantorIndex],
-        forms: {
-          ...newGuarantors[guarantorIndex].forms,
-          [formKey]: file,
-        },
-      };
-      return { ...prev, guarantors: newGuarantors };
+  const handleAccountSelect = (selectedOption) => {
+    setFormData({
+      ...formData,
+      AccountCode: selectedOption.value,
     });
   };
 
-  const { loanFormData, setLoanFormData, createEmptyFormData } = useLoanStore();
-  useEffect(() => {
-    // If there's saved data, restore it into local form state
-    if (loanFormData) {
-      setFormData(loanFormData);
-    }
-  }, []);
+  const handleSupplierChange = useCallback(
+    (option) => {
+      const newSupplier = option?.supplier || null;
+      setSelectedSupplier(newSupplier);
 
-  const validateForm = () => {
-    const requiredFields = [
-      "filename",
-      "name",
-      "dob",
-      "phone",
-      "email",
-      "address",
-      "loanDetails",
-      "loanType",
-      ...(formData.loanType !== "Asset Financing" ? ["loanAmount"] : []),
-      "paymentPeriodInMonths",
-    ];
+      setFormData((prev) => ({
+        ...prev,
+        SupplierId: option?.value || "",
+        // Only clear these if supplier actually changed
+        ...(selectedSupplier?.id !== newSupplier?.id
+          ? {
+              AssetName: "",
+              AssetDescription: "",
+              AssetQuantity: 0,
+              AssetPricePerUnit: 0,
+            }
+          : {}),
+      }));
+    },
+    [selectedSupplier]
+  );
 
-    for (let field of requiredFields) {
-      if (!formData[field]) {
-        toast.error(`Please fill the "${field}" field.`);
-        return false;
-      }
-    }
-
-    // Additional checks for "Asset Financing"
-    if (formData.loanType === "Asset Financing") {
-      const assetFields = [
-        "assetName",
-        "assetDescription",
-        "assetQuantity",
-        "assetPrice",
-      ];
-      for (let field of assetFields) {
-        if (!formData[field]) {
-          toast.error(`Please fill the "${field}" field.`);
-          return false;
-        }
-      }
-    }
-
-    return true;
-  };
-
-  const handleMoveToPricing = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    if (!isFormValid) {
+      toast.error("Please complete all required fields");
+      return;
+    }
 
-    setLoanFormData(formData);
-    router.push(`/Pricing/${formData.filename}`);
+    setIsSubmitting(true);
+    try {
+      const formDataToSend = new FormData();
+
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value !== null && !key.endsWith("Doc") && !key.endsWith("Upload")) {
+          formDataToSend.append(key, value);
+        }
+      });
+
+      const fileFields = [
+        "StatementOfAccountDoc",
+        "IdCardDoc",
+        "PassportDoc",
+        "LoanInvoiceDoc",
+        "FormDoc",
+        "Guarantor1IdCard",
+        "Guarantor1Passport",
+        "Guarantor1FormUpload",
+        "Guarantor2IdCard",
+        "Guarantor2Passport",
+        "Guarantor2FormUpload",
+      ];
+
+      fileFields.forEach((field) => {
+        if (formData[field]) formDataToSend.append(field, formData[field]);
+      });
+
+      await loanService.postLoan(formDataToSend);
+      toast.success("Loan request submitted successfully!");
+      router.push("/Loan");
+    } catch (error) {
+      toast.error(error.message || "Failed to submit request");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const renderInputField = (
+    label,
+    name,
+    value,
+    onChange,
+    type = "text",
+    required = false,
+    disabled = false,
+    isCurrency = false
+  ) => (
+    <div className="flex flex-col gap-1">
+      <label className="font-medium text-sm text-gray-700">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <input
+        name={name}
+        type={type}
+        value={value}
+        onChange={onChange}
+        required={required}
+        disabled={disabled}
+        className={`border ${
+          disabled ? "bg-gray-100" : "bg-white"
+        } rounded-md px-3 py-2 text-sm`}
+      />
+      {isCurrency && (
+        <span className="text-lg text-[#3D873B] font-bold text-right">
+          {formatCurrency(value || 0)}
+        </span>
+      )}
+    </div>
+  );
+
+  const renderSelectField = (
+    label,
+    name,
+    options,
+    value,
+    onChange,
+    required = false
+  ) => (
+    <div className="flex flex-col gap-1">
+      <label className="font-medium text-sm text-gray-700">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <Select
+        name={name}
+        options={options}
+        value={options.find((opt) => opt.value === value)}
+        onChange={onChange}
+        className="text-sm"
+        styles={{
+          control: (base) => ({
+            ...base,
+            minHeight: "36px",
+            fontSize: "14px",
+          }),
+        }}
+      />
+    </div>
+  );
+
+  const renderFileUpload = (
+    label,
+    name,
+    onChange,
+    accept = "*",
+    file = null
+  ) => (
+    <div className="flex flex-col gap-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
+      <label className="font-medium text-sm text-gray-700">{label}</label>
+      <input
+        type="file"
+        name={name}
+        accept={accept}
+        onChange={onChange}
+        className="block w-full text-sm text-gray-500
+          file:mr-4 file:py-2 file:px-4
+          file:rounded-md file:border-0
+          file:text-sm file:font-semibold
+          file:bg-green-50 file:text-green-700
+          hover:file:bg-green-100"
+      />
+      {file && (
+        <div className="mt-2 text-sm text-gray-600">
+          {file.name || "File selected"}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderNameField = () => {
+    const selectedAccount = accounts.find(
+      (account) => account.accountCode === formData.AccountCode
+    );
+    const suggestedName = selectedAccount?.accountName || "";
+
+    return (
+      <div className="flex flex-col gap-1">
+        <label className="font-medium text-sm text-gray-700">
+          Name <span className="text-red-500">*</span>
+        </label>
+        {suggestedName && !formData.Name && (
+          <div className="text-xs text-gray-500 mb-1">
+            Suggested: {suggestedName}
+          </div>
+        )}
+        <input
+          name="Name"
+          type="text"
+          value={formData.Name}
+          onChange={(e) => setFormData({ ...formData, Name: e.target.value })}
+          className="border rounded-md px-3 py-2 text-sm"
+          required
+        />
+      </div>
+    );
+  };
+
+  const loanTypeOptions = loanTypes.map((lt) => ({
+    label: lt.name,
+    value: lt.code,
+  }));
+
+  const clientOptions = accounts.map((account) => ({
+    label: `${account.accountCode} - ${account.accountName}`,
+    value: account.accountCode,
+  }));
+
+  const renderAssetDetailsTab = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Supplier Selection */}
+        <div className="flex flex-col gap-1">
+          <label className="font-medium text-sm text-gray-700">
+            Supplier <span className="text-red-500">*</span>
+          </label>
+          <Select
+            options={suppliers.map((s) => ({
+              label: `${s.name}`,
+              value: s.id,
+              supplier: s,
+            }))}
+            value={
+              selectedSupplier
+                ? {
+                    label: `${selectedSupplier.name}`,
+                    value: selectedSupplier.id,
+                  }
+                : null
+            }
+            onChange={handleSupplierChange}
+            placeholder="Select supplier"
+            className="text-sm"
+            isClearable
+            required
+          />
+        </div>
+
+        {/* Product Selection */}
+        {selectedSupplier && (
+          <div className="flex flex-col gap-1">
+            <label className="font-medium text-sm text-gray-700">
+              Product <span className="text-red-500">*</span>
+            </label>
+            <Select
+              options={products.map((p) => ({
+                label: `${p.name} - ${formatCurrency(p.price)}`,
+                value: p.id,
+                product: p,
+              }))}
+              value={products.find((p) => p.name === formData.AssetName)}
+              onChange={(option) => {
+                setFormData((prev) => ({
+                  ...prev,
+                  AssetName: option?.product?.name || "",
+                  AssetPricePerUnit: option?.product?.price || 0,
+                }));
+              }}
+              placeholder={
+                isLoadingProducts ? "Loading products..." : "Select product"
+              }
+              isLoading={isLoadingProducts}
+              className="text-sm"
+              isClearable
+              required
+            />
+            <div className="text-sm font-bold text-[#3D873B] mb-1">
+              Selected Product:{" "}
+              {formData.AssetName +
+                " - " +
+                formatCurrency(formData.AssetPricePerUnit)}
+            </div>
+          </div>
+        )}
+
+        {/* Product Description */}
+        {selectedSupplier && formData.AssetName && (
+          <div className="flex flex-col gap-1">
+            <label className="font-medium text-sm text-gray-700">
+              Product Description
+            </label>
+            <input
+              type="text"
+              value={formData.AssetDescription}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  AssetDescription: e.target.value,
+                })
+              }
+              className="border rounded-md px-3 py-2 text-sm"
+              placeholder="Enter product description"
+            />
+          </div>
+        )}
+
+        {/* Asset Quantity */}
+        {selectedSupplier && formData.AssetName && (
+          <div className="flex flex-col gap-1">
+            <label className="font-medium text-sm text-gray-700">
+              Quantity <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={formData.AssetQuantity || ""}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  AssetQuantity: parseInt(e.target.value) || 0,
+                })
+              }
+              className="border rounded-md px-3 py-2 text-sm"
+              required
+            />
+          </div>
+        )}
+
+        {/* Display calculated total price */}
+        {formData.AssetQuantity > 0 && (
+          <div className="flex flex-col gap-1">
+            <label className="font-medium text-sm text-gray-700">
+              Total Price
+            </label>
+            <div className="border bg-gray-50 rounded-md px-3 py-2 text-sm">
+              {formatCurrency(
+                formData.AssetPricePerUnit * formData.AssetQuantity
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="flex justify-between">
+        <button
+          type="button"
+          onClick={() => setActiveTab("general")}
+          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+        >
+          Back
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("documents")}
+          className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+          disabled={
+            !formData.SupplierId ||
+            !formData.AssetName ||
+            !formData.AssetQuantity
+          }
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <Layout>
       <div className="w-full">
-        <div>
-          <p className="text-4xl font-extrabold mb-2">Loan Request Form</p>
-          <p className="text-sm text-gray-600">
-            Fill in the form below to create an asset financing request.
-          </p>
-        </div>
-        <div className="mt-6">
+        <div className="bg-white overflow-hidden">
+          <div className="   text-[#333]">
+            <h1 className="text-2xl font-bold">Loan Request Form</h1>
+            <p className="text-gray-500">
+              {branchName && `Branch: ${branchName}`}
+            </p>
+          </div>
+
           <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8">
+            <nav className="-mb-px flex space-x-4 overflow-x-auto">
               <button
                 onClick={() => setActiveTab("general")}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`py-3 px-4 border-b-2 font-medium text-sm ${
                   activeTab === "general"
-                    ? "border-[#3D873B] text-[#3D873B]"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    ? "border-green-500 text-green-600"
+                    : "border-transparent text-gray-500"
                 }`}
               >
                 General Information
               </button>
-              {formData.loanType === "Asset Financing" && (
+              {formData.NeedSupplierRequest && (
                 <button
                   onClick={() => setActiveTab("asset")}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  className={`py-3 px-4 border-b-2 font-medium text-sm ${
                     activeTab === "asset"
-                      ? "border-[#3D873B] text-[#3D873B]"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                      ? "border-green-500 text-green-600"
+                      : "border-transparent text-gray-500"
                   }`}
                 >
-                  Asset Financing Details
+                  Asset Details
                 </button>
               )}
               <button
-                onClick={() => setActiveTab("Form Upload")}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === "Form Upload"
-                    ? "border-[#3D873B] text-[#3D873B]"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                onClick={() => setActiveTab("documents")}
+                className={`py-3 px-4 border-b-2 font-medium text-sm ${
+                  activeTab === "documents"
+                    ? "border-green-500 text-green-600"
+                    : "border-transparent text-gray-500"
                 }`}
               >
-                Form Upload
+                Documents
               </button>
               <button
-                onClick={() => setActiveTab("Guarantor")}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === "Guarantor"
-                    ? "border-[#3D873B] text-[#3D873B]"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                onClick={() => setActiveTab("guarantors")}
+                className={`py-3 px-4 border-b-2 font-medium text-sm ${
+                  activeTab === "guarantors"
+                    ? "border-green-500 text-green-600"
+                    : "border-transparent text-gray-500"
                 }`}
               >
-                Guarantor Information
+                Guarantors
               </button>
+              {isFormValid && (
+                <button
+                  onClick={() => setActiveTab("pricing")}
+                  className={`py-3 px-4 border-b-2 font-medium text-sm ${
+                    activeTab === "pricing"
+                      ? "border-green-500 text-green-600"
+                      : "border-transparent text-gray-500"
+                  }`}
+                >
+                  Pricing Model
+                </button>
+              )}
             </nav>
           </div>
-        </div>
 
-        <form className="mt-6">
-          {activeTab === "general" && (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-2">
-                <label className="font-bold text-sm" htmlFor="name">
-                  File Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.filename}
-                  onChange={(e) => {
-                    const userInput = e.target.value;
-                    // If empty or already starts with TSBMLC, allow editing
-                    if (!userInput || userInput.startsWith("TSBMLC")) {
-                      setFormData((prev) => ({
-                        ...prev,
-                        filename: userInput,
-                      }));
-                    } else {
-                      setFormData((prev) => ({
-                        ...prev,
-                        filename: `TSBMLC${userInput}`,
-                      }));
-                    }
-                  }}
-                  className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="font-bold text-sm" htmlFor="name">
-                  Name <span className="text-red-500">*</span>
-                </label>
-                <CreatableSelect
-                  required
-                  isClearable
-                  options={clientOptions}
-                  onChange={(selectedOption) => {
-                    if (selectedOption) {
-                      // Find the client details by id
-                      const selectedClient = dummyClients.find(
-                        (c) => c.clientId === selectedOption.value
-                      );
-                      if (selectedClient) {
-                        setFormData((prev) => ({
-                          ...prev, // Keep all existing form data
-                          name: `${selectedClient.firstName} ${selectedClient.lastName}`,
-                          phone: selectedClient.phone,
-                          email: selectedClient.email,
-                          address: selectedClient.address,
-                          dob: selectedClient.dob,
-                        }));
-                        setIsExistingClient(true); // lock other fields
-                      }
-                    } else {
-                      // Cleared selection - reset form fields to empty, editable
-                      setFormData((prev) => ({
-                        ...prev, // Keep all other fields
-                        name: "",
-                        phone: "",
-                        email: "",
-                        address: "",
-                        dob: "",
-                      }));
-                      setIsExistingClient(false);
-                    }
-                  }}
-                  onInputChange={(inputValue, { action }) => {
-                    // If user is typing (not selecting), unlock fields and update name
-                    if (action === "input-change") {
-                      setFormData((prev) => ({
-                        ...prev,
-                        name: inputValue,
-                      }));
-                      setIsExistingClient(false);
-                    }
-                  }}
-                  value={
-                    formData.name
-                      ? { label: formData.name, value: formData.name }
-                      : null
-                  }
-                  placeholder="Select or type client name"
-                  styles={{
-                    control: (base, state) => ({
-                      ...base,
-                      borderColor: state.isFocused
-                        ? "#3D873B"
-                        : base.borderColor,
-                      boxShadow: state.isFocused
-                        ? "0 0 0 1px green"
-                        : base.boxShadow,
-                      "&:hover": {
-                        borderColor: state.isFocused
-                          ? "#3D873B"
-                          : base.borderColor,
-                      },
-                    }),
-                  }}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="font-bold text-sm" htmlFor="address">
-                  DOB <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  required
-                  id="dob"
-                  value={formData.dob}
-                  onChange={(e) =>
-                    !isExistingClient &&
-                    setFormData((prev) => ({ ...prev, dob: e.target.value }))
-                  }
-                  className={`border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md ${
-                    isExistingClient ? "cursor-not-allowed" : ""
-                  }`}
-                  readOnly={isExistingClient}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="font-bold text-sm" htmlFor="address">
-                  Phone <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="tel"
-                  required
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) =>
-                    !isExistingClient &&
-                    setFormData((prev) => ({ ...prev, phone: e.target.value }))
-                  }
-                  className={`border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md ${
-                    isExistingClient ? "cursor-not-allowed" : ""
-                  }`}
-                  readOnly={isExistingClient}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="font-bold text-sm" htmlFor="address">
-                  Address <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="address"
-                  id="address"
-                  required
-                  value={formData.address}
-                  onChange={(e) =>
-                    !isExistingClient &&
-                    setFormData((prev) => ({
-                      ...prev,
-                      address: e.target.value,
-                    }))
-                  }
-                  className={`border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md ${
-                    isExistingClient ? "cursor-not-allowed" : ""
-                  }`}
-                  readOnly={isExistingClient}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="font-bold text-sm" htmlFor="name">
-                  Loan Details <span className="text-red-500">*</span>
-                </label>
-                <Select
-                  value={
-                    formData.loanDetails
-                      ? loanOptions.find(
-                          (opt) => opt.value === formData.loanDetails
-                        )
-                      : null
-                  }
-                  isClearable
-                  options={loanOptions}
-                  onChange={(selectedOption) => {
-                    if (selectedOption) {
-                      const loanType = selectedOption.value;
-
-                      setFormData((prev) => ({
-                        ...prev,
-                        loanDetails: loanType,
-                      }));
-
-                      if (loanType === "Top-up Loan" && formData.name) {
-                        // Find client ID
-                        const selectedClient = dummyClients.find(
-                          (c) =>
-                            `${c.firstName} ${c.lastName}` === formData.name
-                        );
-
-                        if (selectedClient) {
-                          const existingLoan = dummyLoans.find(
-                            (l) => l.clientId === selectedClient.clientId
-                          );
-
-                          if (existingLoan) {
-                            toast.success(
-                              "Existing loan details prefilled for top-up."
-                            );
-                            setFormData((prev) => ({
-                              ...prev,
-                              businessName: existingLoan.businessName,
-                              ownershipType: existingLoan.ownershipType,
-                              employerId: existingLoan.employerId,
-                              loanAmount: existingLoan.loanAmount,
-                              numberOfStaffs: existingLoan.numberOfStaffs,
-                              paymentPeriodInMonths:
-                                existingLoan.paymentPeriodInMonths,
-                              businessStartupDate:
-                                existingLoan.businessStartupDate,
-                              loanType: existingLoan.loanType,
-                              forms: {
-                                statementOfAccount:
-                                  existingLoan.forms.statementOfAccount,
-                                idCard: existingLoan.forms.idCard,
-                                passport: existingLoan.forms.passport,
-                                loanInvoice: existingLoan.forms.loanInvoice,
-                                physicalFormUpload:
-                                  existingLoan.forms.physicalFormUpload,
-                              },
-                            }));
-                          } else {
-                            toast.error(
-                              "No existing loan found for this client."
-                            );
-                          }
-                        }
-                      }
-                    } else {
-                      setFormData((prev) => ({
-                        ...prev,
-                        loanDetails: "",
-                      }));
-                    }
-                  }}
-                  placeholder="New or existing Loan"
-                  styles={{
-                    control: (base, state) => ({
-                      ...base,
-                      borderColor: state.isFocused
-                        ? "#3D873B"
-                        : base.borderColor,
-                      boxShadow: state.isFocused
-                        ? "0 0 0 1px green"
-                        : base.boxShadow,
-                      "&:hover": {
-                        borderColor: state.isFocused
-                          ? "#3D873B"
-                          : base.borderColor,
-                      },
-                    }),
-                  }}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="font-bold text-sm" htmlFor="businessName">
-                  Business Name
-                </label>
-                <input
-                  type="text"
-                  id="businessName"
-                  value={formData.businessName}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      businessName: e.target.value,
-                    }))
-                  }
-                  className={`border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md ${
-                    formData.loanDetails === "Top-up Loan"
-                      ? "cursor-not-allowed"
-                      : ""
-                  }`}
-                  readOnly={formData.loanDetails === "Top-up Loan"}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="font-bold text-sm" htmlFor="ownershipType">
-                  Ownership Type{" "}
-                  {formData.businessName && (
-                    <span className="text-red-500">*</span>
+          <form className="p-6" onSubmit={handleSubmit}>
+            {activeTab === "general" && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {renderInputField(
+                    "File No",
+                    "FileNo",
+                    formData.FileNo,
+                    (e) => setFormData({ ...formData, FileNo: e.target.value }),
+                    "text",
+                    true
                   )}
-                </label>
-                <Select
-                  id="ownershipType"
-                  required={formData.businessName}
-                  isClearable
-                  options={ownershipOptions}
-                  value={
-                    formData.ownershipType
-                      ? ownershipOptions.find(
-                          (opt) => opt.value === formData.ownershipType
-                        )
-                      : null
-                  }
-                  onChange={(selectedOption) => {
-                    if (
-                      selectedOption &&
-                      formData.loanDetails !== "Top-up Loan"
-                    ) {
-                      const ownership = selectedOption.value;
-                      setFormData((prev) => ({
-                        ...prev,
-                        ownershipType: ownership,
-                      }));
-                    }
-                  }}
-                  placeholder="Select Ownership type"
-                  isDisabled={formData.loanDetails === "Top-up Loan"} // <-- disable here
-                  styles={{
-                    control: (base, state) => ({
-                      ...base,
-                      borderColor: state.isFocused
-                        ? "#3D873B"
-                        : base.borderColor,
-                      boxShadow: state.isFocused
-                        ? "0 0 0 1px green"
-                        : base.boxShadow,
-                      "&:hover": {
-                        borderColor: state.isFocused
-                          ? "#3D873B"
-                          : base.borderColor,
-                      },
-                    }),
-                  }}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="font-bold text-sm" htmlFor="ownershipType">
-                  Other Information
-                </label>
-                <input
-                  type="text"
-                  value={formData.otherInfo}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      otherInfo: e.target.value,
-                    }))
-                  }
-                  className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="font-bold text-sm" htmlFor="ownershipType">
-                  Employer ID
-                  {formData.businessName && (
-                    <span className="text-red-500">*</span>
-                  )}
-                </label>
-                <input
-                  type="text"
-                  readOnly={formData.loanDetails === "Top-up Loan"}
-                  value={formData.employerId}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      employerId: e.target.value,
-                    }))
-                  }
-                  className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="font-bold text-sm" htmlFor="numberOfStaffs">
-                  Current Number of Staffs
-                  {formData.businessName && (
-                    <span className="text-red-500">*</span>
-                  )}
-                </label>
-                <input
-                  min={formData.businessName ? 1 : 0}
-                  type="number"
-                  readOnly={formData.loanDetails === "Top-up Loan"}
-                  value={formData.numberOfStaffs}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      numberOfStaffs: e.target.value,
-                    }))
-                  }
-                  className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label
-                  className="font-bold text-sm"
-                  htmlFor="businessStartupDate"
-                >
-                  Business Start Up Date
-                  {formData.businessName && (
-                    <span className="text-red-500">*</span>
-                  )}
-                </label>
-                <input
-                  type="date"
-                  readOnly={formData.loanDetails === "Top-up Loan"}
-                  value={formData.businessStartupDate}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      businessStartupDate: e.target.value,
-                    }))
-                  }
-                  className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="font-bold text-sm" htmlFor="name">
-                  Loan Type <span className="text-red-500">*</span>
-                </label>
-                <Select
-                  id="loanType"
-                  required
-                  isClearable
-                  isSearchable
-                  options={LoanTypes}
-                  value={
-                    formData.loanType
-                      ? LoanTypes.find((opt) => opt.value === formData.loanType)
-                      : null
-                  }
-                  onChange={(selectedOption) => {
-                    if (
-                      selectedOption &&
-                      formData.loanDetails !== "Top-up Loan"
-                    ) {
-                      const type = selectedOption.value;
-                      setFormData((prev) => ({
-                        ...prev,
-                        loanType: type,
-                      }));
-                    }
-                  }}
-                  placeholder="Select Loan Type"
-                  isDisabled={formData.loanDetails === "Top-up Loan"} // <-- disable here
-                  styles={{
-                    control: (base, state) => ({
-                      ...base,
-                      borderColor: state.isFocused
-                        ? "#3D873B"
-                        : base.borderColor,
-                      boxShadow: state.isFocused
-                        ? "0 0 0 1px green"
-                        : base.boxShadow,
-                      "&:hover": {
-                        borderColor: state.isFocused
-                          ? "#3D873B"
-                          : base.borderColor,
-                      },
-                    }),
-                  }}
-                />
-              </div>
 
-              <div
-                className={`${
-                  formData.loanDetails === "Top-up Loan"
-                    ? "grid grid-cols-2 gap-3"
-                    : ""
-                }`}
-              >
-                {formData.loanType !== "Asset Financing" && (
-                  <div className="flex flex-col gap-2">
-                    <label className="font-bold text-sm" htmlFor="loanAmount">
-                      Loan Amount Applied for
-                      <span className="text-red-500">*</span>
-                    </label>
+                  {renderSelectField(
+                    "Client",
+                    "AccountCode",
+                    clientOptions,
+                    formData.AccountCode,
+                    handleAccountSelect,
+                    true
+                  )}
+
+                  {renderNameField()}
+
+                  {renderInputField(
+                    "Phone Number",
+                    "PhoneNumber",
+                    formData.PhoneNumber,
+                    (e) =>
+                      setFormData({ ...formData, PhoneNumber: e.target.value }),
+                    "tel",
+                    true
+                  )}
+
+                  {renderInputField(
+                    "Email",
+                    "Email",
+                    formData.Email,
+                    (e) => setFormData({ ...formData, Email: e.target.value }),
+                    "email",
+                    true
+                  )}
+
+                  {renderInputField(
+                    "Address",
+                    "Address",
+                    formData.Address,
+                    (e) =>
+                      setFormData({ ...formData, Address: e.target.value }),
+                    "text",
+                    true
+                  )}
+
+                  {renderInputField(
+                    "Business Name",
+                    "BusinessName",
+                    formData.BusinessName,
+                    (e) =>
+                      setFormData({ ...formData, BusinessName: e.target.value })
+                  )}
+                  {renderInputField(
+                    "Employer ID",
+                    "EmployerId",
+                    formData.EmployerId,
+                    (e) =>
+                      setFormData({ ...formData, EmployerId: e.target.value })
+                  )}
+
+                  {renderSelectField(
+                    "Ownership Type",
+                    "BusinessOwnershipType",
+                    [
+                      {
+                        label: "Sole Proprietorship",
+                        value: "Sole Proprietorship",
+                      },
+                      { label: "Partnership", value: "Partnership" },
+                      { label: "Corporation", value: "Corporation" },
+                      { label: "Limited", value: "Limited" },
+                    ],
+                    formData.BusinessOwnershipType,
+                    (selectedOption) =>
+                      setFormData({
+                        ...formData,
+                        BusinessOwnershipType: selectedOption.value,
+                      })
+                  )}
+
+                  {renderInputField(
+                    "Number of Staff",
+                    "NumberOfStaff",
+                    formData.NumberOfStaff,
+                    (e) =>
+                      setFormData({
+                        ...formData,
+                        NumberOfStaff: e.target.value,
+                      }),
+                    "number"
+                  )}
+
+                  {renderInputField(
+                    "Business Start Date",
+                    "BusinessStartDate",
+                    formData.BusinessStartDate,
+                    (e) =>
+                      setFormData({
+                        ...formData,
+                        BusinessStartDate: e.target.value,
+                      }),
+                    "date"
+                  )}
+                  {renderInputField(
+                    "Other Information",
+                    "OtherInformation",
+                    formData.OtherInformation,
+                    (e) =>
+                      setFormData({
+                        ...formData,
+                        OtherInformation: e.target.value,
+                      })
+                  )}
+
+                  <div className="flex items-center">
                     <input
-                      type="number"
-                      readOnly={formData.loanDetails === "Top-up Loan"}
-                      value={formData.loanAmount}
+                      type="checkbox"
+                      id="NeedSupplierRequest"
+                      checked={formData.NeedSupplierRequest}
                       onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          loanAmount: e.target.value,
-                        }))
+                        setFormData({
+                          ...formData,
+                          NeedSupplierRequest: e.target.checked,
+                          AssetName: "",
+                          AssetDescription: "",
+                          AssetQuantity: 0,
+                          AssetPricePerUnit: 0,
+                          SupplierId: "",
+                        })
                       }
-                      className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
+                      className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
                     />
+                    <label
+                      htmlFor="NeedSupplierRequest"
+                      className="ml-2 block text-sm text-gray-900"
+                    >
+                      Need Supplier Request?
+                    </label>
                   </div>
-                )}
-                {formData.loanDetails === "Top-up Loan" && (
-                  <div>
-                    <div className="flex flex-col gap-2">
-                      <label className="font-bold text-sm">Top-up Amount</label>
-                      <input
-                        type="number"
-                        value={formData.topupAmount || ""}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            topupAmount: e.target.value,
-                          }))
-                        }
-                        className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
 
-              <div
-                className={`${
-                  formData.loanDetails === "Top-up Loan"
-                    ? "grid grid-cols-2 gap-3"
-                    : ""
-                }`}
-              >
-                <div className="flex flex-col gap-2">
-                  <label className="font-bold text-sm" htmlFor="loanAmount">
-                    Payment Period (months)
-                    <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    readOnly={formData.loanDetails === "Top-up Loan"}
-                    type="number"
-                    min={1}
-                    value={formData.paymentPeriodInMonths}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        paymentPeriodInMonths: e.target.value,
-                      }))
-                    }
-                    className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                  />
+                  {!formData.NeedSupplierRequest &&
+                    renderInputField(
+                      "Loan Amount",
+                      "Amount",
+                      formData.Amount,
+                      (e) =>
+                        setFormData({ ...formData, Amount: e.target.value }),
+                      "number",
+                      true,
+                      false,
+                      true
+                    )}
+
+                  {renderInputField(
+                    "Purpose",
+                    "Purpose",
+                    formData.Purpose,
+                    (e) =>
+                      setFormData({ ...formData, Purpose: e.target.value }),
+                    "text",
+                    true
+                  )}
+
+                  {renderInputField(
+                    "Payment Period (months)",
+                    "PaymentPeriod",
+                    formData.PaymentPeriod,
+                    (e) =>
+                      setFormData({
+                        ...formData,
+                        PaymentPeriod: e.target.value,
+                      }),
+                    "number",
+                    true
+                  )}
+
+                  {renderSelectField(
+                    "Loan Type",
+                    "LoanTypeCode",
+                    loanTypeOptions,
+                    formData.LoanTypeCode,
+                    handleLoanTypeChange,
+                    true
+                  )}
                 </div>
-                {formData.loanDetails === "Top-up Loan" && (
-                  <div>
-                    <div className="flex flex-col gap-2">
-                      <label className="font-bold text-sm">
-                        New Payment Period (months)
-                      </label>
-                      <input
-                        type="number"
-                        value={formData.newPaymentPeriod || ""}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            newPaymentPeriod: e.target.value,
-                          }))
-                        }
-                        className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
 
-          {activeTab === "asset" && (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-2">
-                <label className="font-bold text-sm" htmlFor="assetName">
-                  Asset Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="assetName"
-                  required
-                  value={formData.assetName}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      assetName: e.target.value,
-                    }))
-                  }
-                  className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="font-bold text-sm" htmlFor="assetDescription">
-                  Asset Description <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  id="assetDescription"
-                  required
-                  rows={1}
-                  value={formData.assetDescription}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      assetDescription: e.target.value,
-                    }))
-                  }
-                  className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="font-bold text-sm" htmlFor="assetQuantity">
-                  Quantity <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  id="assetQuantity"
-                  required
-                  min="1"
-                  value={formData.assetQuantity}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      assetQuantity: e.target.value,
-                    }))
-                  }
-                  className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="font-bold text-sm" htmlFor="assetPrice">
-                  Asset Price (per unit) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  id="assetPrice"
-                  required
-                  min="0"
-                  step="0.01"
-                  value={formData.assetPrice}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      assetPrice: e.target.value,
-                    }))
-                  }
-                  className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                />
-              </div>
-            </div>
-          )}
-
-          {activeTab === "Form Upload" &&
-            formData.forms &&
-            [
-              "statementOfAccount",
-              "idCard",
-              "passport",
-              "loanInvoice",
-              "physicalFormUpload",
-            ].map((formKey) => {
-              const file = formData.forms[formKey];
-              const isFileObject = file && typeof file !== "string";
-              const previewUrl = isFileObject
-                ? URL.createObjectURL(file)
-                : null;
-
-              return (
-                <div
-                  key={formKey}
-                  style={{
-                    marginBottom: "1.5rem",
-                    marginTop: "1.5rem",
-                    padding: "12px 16px",
-                    border: "1px solid #ddd",
-                    borderRadius: 8,
-                    boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
-                    backgroundColor: "#f9f9f9",
-                  }}
-                >
-                  <label
-                    htmlFor={formKey}
-                    style={{
-                      display: "block",
-                      fontWeight: 600,
-                      marginBottom: 8,
-                      fontSize: 16,
-                      color: "#333",
-                      textTransform: "capitalize",
-                    }}
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setActiveTab(
+                        formData.NeedSupplierRequest ? "asset" : "documents"
+                      )
+                    }
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                   >
-                    {formKey.replace(/([A-Z])/g, " $1")}
-                  </label>
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
 
-                  <input
-                    type="file"
-                    id={formKey}
-                    name={formKey}
-                    accept={
-                      formKey === "passport" || formKey === "idCard"
-                        ? ".pdf,.jpg,.jpeg,.png"
-                        : ".pdf"
+            {activeTab === "asset" && renderAssetDetailsTab()}
+
+            {activeTab === "documents" && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {renderFileUpload(
+                    "Statement of Account",
+                    "StatementOfAccountDoc",
+                    (e) => handleFileChange(e, "StatementOfAccountDoc"),
+                    ".pdf",
+                    formData.StatementOfAccountDoc
+                  )}
+
+                  {renderFileUpload(
+                    "ID Card",
+                    "IdCardDoc",
+                    (e) => handleFileChange(e, "IdCardDoc"),
+                    ".pdf,.jpg,.jpeg,.png",
+                    formData.IdCardDoc
+                  )}
+
+                  {renderFileUpload(
+                    "Passport Photo",
+                    "PassportDoc",
+                    (e) => handleFileChange(e, "PassportDoc"),
+                    ".jpg,.jpeg,.png",
+                    formData.PassportDoc
+                  )}
+
+                  {renderFileUpload(
+                    "Loan Invoice",
+                    "LoanInvoiceDoc",
+                    (e) => handleFileChange(e, "LoanInvoiceDoc"),
+                    ".pdf",
+                    formData.LoanInvoiceDoc
+                  )}
+                </div>
+
+                <div className="flex justify-between">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setActiveTab(
+                        formData.NeedSupplierRequest ? "asset" : "general"
+                      )
                     }
-                    onChange={(e) => handleFileChange(e, formKey)}
-                    style={{
-                      display: "block",
-                      marginBottom: "12px",
-                      padding: "6px 10px",
-                      borderRadius: 6,
-                      border: "1.5px solid #ccc",
-                      cursor: "pointer",
-                      transition: "border-color 0.3s",
-                    }}
-                    onFocus={(e) => (e.target.style.borderColor = "#007bff")}
-                    onBlur={(e) => (e.target.style.borderColor = "#ccc")}
-                  />
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("guarantors")}
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
 
-                  {isFileObject && (
-                    <div
-                      style={{
-                        display: "inline-block",
-                        borderRadius: 8,
-                        overflow: "hidden",
-                        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                      }}
-                    >
-                      {file.type.startsWith("image/") && (
-                        <img
-                          src={previewUrl}
-                          alt={`Preview of ${formKey}`}
-                          style={{
-                            width: 160,
-                            height: "auto",
-                            display: "block",
-                          }}
-                          onLoad={() => URL.revokeObjectURL(previewUrl)}
-                        />
+            {activeTab === "guarantors" && (
+              <div className="space-y-6">
+                {[1, 2].map((num) => (
+                  <div key={num} className="bg-gray-50 p-6 rounded-lg">
+                    <h3 className="text-lg font-semibold mb-4">
+                      Guarantor {num} Details
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {renderInputField(
+                        "Full Name",
+                        `Guarantor${num}Name`,
+                        formData[`Guarantor${num}Name`],
+                        (e) =>
+                          setFormData({
+                            ...formData,
+                            [`Guarantor${num}Name`]: e.target.value,
+                          }),
+                        "text",
+                        true
                       )}
 
-                      {file.type === "application/pdf" && (
-                        <embed
-                          src={previewUrl}
-                          type="application/pdf"
-                          width={160}
-                          height={210}
-                          style={{ display: "block" }}
-                        />
+                      {renderInputField(
+                        "Occupation",
+                        `Guarantor${num}Occupation`,
+                        formData[`Guarantor${num}Occupation`],
+                        (e) =>
+                          setFormData({
+                            ...formData,
+                            [`Guarantor${num}Occupation`]: e.target.value,
+                          }),
+                        "text",
+                        true
                       )}
+
+                      {renderInputField(
+                        "Phone Number",
+                        `Guarantor${num}Phone`,
+                        formData[`Guarantor${num}Phone`],
+                        (e) =>
+                          setFormData({
+                            ...formData,
+                            [`Guarantor${num}Phone`]: e.target.value,
+                          }),
+                        "tel",
+                        true
+                      )}
+
+                      {renderInputField(
+                        "Address",
+                        `Guarantor${num}Address`,
+                        formData[`Guarantor${num}Address`],
+                        (e) =>
+                          setFormData({
+                            ...formData,
+                            [`Guarantor${num}Address`]: e.target.value,
+                          }),
+                        "text",
+                        true
+                      )}
+
+                      {renderInputField(
+                        "Relationship",
+                        `Guarantor${num}Relationship`,
+                        formData[`Guarantor${num}Relationship`],
+                        (e) =>
+                          setFormData({
+                            ...formData,
+                            [`Guarantor${num}Relationship`]: e.target.value,
+                          }),
+                        "text",
+                        true
+                      )}
+
+                      <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {renderFileUpload(
+                          "ID Card",
+                          `Guarantor${num}IdCard`,
+                          (e) => handleFileChange(e, `Guarantor${num}IdCard`),
+                          ".pdf,.jpg,.jpeg,.png",
+                          formData[`Guarantor${num}IdCard`]
+                        )}
+
+                        {renderFileUpload(
+                          "Passport Photo",
+                          `Guarantor${num}Passport`,
+                          (e) => handleFileChange(e, `Guarantor${num}Passport`),
+                          ".jpg,.jpeg,.png",
+                          formData[`Guarantor${num}Passport`]
+                        )}
+
+                        {renderFileUpload(
+                          "Guarantor Form",
+                          `Guarantor${num}FormUpload`,
+                          (e) =>
+                            handleFileChange(e, `Guarantor${num}FormUpload`),
+                          ".pdf",
+                          formData[`Guarantor${num}FormUpload`]
+                        )}
+                      </div>
                     </div>
-                  )}
+                  </div>
+                ))}
 
-                  {!isFileObject && file && (
-                    <p
-                      style={{
-                        marginTop: 8,
-                        fontStyle: "italic",
-                        color: "#555",
-                        userSelect: "text",
-                      }}
+                <div className="flex justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("documents")}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                  >
+                    Back
+                  </button>
+                  {isFormValid ? (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("pricing")}
+                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                     >
-                      Uploaded file: {file}
-                    </p>
+                      View Pricing
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed"
+                    >
+                      Complete Form for Pricing
+                    </button>
                   )}
                 </div>
-              );
-            })}
-          {activeTab === "Guarantor" && (
-            <>
-              <div>
-                <p className="text-xl font-bold text-gray-800 mb-5">
-                  Guarantor 1 Details
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-2">
-                    <label className="font-bold text-sm" htmlFor="name">
-                      Guarantor Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.guarantors[0].name}
-                      onChange={(e) =>
-                        setFormData((prev) => {
-                          const updatedGuarantors = [...prev.guarantors]; // Create a copy of the guarantors array
-                          updatedGuarantors[0] = {
-                            ...updatedGuarantors[0], // Copy all existing properties
-                            name: e.target.value, // Update just the name
-                          };
-                          return {
-                            ...prev, // Copy all other form data
-                            guarantors: updatedGuarantors, // Update the guarantors array
-                          };
-                        })
-                      }
-                      className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                    />
+              </div>
+            )}
+
+            {activeTab === "pricing" && (
+              <div className="space-y-6">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                  <h2 className="text-xl font-semibold text-green-800 mb-4">
+                    Pricing Summary
+                  </h2>
+
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                        <h3 className="font-medium text-gray-700 mb-2">
+                          Loan Details
+                        </h3>
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-sm text-gray-600">
+                              Loan Type:
+                            </span>
+                            <span className="text-sm font-medium">
+                              {formData.LoanTypeCode}
+                            </span>
+                          </div>
+                          {formData.NeedSupplierRequest && (
+                            <>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-gray-600">
+                                  Asset:
+                                </span>
+                                <span className="text-sm font-medium">
+                                  {formData.AssetName}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-gray-600">
+                                  Quantity:
+                                </span>
+                                <span className="text-sm font-medium">
+                                  {formData.AssetQuantity}
+                                </span>
+                              </div>
+                            </>
+                          )}
+                          <div className="flex  items-center justify-between">
+                            <label className="text-sm text-gray-600">
+                              Term (months) (e):
+                            </label>
+                            <input
+                              type="number"
+                              value={formData.PaymentPeriod}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  PaymentPeriod: e.target.value,
+                                })
+                              }
+                              className="border rounded px-2 py-1 text-sm w-20"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                        <h3 className="font-medium text-gray-700 mb-2">
+                          Financial Summary
+                        </h3>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="text-sm text-gray-600">
+                              Total Cost (a):
+                            </label>
+                            <span className="text-sm font-medium">
+                              {formatCurrency(formData.Amount)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm text-gray-600">
+                              Client Equity (b = equity * a):
+                            </span>
+                            <span className="text-sm font-medium">
+                              {formatCurrency(
+                                formData.MinimumEquityContribution
+                              )}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <label className="text-sm text-gray-600">
+                              Additional Contribution (c):
+                            </label>
+                            <input
+                              type="number"
+                              value={formData.AdditionalClientContribution}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  AdditionalClientContribution: e.target.value,
+                                })
+                              }
+                              className="border rounded px-2 py-1 text-sm"
+                            />
+                          </div>
+                          <div className="flex justify-between border-t border-gray-200 pt-2">
+                            <span className="text-sm font-medium text-gray-700">
+                              Amount Financed (d = a - b - c):
+                            </span>
+                            <span className="text-sm font-medium text-green-600">
+                              {formatCurrency(formData.CostOfAssetFinanced)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                        <h3 className="font-medium text-gray-700 mb-2">
+                          Cost Adjustments
+                        </h3>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="text-sm text-gray-600">
+                              Inflation Rate (%) (f):
+                            </label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={formData.AvgInflationRate}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  AvgInflationRate: e.target.value,
+                                })
+                              }
+                              className="border rounded px-2 py-1 text-sm"
+                            />
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm text-gray-600">
+                              Inflation Multiplier (g = (1 + f)^e):
+                            </span>
+                            <span className="text-sm font-medium">
+                              {Number(formData.InflationMultiplier).toFixed(2)}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between">
+                            <span className="text-sm text-gray-600">
+                              Total Post Inflation Cost (h = (d * g)):
+                            </span>
+                            <span className="text-sm font-medium">
+                              {formatCurrency(formData.PostInflationCost)}
+                            </span>
+                          </div>
+                          <div className="flex  items-center justify-between">
+                            <label className="text-sm text-gray-600">
+                              Market Risk Premium (%) (i):
+                            </label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={formData.MarketRiskPremium}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  MarketRiskPremium: e.target.value,
+                                })
+                              }
+                              className="border rounded px-2 py-1 text-sm"
+                            />
+                          </div>
+                          <div className="flex  items-center justify-between">
+                            <label className="text-sm text-gray-600">
+                              Operation Expenses (%) (j):
+                            </label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={formData.OperationExpenses}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  OperationExpenses: e.target.value,
+                                })
+                              }
+                              className="border rounded px-2 py-1 text-sm"
+                            />
+                          </div>
+                          <div className="flex justify-between border-t border-gray-200 pt-2">
+                            <span className="text-sm font-medium text-gray-700">
+                              Total Real Operational Cost (k = h * (1 + (i +
+                              j))):
+                            </span>
+                            <span className="text-sm font-medium text-blue-600">
+                              {formatCurrency(
+                                formData.TotalRealOperationalCost
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                        <h3 className="font-medium text-gray-700 mb-2">
+                          Pricing Model
+                        </h3>
+                        <div className="space-y-3">
+                          <div className="flex justify-between">
+                            <span className="text-sm text-gray-600">
+                              Profit Margin (l):
+                            </span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={formData.ProfitMargin}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  ProfitMargin: e.target.value,
+                                })
+                              }
+                              className="border rounded px-2 py-1 text-sm"
+                            />
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm text-gray-600">
+                              Minimum Asset Financing Price (m = k / (1 - l)):
+                            </span>
+                            <span className="text-sm font-medium">
+                              {formatCurrency(
+                                formData.MinimumAssetFinancingPrice
+                              )}
+                            </span>
+                          </div>
+                          <div className="flex justify-between border-t border-gray-200 pt-2">
+                            <span className="text-sm font-medium text-gray-700">
+                              Estimated Profit (n = m - d):
+                            </span>
+                            <span className="text-sm font-medium text-green-600">
+                              {formatCurrency(formData.EstimatedProfit)} (
+                              {formData.PercentOfProfit.toFixed(2)}%)
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="font-bold text-sm" htmlFor="name">
-                      Occupation <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.guarantors[0].occupation}
-                      onChange={(e) =>
-                        setFormData((prev) => {
-                          const updatedGuarantors = [...prev.guarantors]; // Create a copy of the guarantors array
-                          updatedGuarantors[0] = {
-                            ...updatedGuarantors[0], // Copy all existing properties
-                            occupation: e.target.value, // Update just the name
-                          };
-                          return {
-                            ...prev, // Copy all other form data
-                            guarantors: updatedGuarantors, // Update the guarantors array
-                          };
-                        })
-                      }
-                      className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="font-bold text-sm" htmlFor="name">
-                      Guarantor Phone <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      value={formData.guarantors[0].phone}
-                      onChange={(e) =>
-                        setFormData((prev) => {
-                          const updatedGuarantors = [...prev.guarantors]; // Create a copy of the guarantors array
-                          updatedGuarantors[0] = {
-                            ...updatedGuarantors[0], // Copy all existing properties
-                            phone: e.target.value, // Update just the name
-                          };
-                          return {
-                            ...prev, // Copy all other form data
-                            guarantors: updatedGuarantors, // Update the guarantors array
-                          };
-                        })
-                      }
-                      className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="font-bold text-sm" htmlFor="name">
-                      Guarantor Email <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      value={formData.guarantors[0].email}
-                      onChange={(e) =>
-                        setFormData((prev) => {
-                          const updatedGuarantors = [...prev.guarantors]; // Create a copy of the guarantors array
-                          updatedGuarantors[0] = {
-                            ...updatedGuarantors[0], // Copy all existing properties
-                            email: e.target.value, // Update just the name
-                          };
-                          return {
-                            ...prev, // Copy all other form data
-                            guarantors: updatedGuarantors, // Update the guarantors array
-                          };
-                        })
-                      }
-                      className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="font-bold text-sm" htmlFor="name">
-                      Guarantor Address <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.guarantors[0].address}
-                      onChange={(e) =>
-                        setFormData((prev) => {
-                          const updatedGuarantors = [...prev.guarantors]; // Create a copy of the guarantors array
-                          updatedGuarantors[0] = {
-                            ...updatedGuarantors[0], // Copy all existing properties
-                            address: e.target.value, // Update just the name
-                          };
-                          return {
-                            ...prev, // Copy all other form data
-                            guarantors: updatedGuarantors, // Update the guarantors array
-                          };
-                        })
-                      }
-                      className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="font-bold text-sm" htmlFor="name">
-                      Relationship <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.guarantors[0].relationship}
-                      onChange={(e) =>
-                        setFormData((prev) => {
-                          const updatedGuarantors = [...prev.guarantors]; // Create a copy of the guarantors array
-                          updatedGuarantors[0] = {
-                            ...updatedGuarantors[0], // Copy all existing properties
-                            relationship: e.target.value, // Update just the name
-                          };
-                          return {
-                            ...prev, // Copy all other form data
-                            guarantors: updatedGuarantors, // Update the guarantors array
-                          };
-                        })
-                      }
-                      className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                    />
+
+                  <div className="mt-6 flex justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("guarantors")}
+                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                    >
+                      Back
+                    </button>
+                    <div className="space-x-3">
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-400"
+                      >
+                        {isSubmitting ? "Submitting..." : "Submit Application"}
+                      </button>
+                    </div>
                   </div>
                 </div>
-                {formData.guarantors[0]?.forms &&
-                  ["idCard", "passport", "formUpload"].map((formKey) => {
-                    const file = formData.guarantors[0]?.forms[formKey];
-                    const isFileObject = file && typeof file !== "string";
-                    const previewUrl = isFileObject
-                      ? URL.createObjectURL(file)
-                      : null;
-
-                    return (
-                      <div
-                        key={formKey}
-                        style={{
-                          marginBottom: "1.5rem",
-                          marginTop: "1.5rem",
-                          padding: "12px 16px",
-                          border: "1px solid #ddd",
-                          borderRadius: 8,
-                          boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
-                          backgroundColor: "#f9f9f9",
-                        }}
-                      >
-                        <label
-                          htmlFor={formKey}
-                          style={{
-                            display: "block",
-                            fontWeight: 600,
-                            marginBottom: 8,
-                            fontSize: 16,
-                            color: "#333",
-                            textTransform: "capitalize",
-                          }}
-                        >
-                          {formKey.replace(/([A-Z])/g, " $1")}
-                        </label>
-
-                        <input
-                          type="file"
-                          id={formKey}
-                          name={formKey}
-                          accept={
-                            formKey === "passport" || formKey === "idCard"
-                              ? ".pdf,.jpg,.jpeg,.png"
-                              : ".pdf"
-                          }
-                          onChange={(e) =>
-                            handleGuarantorFileChange(e, 0, formKey)
-                          }
-                          style={{
-                            display: "block",
-                            marginBottom: "12px",
-                            padding: "6px 10px",
-                            borderRadius: 6,
-                            border: "1.5px solid #ccc",
-                            cursor: "pointer",
-                            transition: "border-color 0.3s",
-                          }}
-                          onFocus={(e) =>
-                            (e.target.style.borderColor = "#007bff")
-                          }
-                          onBlur={(e) => (e.target.style.borderColor = "#ccc")}
-                        />
-
-                        {isFileObject && (
-                          <div
-                            style={{
-                              display: "inline-block",
-                              borderRadius: 8,
-                              overflow: "hidden",
-                              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                            }}
-                          >
-                            {file.type.startsWith("image/") && (
-                              <img
-                                src={previewUrl}
-                                alt={`Preview of ${formKey}`}
-                                style={{
-                                  width: 160,
-                                  height: "auto",
-                                  display: "block",
-                                }}
-                                onLoad={() => URL.revokeObjectURL(previewUrl)}
-                              />
-                            )}
-
-                            {file.type === "application/pdf" && (
-                              <embed
-                                src={previewUrl}
-                                type="application/pdf"
-                                width={160}
-                                height={210}
-                                style={{ display: "block" }}
-                              />
-                            )}
-                          </div>
-                        )}
-
-                        {!isFileObject && file && (
-                          <p
-                            style={{
-                              marginTop: 8,
-                              fontStyle: "italic",
-                              color: "#555",
-                              userSelect: "text",
-                            }}
-                          >
-                            Uploaded file: {file}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
               </div>
-              <div>
-                <p className="text-xl font-bold text-gray-800 mb-5">
-                  Guarantor 2 Details
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-2">
-                    <label className="font-bold text-sm" htmlFor="name">
-                      Guarantor Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.guarantors[1].name}
-                      onChange={(e) =>
-                        setFormData((prev) => {
-                          const updatedGuarantors = [...prev.guarantors]; // Create a copy of the guarantors array
-                          updatedGuarantors[1] = {
-                            ...updatedGuarantors[1], // Copy all existing properties
-                            name: e.target.value, // Update just the name
-                          };
-                          return {
-                            ...prev, // Copy all other form data
-                            guarantors: updatedGuarantors, // Update the guarantors array
-                          };
-                        })
-                      }
-                      className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="font-bold text-sm" htmlFor="name">
-                      Occupation <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.guarantors[1].occupation}
-                      onChange={(e) =>
-                        setFormData((prev) => {
-                          const updatedGuarantors = [...prev.guarantors]; // Create a copy of the guarantors array
-                          updatedGuarantors[1] = {
-                            ...updatedGuarantors[1], // Copy all existing properties
-                            occupation: e.target.value, // Update just the name
-                          };
-                          return {
-                            ...prev, // Copy all other form data
-                            guarantors: updatedGuarantors, // Update the guarantors array
-                          };
-                        })
-                      }
-                      className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="font-bold text-sm" htmlFor="name">
-                      Guarantor Phone <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      value={formData.guarantors[1].phone}
-                      onChange={(e) =>
-                        setFormData((prev) => {
-                          const updatedGuarantors = [...prev.guarantors]; // Create a copy of the guarantors array
-                          updatedGuarantors[1] = {
-                            ...updatedGuarantors[1], // Copy all existing properties
-                            phone: e.target.value, // Update just the name
-                          };
-                          return {
-                            ...prev, // Copy all other form data
-                            guarantors: updatedGuarantors, // Update the guarantors array
-                          };
-                        })
-                      }
-                      className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="font-bold text-sm" htmlFor="name">
-                      Guarantor Address <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.guarantors[1].address}
-                      onChange={(e) =>
-                        setFormData((prev) => {
-                          const updatedGuarantors = [...prev.guarantors]; // Create a copy of the guarantors array
-                          updatedGuarantors[1] = {
-                            ...updatedGuarantors[1], // Copy all existing properties
-                            address: e.target.value, // Update just the name
-                          };
-                          return {
-                            ...prev, // Copy all other form data
-                            guarantors: updatedGuarantors, // Update the guarantors array
-                          };
-                        })
-                      }
-                      className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="font-bold text-sm" htmlFor="name">
-                      Relationship <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.guarantors[1].relationship}
-                      onChange={(e) =>
-                        setFormData((prev) => {
-                          const updatedGuarantors = [...prev.guarantors]; // Create a copy of the guarantors array
-                          updatedGuarantors[1] = {
-                            ...updatedGuarantors[1], // Copy all existing properties
-                            relationship: e.target.value, // Update just the name
-                          };
-                          return {
-                            ...prev, // Copy all other form data
-                            guarantors: updatedGuarantors, // Update the guarantors array
-                          };
-                        })
-                      }
-                      className="border focus:border-2 border-gray-400 focus:border-[#3D873B] outline-none shadow-md p-2 rounded-md"
-                    />
-                  </div>
-                </div>
-                {formData.guarantors[1]?.forms &&
-                  ["idCard", "passport", "formUpload"].map((formKey) => {
-                    const file = formData.guarantors[1]?.forms[formKey];
-                    const isFileObject = file && typeof file !== "string";
-                    const previewUrl = isFileObject
-                      ? URL.createObjectURL(file)
-                      : null;
-
-                    return (
-                      <div
-                        key={formKey}
-                        style={{
-                          marginBottom: "1.5rem",
-                          marginTop: "1.5rem",
-                          padding: "12px 16px",
-                          border: "1px solid #ddd",
-                          borderRadius: 8,
-                          boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
-                          backgroundColor: "#f9f9f9",
-                        }}
-                      >
-                        <label
-                          htmlFor={formKey}
-                          style={{
-                            display: "block",
-                            fontWeight: 600,
-                            marginBottom: 8,
-                            fontSize: 16,
-                            color: "#333",
-                            textTransform: "capitalize",
-                          }}
-                        >
-                          {formKey.replace(/([A-Z])/g, " $1")}
-                        </label>
-
-                        <input
-                          type="file"
-                          id={formKey}
-                          name={formKey}
-                          accept={
-                            formKey === "passport" || formKey === "idCard"
-                              ? ".pdf,.jpg,.jpeg,.png"
-                              : ".pdf"
-                          }
-                          onChange={(e) =>
-                            handleGuarantorFileChange(e, 1, formKey)
-                          }
-                          style={{
-                            display: "block",
-                            marginBottom: "12px",
-                            padding: "6px 10px",
-                            borderRadius: 6,
-                            border: "1.5px solid #ccc",
-                            cursor: "pointer",
-                            transition: "border-color 0.3s",
-                          }}
-                          onFocus={(e) =>
-                            (e.target.style.borderColor = "#007bff")
-                          }
-                          onBlur={(e) => (e.target.style.borderColor = "#ccc")}
-                        />
-
-                        {isFileObject && (
-                          <div
-                            style={{
-                              display: "inline-block",
-                              borderRadius: 8,
-                              overflow: "hidden",
-                              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                            }}
-                          >
-                            {file.type.startsWith("image/") && (
-                              <img
-                                src={previewUrl}
-                                alt={`Preview of ${formKey}`}
-                                style={{
-                                  width: 160,
-                                  height: "auto",
-                                  display: "block",
-                                }}
-                                onLoad={() => URL.revokeObjectURL(previewUrl)}
-                              />
-                            )}
-
-                            {file.type === "application/pdf" && (
-                              <embed
-                                src={previewUrl}
-                                type="application/pdf"
-                                width={160}
-                                height={210}
-                                style={{ display: "block" }}
-                              />
-                            )}
-                          </div>
-                        )}
-
-                        {!isFileObject && file && (
-                          <p
-                            style={{
-                              marginTop: 8,
-                              fontStyle: "italic",
-                              color: "#555",
-                              userSelect: "text",
-                            }}
-                          >
-                            Uploaded file: {file}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-              </div>
-            </>
-          )}
-          {activeTab === "Guarantor" && (
-            <div className="flex justify-end">
-              <button
-                onClick={handleMoveToPricing}
-                className="bg-[#3D873B] text-white font-bold py-2 px-4 rounded-md cursor-pointer"
-              >
-                Move to Pricing Model
-              </button>
-            </div>
-          )}
-        </form>
+            )}
+          </form>
+        </div>
       </div>
     </Layout>
   );
 };
 
-export default AddLoan;
+export default RequestForm;

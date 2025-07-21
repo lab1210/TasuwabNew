@@ -6,7 +6,7 @@ const loanService = {
   getLoans: async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/requests`);
-      return response.data;
+      return response.data.items;
     } catch (error) {
       throw (
         error.response?.data || error.message || "Failed to fetch suppliers"

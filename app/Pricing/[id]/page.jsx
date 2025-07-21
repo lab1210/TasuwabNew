@@ -3,7 +3,7 @@ import Layout from "@/app/components/Layout";
 import useLoanStore from "@/app/components/loanStore";
 import { useAuth } from "@/Services/authService";
 import roleService from "@/Services/roleService";
-import { getSuppliers } from "@/Services/supplierService";
+import supplierService from "@/Services/supplierService";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
@@ -24,8 +24,20 @@ const LoanCalculator = () => {
   const [rolePrivileges, setRolePrivileges] = useState([]);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectionComment, setRejectionComment] = useState("");
+  const [suppliers, setSuppliers] = useState([]);
+  useEffect(() => {
+    const fetchSuppliers = async () => {
+      try {
+        const data = await supplierService.getSuppliers();
+        setSuppliers(data);
+      } catch (e) {
+        toast.error(e.message);
+      }
+    };
+    fetchSuppliers();
+  }, []);
 
-  const supplierOptions = getSuppliers().map((s) => ({
+  const supplierOptions = suppliers.map((s) => ({
     label: s.name,
     value: s.name,
   }));

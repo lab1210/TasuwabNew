@@ -39,10 +39,10 @@ const menuStructure = {
     "/Account/Transaction/AddTransaction": "Create Transactions",
   },
   "Asset Financing": {
-    "/Loan": "Asset Financing Records",
+    "/Loan": "Loan Requests",
     "/Loan/Request-Form": "Request Form",
+    "/Loan/Accounts": "Loan Accounts",
     "/Loan/Update-Request-Form": "Update Request Form",
-    "/Pricing": `Pricing Model for asset `,
   },
   Approved: {
     "/Approved/Loans": "Approved Request Forms",

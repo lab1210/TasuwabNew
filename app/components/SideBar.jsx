@@ -202,8 +202,13 @@ const SideBar = () => {
           icon: <FaMoneyBill />,
           subItems: [
             {
-              label: "View Financed Assets",
+              label: "View Loan Requests",
               href: "/Loan",
+              privilege: "ViewLoanAccounts",
+            },
+            {
+              label: "View Loan Accounts ",
+              href: "/Loan/Accounts",
               privilege: "ViewLoanAccounts",
             },
             {
@@ -222,12 +227,6 @@ const SideBar = () => {
               href: "/Active",
               privilege: "SelectApprovedLoans",
             },
-
-            // {
-            //   label: "Pending Loan Transactions",
-            //   href: "/Pending/Loan-Transactions",
-            //   privilege: "ViewApprovedTransactions",
-            // },
           ],
           privilege: "ManageLoanTransactions" || "ViewLoanAccounts",
         },

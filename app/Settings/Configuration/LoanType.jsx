@@ -17,6 +17,7 @@ const LoanTypeConfiguration = () => {
     name: "",
     description: "",
     isActive: true,
+    amount: "",
   });
 
   useEffect(() => {
@@ -46,14 +47,20 @@ const LoanTypeConfiguration = () => {
       name: "",
       description: "",
       isActive: true,
+      amount: "",
     });
     setIsEditing(false);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.code || !formData.name || !formData.description) {
-      toast.error("Loan Type Code, Name, Description  are required");
+    if (
+      !formData.code ||
+      !formData.name ||
+      !formData.description ||
+      !formData.amount
+    ) {
+      toast.error("Loan Type Code, Name, Description  and amount are required");
       return;
     }
 
@@ -63,6 +70,7 @@ const LoanTypeConfiguration = () => {
         code: formData.code,
         name: formData.name,
         description: formData.description,
+        amount: Number(formData.amount),
         isActive: formData.isActive,
       };
       console.log("Final payload:", payload);
@@ -91,6 +99,7 @@ const LoanTypeConfiguration = () => {
       code: type.code,
       name: type.name,
       description: type.description,
+      amount: type.amount,
       isActive: type.isActive,
     });
     setIsEditing(true);
@@ -141,6 +150,15 @@ const LoanTypeConfiguration = () => {
             className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
             placeholder="Loan Type Name"
             value={formData.name}
+            onChange={handleInputChange}
+            required
+          />
+          <input
+            type="number"
+            name="amount"
+            className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
+            placeholder="Equity Contribution %"
+            value={formData.amount}
             onChange={handleInputChange}
             required
           />
@@ -199,10 +217,19 @@ const LoanTypeConfiguration = () => {
         </div>
       </form>
       <Table
-        headers={["Code", "Loan Type", "Description", "Status", "", ""]}
+        headers={[
+          "Code",
+          "Loan Type",
+          "Equity Contribution ",
+          "Description",
+          "Status",
+          "",
+          "",
+        ]}
         rows={loanTypes.map((dt) => [
           dt.code,
           dt.name,
+          dt.amount + "%",
           dt.description,
           dt.isActive ? (
             <p className="text-green-500 max-w-20 font-bold rounded-md bg-green-50 text-center p-1">
