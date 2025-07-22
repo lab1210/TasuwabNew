@@ -212,6 +212,17 @@ const SideBar = () => {
               privilege: "ViewLoanAccounts",
             },
             {
+              label: "View Top up History ",
+              href: "/Loan/Accounts/TopUp",
+              privilege: "ViewLoanAccounts" || "ProcessLoanTopUps",
+            },
+            {
+              label: "View Loan Transactions ",
+              href: "/Loan/Accounts/Transactions",
+              privilege: "ViewLoanTransactions",
+            },
+
+            {
               label: "Approved Applications",
               href: "/Approved/Loans",
               privilege: "SelectApprovedLoans",
@@ -228,7 +239,10 @@ const SideBar = () => {
               privilege: "SelectApprovedLoans",
             },
           ],
-          privilege: "ManageLoanTransactions" || "ViewLoanAccounts",
+          privilege:
+            "ManageLoanTransactions" ||
+            "ViewLoanAccounts" ||
+            "ProcessLoanTopUps",
         },
         {
           key: "enquiries",
@@ -243,7 +257,7 @@ const SideBar = () => {
             {
               label: "Client Loan Enquiry",
               href: "/Enquiries/loan",
-              privilege: "ViewAccountReports",
+              privilege: "ViewLoanTransactions",
             },
             {
               label: "Client Deposit Enquiry",
@@ -261,7 +275,7 @@ const SideBar = () => {
               privilege: "ViewEnquiry",
             },
           ],
-          privilege: "ViewAccountReports",
+          privilege: "ViewAccountReports" || "ViewLoanTransactions",
         },
 
         {
@@ -270,17 +284,31 @@ const SideBar = () => {
           icon: <FaRegCheckCircle />,
           subItems: [
             {
-              label: "Approve Loan Applications",
-              href: "/Approver",
-              privilege: "ApproveLoanApplication",
+              label: "Approval Configuration",
+              href: "/Approval/Configuration/View",
+              privilege: "ManageApprovalWorkflows",
             },
             {
-              label: "Approve Supplier Payments",
-              href: "/Approver/Supplier-Payments",
-              privilege: "ApproveSupplierPayment",
+              label: "Approval Requests",
+              href: "/Approval",
+              privilege: "ViewApprovals",
             },
+            // {
+            //   label: "Approve Loan Applications",
+            //   href: "/Approver",
+            //   privilege: "ApproveLoanApplication",
+            // },
+            // {
+            //   label: "Approve Supplier Payments",
+            //   href: "/Approver/Supplier-Payments",
+            //   privilege: "ApproveSupplierPayment",
+            // },
           ],
-          privilege: "ApproveLoanApplication" || "ApproveSupplierPayment",
+          privilege:
+            "ViewApprovals" ||
+            "ProcessApprovals" ||
+            "ViewApprovalReports" ||
+            "ManageApprovalWorkflows",
         },
         {
           key: "settings",

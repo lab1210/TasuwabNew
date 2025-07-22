@@ -109,6 +109,29 @@ const AddClient = () => {
   const handleDocumentUpload = (e) => {
     const file = e.target.files[0]; // Get only the first file
     if (file) {
+      // Validate file type
+      const validTypes = ["image/jpeg", "image/png", "application/pdf"];
+      const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+
+      if (!validTypes.includes(file.type)) {
+        toast.error("Only JPG, PNG, and PDF files are allowed");
+        setClientDocuments(null);
+        if (docsInputRef.current) {
+          docsInputRef.current.value = "";
+        }
+        return;
+      }
+
+      if (file.size > maxSize) {
+        toast.error("File size must be less than 5MB");
+        setClientDocuments(null);
+        if (docsInputRef.current) {
+          docsInputRef.current.value = "";
+        }
+        return;
+      }
+
+      // If validation passes
       setClientDocuments(file);
     }
   };

@@ -16,8 +16,8 @@ const supplierTransactionService = {
   },
   getSupplierTransactions: async () => {
     try {
-      const response = await axios.get(API_BASE_URL);
-      return response.data;
+      const response = await axios.get(`${API_BASE_URL}/loans-needing-action`);
+      return response.data.items;
     } catch (error) {
       throw (
         error.response?.data ||

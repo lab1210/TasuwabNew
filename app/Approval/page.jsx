@@ -3,30 +3,91 @@ import React, { useEffect, useState } from "react";
 import {
   FaChevronDown,
   FaChevronUp,
-  FaPlus,
   FaFilter,
   FaChevronLeft,
   FaSearch,
+  FaCheck,
+  FaTimes,
 } from "react-icons/fa";
 import { Tooltip } from "react-tooltip";
 import Layout from "@/app/components/Layout";
 import { useAuth } from "@/Services/authService";
-import supplierTransactionService from "@/Services/supplierTransactionService";
+import approvalService from "@/Services/approvalService";
 import roleService from "@/Services/roleService";
 import formatDate from "@/app/components/formatdate";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import bankService from "@/Services/bankService";
-import supplierService from "@/Services/supplierService";
+import { toast } from "react-hot-toast";
 
 const ITEMS_PER_PAGE = 10;
 
-const SupplierTransactionsPage = () => {
+const CommentModal = ({ isOpen, onClose, onSubmit, actionType }) => {
+  const [comment, setComment] = useState("");
+
+  const handleSubmit = () => {
+    if (!comment) {
+      toast.error("Comments are required");
+      return;
+    }
+    if (actionType === 2 && comment.length < 10) {
+      toast.error("Rejection requires comments with at least 10 characters");
+      return;
+    }
+    onSubmit(comment);
+    onClose();
+  };
+
+  return (
+    <div
+      className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${
+        !isOpen && "hidden"
+      }`}
+    >
+      <div className="bg-white p-6 rounded-lg w-full max-w-md">
+        <h2 className="text-xl font-bold mb-4">
+          {actionType === 1 ? "Approval Comments" : "Rejection Reason"}
+        </h2>
+        <textarea
+          className="w-full p-2 border border-gray-300 rounded-md mb-4"
+          rows={4}
+          placeholder={
+            actionType === 1
+              ? "Enter approval comments (required)..."
+              : "Enter rejection reason (minimum 10 characters)..."
+          }
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          required
+        />
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400"
+          >
+            Cancel
+          </button>
+
+          <button
+            onClick={handleSubmit}
+            className={`px-4 py-2 text-white rounded-md ${
+              actionType === 1
+                ? "bg-green-600 hover:bg-green-700"
+                : "bg-red-600 hover:bg-red-700"
+            }`}
+          >
+            {actionType === 1 ? "Approve" : "Reject"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ApprovalsPage = () => {
   const { user } = useAuth();
-  const [transactions, setTransactions] = useState([]);
+  const [approvals, setApprovals] = useState([]);
   const [filterText, setFilterText] = useState("");
-  const [filteredTransactions, setFilteredTransactions] = useState([]);
+  const [filteredApprovals, setFilteredApprovals] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [rolePrivileges, setRolePrivileges] = useState([]);
   const [loadingPrivileges, setLoadingPrivileges] = useState(true);
@@ -36,25 +97,35 @@ const SupplierTransactionsPage = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     status: "",
-    supplier: "",
+    entityType: "",
+    requester: "",
     startDate: "",
     endDate: "",
   });
-  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [selectedApproval, setSelectedApproval] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
-  const [suppliers, setSuppliers] = useState([]);
-  const [banks, setBanks] = useState({});
+  const [showCommentModal, setShowCommentModal] = useState(false);
+  const [currentAction, setCurrentAction] = useState(null);
+  const [currentApprovalId, setCurrentApprovalId] = useState(null);
 
-  const formatCurrency = (value) =>
-    new Intl.NumberFormat("en-NG", {
+  const formatCurrency = (value) => {
+    if (value === undefined || value === null) return "N/A";
+    return new Intl.NumberFormat("en-NG", {
       style: "currency",
       currency: "NGN",
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(Number(value) || 0);
+    }).format(value);
+  };
 
-  // Helper function to render approval status
-  const getApprovalStatusText = (status) => {
+  const entityTypeMap = {
+    0: "Loan",
+    1: "Supplier Transaction",
+    2: "Account",
+    3: "Loan Top up",
+  };
+
+  const getStatusText = (status) => {
     switch (status) {
       case 0:
         return "Pending";
@@ -67,59 +138,31 @@ const SupplierTransactionsPage = () => {
     }
   };
 
-  const renderStatusBadge = (status) => {
-    let badgeClass = "";
+  const getStatusColor = (status) => {
     switch (status) {
-      case "Approved":
-        badgeClass = "bg-green-100 text-green-800";
-        break;
-      case "Rejected":
-        badgeClass = "bg-red-100 text-red-800";
-        break;
-      case "Pending":
-        badgeClass = "bg-yellow-100 text-yellow-800";
-        break;
+      case 0:
+        return "bg-yellow-100 text-yellow-800";
+      case 1:
+        return "bg-green-100 text-green-800";
+      case 2:
+        return "bg-red-100 text-red-800";
       default:
-        badgeClass = "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800";
     }
-
-    return (
-      <span
-        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${badgeClass}`}
-      >
-        {status}
-      </span>
-    );
   };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [transactionsResponse, suppliersResponse, banksResponse] =
-          await Promise.all([
-            supplierTransactionService.getSupplierTransactions(),
-            supplierService.getSuppliers(),
-            bankService.getBank(),
-          ]);
-
-        setTransactions(transactionsResponse || []);
-        setSuppliers(suppliersResponse || []);
-
-        // Create a map of bank IDs to bank names
-        const banksMap = {};
-        banksResponse.forEach((bank) => {
-          banksMap[bank.id] = bank.name;
-        });
-        setBanks(banksMap);
-
+        const approvalsResponse = await approvalService.getApprovals();
+        setApprovals(approvalsResponse || []);
         setLoading(false);
       } catch (err) {
-        console.error("Failed to fetch data:", err);
-        setError(err.message || "Failed to load data");
+        console.error("Failed to fetch approvals:", err);
+        setError(err.message || "Failed to load approvals");
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
@@ -141,64 +184,69 @@ const SupplierTransactionsPage = () => {
         setLoadingPrivileges(false);
       }
     };
-
     fetchPrivileges();
   }, [user?.role]);
 
   useEffect(() => {
     const handleFilter = () => {
       const lowerCaseFilter = filterText.toLowerCase();
-      const results = transactions.filter((transaction) => {
-        const matchesText = Object.values(transaction).some(
-          (value) =>
-            value && value.toString().toLowerCase().includes(lowerCaseFilter)
-        );
+      const results = approvals.filter((approval) => {
+        const matchesText =
+          approval.approvalRequestId.toLowerCase().includes(lowerCaseFilter) ||
+          approval.requestedByName.toLowerCase().includes(lowerCaseFilter) ||
+          (approval.notes &&
+            approval.notes.toLowerCase().includes(lowerCaseFilter));
+
         const matchesStatus =
           filters.status === "" ||
-          transaction.status.toLowerCase() === filters.status.toLowerCase();
-        const matchesSupplier =
-          filters.supplier === "" ||
-          transaction.supplierId === filters.supplier;
+          approval.status.toString() === filters.status;
 
-        return matchesText && matchesStatus && matchesSupplier;
+        const matchesEntityType =
+          filters.entityType === "" ||
+          approval.entityType.toString() === filters.entityType;
+
+        const matchesRequester =
+          filters.requester === "" ||
+          approval.requestedBy === filters.requester;
+
+        return (
+          matchesText && matchesStatus && matchesEntityType && matchesRequester
+        );
       });
-
-      setFilteredTransactions(results);
+      setFilteredApprovals(results);
       setCurrentPage(1);
     };
     handleFilter();
-  }, [transactions, filterText, filters]);
+  }, [approvals, filterText, filters]);
 
   const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedTransactions = filteredTransactions.slice(
+  const paginatedApprovals = filteredApprovals.slice(
     startIdx,
     startIdx + ITEMS_PER_PAGE
   );
-  const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredApprovals.length / ITEMS_PER_PAGE);
 
   const hasPrivilege = (privilegeName) => {
     return !loadingPrivileges && rolePrivileges.includes(privilegeName);
   };
 
   const handleFilterChange = (filterName, value) => {
-    setFilters((prev) => ({
-      ...prev,
-      [filterName]: value,
-    }));
+    setFilters((prev) => ({ ...prev, [filterName]: value }));
   };
 
   const resetFilters = () => {
     setFilters({
       status: "",
-      supplier: "",
+      entityType: "",
+      requester: "",
       startDate: "",
       endDate: "",
     });
     setFilterText("");
   };
 
-  const handleViewDetails = (transaction) => {
-    setSelectedTransaction(transaction);
+  const handleViewDetails = (approval) => {
+    setSelectedApproval(approval);
     setShowDetails(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -206,8 +254,66 @@ const SupplierTransactionsPage = () => {
   const handleCloseDetails = () => {
     setShowDetails(false);
     setTimeout(() => {
-      setSelectedTransaction(null);
+      setSelectedApproval(null);
     }, 300);
+  };
+
+  const handleActionInitiation = (approvalId, action) => {
+    setCurrentApprovalId(approvalId);
+    setCurrentAction(action);
+    setShowCommentModal(true);
+  };
+
+  const handleApproveReject = async (comment) => {
+    try {
+      await approvalService.processApproval(
+        currentApprovalId,
+        currentAction,
+        user.StaffCode,
+        comment
+      );
+
+      toast.success(`Request ${currentAction === 1 ? "approved" : "rejected"}`);
+
+      setApprovals((prev) =>
+        prev.map((approval) =>
+          approval.approvalRequestId === currentApprovalId
+            ? {
+                ...approval,
+                status: currentAction,
+                history: [
+                  ...(approval.history || []),
+                  {
+                    actionedByName: user.name,
+                    actionDate: new Date().toISOString(),
+                    status: currentAction,
+                    comments: comment,
+                    level: (approval.history?.length || 0) + 1,
+                  },
+                ],
+              }
+            : approval
+        )
+      );
+
+      const approvalsResponse = await approvalService.getApprovals();
+      setApprovals(approvalsResponse || []);
+    } catch (error) {
+      console.log("Approval error:", error);
+      toast.error(error || "Failed to process approval");
+
+      setApprovals((prev) =>
+        prev.map((approval) =>
+          approval.approvalRequestId === currentApprovalId
+            ? { ...approval, status: 0 }
+            : approval
+        )
+      );
+    } finally {
+      setShowCommentModal(false);
+      setCurrentApprovalId(null);
+      setCurrentAction(null);
+    }
   };
 
   if (loading || loadingPrivileges) {
@@ -244,8 +350,15 @@ const SupplierTransactionsPage = () => {
   return (
     <Layout>
       <div className="w-full">
+        <CommentModal
+          isOpen={showCommentModal}
+          onClose={() => setShowCommentModal(false)}
+          onSubmit={handleApproveReject}
+          actionType={currentAction}
+        />
+
         <AnimatePresence mode="wait">
-          {showDetails && selectedTransaction ? (
+          {showDetails && selectedApproval ? (
             <motion.div
               key="details"
               initial={{ opacity: 0, x: 50 }}
@@ -253,196 +366,188 @@ const SupplierTransactionsPage = () => {
               exit={{ opacity: 0, x: -50 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="mt-6">
+              <div className="">
                 <button
                   onClick={handleCloseDetails}
                   className="flex items-center text-[#3D873B] hover:text-[#2a5d28] mb-4"
                 >
                   <FaChevronLeft className="mr-1" />
-                  Back to Transactions
+                  Back
                 </button>
 
                 <div className="bg-white rounded-lg shadow-sm p-6">
                   <div className="flex justify-between items-start mb-6">
                     <div>
-                      <h1 className="text-2xl font-bold">
-                        Transaction Details
-                      </h1>
+                      <h1 className="text-2xl font-bold">Approval Details</h1>
                       <p className="text-sm text-gray-600">
-                        Transaction ID: {selectedTransaction.transactionId} |
-                        Date: {formatDate(selectedTransaction.date)}
+                        Request ID: {selectedApproval.approvalRequestId} | Type:{" "}
+                        {entityTypeMap[selectedApproval.entityType] ||
+                          "Unknown"}
                       </p>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="text-right">
                         <p className="text-sm text-gray-500">Status</p>
-                        {renderStatusBadge(selectedTransaction.status)}
+                        <span
+                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
+                            selectedApproval.status
+                          )}`}
+                        >
+                          {getStatusText(selectedApproval.status)}
+                        </span>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm text-gray-500">Amount</p>
-                        <p className="font-bold">
-                          {formatCurrency(selectedTransaction.amount)}
+                        <p className="text-sm text-gray-500">Request Date</p>
+                        <p className="font-medium">
+                          {formatDate(selectedApproval.requestDate)}
                         </p>
                       </div>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Left Column - Main Information */}
                     <div className="lg:col-span-2 space-y-6">
-                      {/* Transaction Information */}
                       <div className="bg-gray-50 rounded-lg p-6">
                         <h2 className="text-lg font-semibold mb-4">
-                          Transaction Information
+                          Request Information
                         </h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <p className="text-sm text-gray-500">
-                              Account Code
-                            </p>
+                            <p className="text-sm text-gray-500">Request ID</p>
                             <p className="font-medium">
-                              {selectedTransaction.accountCode}
+                              {selectedApproval.approvalRequestId}
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">Supplier</p>
+                            <p className="text-sm text-gray-500">Entity Type</p>
                             <p className="font-medium">
-                              {selectedTransaction.supplierName}
+                              {entityTypeMap[selectedApproval.entityType] ||
+                                "Unknown"}
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">Product</p>
+                            <p className="text-sm text-gray-500">Entity ID</p>
                             <p className="font-medium">
-                              {selectedTransaction.productName || "N/A"}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Category</p>
-                            <p className="font-medium">
-                              {selectedTransaction.categoryName || "N/A"}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Amount</p>
-                            <p className="font-medium">
-                              {formatCurrency(selectedTransaction.amount)}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Date</p>
-                            <p className="font-medium">
-                              {formatDate(selectedTransaction.date)}
+                              {selectedApproval.entityId}
                             </p>
                           </div>
                           <div>
                             <p className="text-sm text-gray-500">
-                              Sending Bank
+                              Requested By
                             </p>
                             <p className="font-medium">
-                              {banks[selectedTransaction.sendingBank] || "N/A"}
+                              {selectedApproval.requestedByName}
                             </p>
                           </div>
                           <div>
                             <p className="text-sm text-gray-500">
-                              Performed By
+                              Request Date
                             </p>
                             <p className="font-medium">
-                              {selectedTransaction.performedByName || "N/A"}
+                              {formatDate(selectedApproval.requestDate)}
                             </p>
                           </div>
                           <div className="md:col-span-2">
                             <p className="text-sm text-gray-500">Notes</p>
                             <p className="font-medium">
-                              {selectedTransaction.notes || "No notes provided"}
+                              {selectedApproval.notes || "No notes provided"}
                             </p>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Right Column - Sidebar Information */}
-                    <div className="space-y-6">
-                      {/* Approval Process */}
-                      {selectedTransaction.approvalRequest && (
+                      {selectedApproval.metadata && (
                         <div className="bg-gray-50 rounded-lg p-6">
                           <h2 className="text-lg font-semibold mb-4">
-                            Approval Process
+                            Additional Information
                           </h2>
-                          <div className="space-y-4">
-                            <div>
-                              <p className="text-sm text-gray-500">
-                                Requested By
-                              </p>
-                              <p className="font-medium">
-                                {selectedTransaction.approvalRequest
-                                  .requestedByName || "N/A"}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">
-                                Request Date
-                              </p>
-                              <p className="font-medium">
-                                {formatDate(
-                                  selectedTransaction.approvalRequest
-                                    .requestDate
-                                )}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">
-                                Current Status
-                              </p>
-                              <p className="font-medium">
-                                {getApprovalStatusText(
-                                  selectedTransaction.approvalRequest.status
-                                )}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">Notes</p>
-                              <p className="font-medium">
-                                {selectedTransaction.approvalRequest.notes ||
-                                  "No notes provided"}
-                              </p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {Object.entries(selectedApproval.metadata).map(
+                              ([key, value]) => (
+                                <div key={key}>
+                                  <p className="text-sm text-gray-500 capitalize">
+                                    {key === "PaymentPeriodDays"
+                                      ? "Payment Period (months)"
+                                      : key.replace(/([A-Z])/g, " $1").trim()}
+                                  </p>
+                                  <p className="font-medium">
+                                    {key.toLowerCase().includes("amount") ||
+                                    key.toLowerCase().includes("price") ||
+                                    key.toLowerCase().includes("value")
+                                      ? formatCurrency(value)
+                                      : value || "N/A"}
+                                  </p>
+                                </div>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-6">
+                      {selectedApproval.status === 0 &&
+                        hasPrivilege("ProcessApprovals") && (
+                          <div className="bg-gray-50 rounded-lg p-6">
+                            <h2 className="text-lg font-semibold mb-4">
+                              Approval Actions
+                            </h2>
+                            <div className="flex gap-4">
+                              <button
+                                onClick={() =>
+                                  handleActionInitiation(
+                                    selectedApproval.approvalRequestId,
+                                    1
+                                  )
+                                }
+                                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                              >
+                                <FaCheck /> Approve
+                              </button>
+                              <button
+                                onClick={() =>
+                                  handleActionInitiation(
+                                    selectedApproval.approvalRequestId,
+                                    2
+                                  )
+                                }
+                                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                              >
+                                <FaTimes /> Reject
+                              </button>
                             </div>
                           </div>
+                        )}
 
-                          {/* Approval History */}
-                          {selectedTransaction.approvalRequest.history?.length >
-                            0 && (
-                            <div className="mt-6">
-                              <h3 className="font-medium mb-3">
-                                Approval History
-                              </h3>
-                              <div className="space-y-3">
-                                {selectedTransaction.approvalRequest.history.map(
-                                  (item, index) => (
-                                    <div
-                                      key={index}
-                                      className="border-l-2 border-gray-300 pl-3 py-1"
-                                    >
-                                      <div className="flex justify-between">
-                                        <span className="font-medium">
-                                          {item.actionedByName}
-                                        </span>
-                                        <span className="text-sm text-gray-500">
-                                          {formatDate(item.actionDate)}
-                                        </span>
-                                      </div>
-                                      <p className="text-sm">
-                                        {item.comments || "No comments"}
-                                      </p>
-                                      <p className="text-xs text-gray-500">
-                                        Status:{" "}
-                                        {getApprovalStatusText(item.status)}
-                                      </p>
-                                    </div>
-                                  )
-                                )}
+                      {selectedApproval.history?.length > 0 && (
+                        <div className="bg-gray-50 rounded-lg p-6">
+                          <h2 className="text-lg font-semibold mb-4">
+                            Approval History
+                          </h2>
+                          <div className="space-y-4">
+                            {selectedApproval.history.map((item, index) => (
+                              <div
+                                key={index}
+                                className="border-l-2 border-gray-300 pl-3 py-1"
+                              >
+                                <div className="flex justify-between">
+                                  <span className="font-medium">
+                                    {item.actionedByName}
+                                  </span>
+                                  <span className="text-sm text-gray-500">
+                                    {formatDate(item.actionDate)}
+                                  </span>
+                                </div>
+                                <p className="text-sm">
+                                  {item.comments || "No comments"}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  Status: {getStatusText(item.status)} | Level:{" "}
+                                  {item.level}
+                                </p>
                               </div>
-                            </div>
-                          )}
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -460,34 +565,11 @@ const SupplierTransactionsPage = () => {
             >
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-4xl font-extrabold">
-                    Supplier Transactions
-                  </p>
+                  <p className="text-4xl font-extrabold">Approval Requests</p>
                   <p className="text-sm text-gray-600">
-                    View all supplier transactions.
+                    View all pending and processed approval requests.
                   </p>
                 </div>
-                {hasPrivilege("ManageSupplierTransactions") && (
-                  <div
-                    onClick={() =>
-                      router.push("/Supplier/Transactions/Pay-Supplier")
-                    }
-                    id="add-transaction-icon"
-                    className="w-7 h-7 rounded-full cursor-pointer hover:bg-gray-100 p-1"
-                  >
-                    <FaPlus className="text-[#3D873B] w-full h-full" />
-                  </div>
-                )}
-                <Tooltip
-                  anchorId="add-transaction-icon"
-                  content="New Transaction"
-                  place="top"
-                  style={{
-                    backgroundColor: "#3D873B",
-                    fontSize: "12px",
-                    borderRadius: "6px",
-                  }}
-                />
               </div>
 
               <div className="mt-4 mb-5 space-y-3">
@@ -496,7 +578,7 @@ const SupplierTransactionsPage = () => {
                     <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                     <input
                       type="text"
-                      placeholder="Search transactions..."
+                      placeholder="Search approvals..."
                       value={filterText}
                       onChange={(e) => setFilterText(e.target.value)}
                       className="placeholder:text-sm border p-2 pl-10 w-full rounded-md border-gray-300 outline-none shadow-sm"
@@ -530,28 +612,30 @@ const SupplierTransactionsPage = () => {
                           className="w-full p-2 border border-gray-300 rounded-md"
                         >
                           <option value="">All Statuses</option>
-                          <option value="Pending">Pending</option>
-                          <option value="Approved">Approved</option>
-                          <option value="Rejected">Rejected</option>
+                          <option value="0">Pending</option>
+                          <option value="1">Approved</option>
+                          <option value="2">Rejected</option>
                         </select>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Supplier
+                          Entity Type
                         </label>
                         <select
-                          value={filters.supplier}
+                          value={filters.entityType}
                           onChange={(e) =>
-                            handleFilterChange("supplier", e.target.value)
+                            handleFilterChange("entityType", e.target.value)
                           }
                           className="w-full p-2 border border-gray-300 rounded-md"
                         >
-                          <option value="">All Suppliers</option>
-                          {suppliers.map((supplier) => (
-                            <option key={supplier.id} value={supplier.id}>
-                              {supplier.name}
-                            </option>
-                          ))}
+                          <option value="">All Types</option>
+                          {Object.entries(entityTypeMap).map(
+                            ([value, label]) => (
+                              <option key={value} value={value}>
+                                {label}
+                              </option>
+                            )
+                          )}
                         </select>
                       </div>
                       <div>
@@ -599,22 +683,16 @@ const SupplierTransactionsPage = () => {
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Transaction ID
+                          Type
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Supplier
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Amount
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Product
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
+                          Requested By
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Date
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Actions
@@ -622,37 +700,40 @@ const SupplierTransactionsPage = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {paginatedTransactions.map((transaction) => (
-                        <tr key={transaction.id} className="hover:bg-gray-50">
+                      {paginatedApprovals.map((approval) => (
+                        <tr
+                          key={approval.approvalRequestId}
+                          className="hover:bg-gray-50"
+                        >
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              {transaction.transactionId}
+                            <div className="text-sm text-gray-900">
+                              {entityTypeMap[approval.entityType] || "Unknown"}
                             </div>
+                            {/* <div className="text-sm text-gray-500">
+                              {approval.entityId}
+                            </div> */}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">
-                              {transaction.supplierName}
+                              {approval.requestedByName}
                             </div>
-                            <div className="text-sm text-gray-500">
-                              {transaction.supplierId}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {formatCurrency(transaction.amount)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {transaction.productName || "N/A"}
+                            {formatDate(approval.requestDate)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            {renderStatusBadge(transaction.status)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {formatDate(transaction.date)}
+                            <span
+                              className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
+                                approval.status
+                              )}`}
+                            >
+                              {getStatusText(approval.status)}
+                            </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div className="flex gap-2">
                               <button
-                                onClick={() => handleViewDetails(transaction)}
+                                onClick={() => handleViewDetails(approval)}
                                 className="text-[#3D873B] hover:text-[#2a5d28] hover:underline"
                               >
                                 View
@@ -661,13 +742,13 @@ const SupplierTransactionsPage = () => {
                           </td>
                         </tr>
                       ))}
-                      {paginatedTransactions.length === 0 && (
+                      {paginatedApprovals.length === 0 && (
                         <tr>
                           <td
-                            colSpan="7"
+                            colSpan="6"
                             className="px-6 py-4 text-center text-gray-500"
                           >
-                            No transactions available.
+                            No approval requests available.
                           </td>
                         </tr>
                       )}
@@ -719,4 +800,4 @@ const SupplierTransactionsPage = () => {
   );
 };
 
-export default SupplierTransactionsPage;
+export default ApprovalsPage;

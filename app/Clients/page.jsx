@@ -20,7 +20,6 @@ export default function ClientList() {
   const [filterText, setFilterText] = useState("");
   const [filteredClients, setFilteredClients] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedClient, setselectedClient] = useState(null);
   const [rolePrivileges, setRolePrivileges] = useState([]);
   const [loadingPrivileges, setLoadingPrivileges] = useState(true);
@@ -177,7 +176,7 @@ export default function ClientList() {
             <thead className="bg-gray-50 text-gray-500 text-sm">
               <tr>
                 <th className="text-left py-3 px-4">S/N</th>
-                <th className="text-left py-3 px-4">ID</th>
+                <th className="text-left py-3 px-4">File Number</th>
                 <th className="text-left py-3 px-4">First Name</th>
                 <th className="text-left py-3 px-4">Last Name</th>
                 <th className="text-left py-3 px-4">Email</th>

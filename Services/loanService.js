@@ -13,17 +13,20 @@ const loanService = {
       );
     }
   },
-  postLoan: async (loan) => {
+  postLoan: async (formData) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/requests`, loan, {
+      const response = await axios.post(`${API_BASE_URL}/requests`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
       return response.data;
     } catch (error) {
-      throw (
-        error.response?.data || error.message || "Failed to create loan request"
+      console.error("Detailed error:", error.response?.data || error.message);
+      throw new Error(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to create loan request"
       );
     }
   },
@@ -42,20 +45,7 @@ const loanService = {
       );
     }
   },
-  getLoanbyFileNumber: async (fileNumber) => {
-    try {
-      const response = await axios.get(
-        `${API_BASE_URL}/requests/${fileNumber}`
-      );
-      return response.data;
-    } catch (error) {
-      throw (
-        error.response?.data ||
-        error.message ||
-        "Failed to get loan request by file number"
-      );
-    }
-  },
+
   getLoanAccounts: async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/accounts`);
@@ -78,12 +68,9 @@ const loanService = {
       );
     }
   },
-  postLoanRepayment: async (loanID, data) => {
+  postLoanRepayment: async (data) => {
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/accounts/${loanID}/payments`,
-        data
-      );
+      const response = await axios.post(`${API_BASE_URL}/repayments`, data);
       return response.data;
     } catch (error) {
       throw (
@@ -91,10 +78,10 @@ const loanService = {
       );
     }
   },
-  postTopupLoan: async (loanID, data) => {
+  postTopupLoan: async (data) => {
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/accounts/${loanID}/topups`,
+        `${API_BASE_URL}/accounts/topups`,
         data
       );
       return response.data;
@@ -104,10 +91,10 @@ const loanService = {
       );
     }
   },
-  getTopUpHistory: async (loanID) => {
+  getTopUpHistory: async (fileNo) => {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/accounts/${loanID}/topup-history`
+        `${API_BASE_URL}/accounts/${fileNo}/topup-history`
       );
       return response.data;
     } catch (error) {
@@ -115,6 +102,18 @@ const loanService = {
         error.response?.data ||
         error.message ||
         "Failed to get topup history for loan"
+      );
+    }
+  },
+  getLoanTransactions: async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/transactions`);
+      return response.data.items;
+    } catch (error) {
+      throw (
+        error.response?.data ||
+        error.message ||
+        "Failed to get loan transactions"
       );
     }
   },

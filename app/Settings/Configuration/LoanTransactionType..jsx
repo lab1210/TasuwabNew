@@ -261,7 +261,7 @@ const LoanTransactionTypeTab = () => {
             <label className="text-sm font-medium text-gray-700">
               Transaction Effect on Balance
               <span className="block text-xs text-gray-500">
-                (Yes = Add to balance, No = Subtract from balance)
+                (Credit = Add to balance, Debit = Subtract from balance)
               </span>
             </label>
 
@@ -275,7 +275,7 @@ const LoanTransactionTypeTab = () => {
                   onChange={handleInputChange}
                   className="h-4 w-4 text-[#3D873B] focus:ring-[#3D873B] border-gray-300"
                 />
-                Yes
+                Credit
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -286,7 +286,7 @@ const LoanTransactionTypeTab = () => {
                   onChange={handleInputChange}
                   className="h-4 w-4 text-[#3D873B] focus:ring-[#3D873B] border-gray-300"
                 />
-                No
+                Debit
               </label>
             </div>
           </div>

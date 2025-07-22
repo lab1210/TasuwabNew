@@ -1,215 +1,380 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import CreatableSelect from "react-select/creatable";
-import { toast } from "react-toastify";
-import { useRouter } from "next/navigation";
-import dummyLoans from "@/app/Loan/DummyLoan";
-import { getSuppliers } from "@/Services/supplierService";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "@/Services/authService";
+import supplierService from "@/Services/supplierService";
+import loanService from "@/Services/loanService";
+import supplierTransactionService from "@/Services/supplierTransactionService";
+import bankService from "@/Services/bankService";
+import productService from "@/Services/productService";
+import categoryService from "@/Services/categoryService";
+import { toast } from "react-hot-toast";
+import Select from "react-select";
 import Layout from "@/app/components/Layout";
+import { useRouter } from "next/navigation";
+
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Number(value) || 0);
 
 const AddSupplierTransaction = () => {
-  const router = useRouter();
-  const [supplierInfo, setSupplierInfo] = useState(null);
-
-  const [formData, setFormData] = useState({
-    status: "Pending",
-  });
+  const { user } = useAuth();
+  const [suppliers, setSuppliers] = useState([]);
   const [selectedSupplier, setSelectedSupplier] = useState(null);
-  const [approvedLoans, setApprovedLoans] = useState([]);
-  const [selectedLoanId, setSelectedLoanId] = useState(null);
-  const [invoiceFile, setInvoiceFile] = useState(null);
-  const [sendingBank, setSendingBank] = useState("");
+  const [supplierLoans, setSupplierLoans] = useState([]);
+  const [selectedLoan, setSelectedLoan] = useState(null);
+  const [allProducts, setAllProducts] = useState([]);
+  const [allCategories, setAllCategories] = useState([]);
+  const [banks, setBanks] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const [formData, setFormData] = useState({
+    accountCode: "",
+    supplierId: "",
+    productId: "",
+    amount: 0,
+    sendingBank: "",
+    notes: "",
+    fileNo: "",
+    performedBy: user?.StaffCode || "",
+    categoryId: "",
+  });
 
-  const supplierOptions = getSuppliers().map((s) => ({
-    label: s.name,
-    value: s.id,
-  }));
-
-  const tasuwabBanks = [
-    {
-      bank: "GTBank",
-      accountNumber: "0123456789",
-      accountName: "Tasuwab Ltd",
-    },
-    {
-      bank: "Access Bank",
-      accountNumber: "1234567890",
-      accountName: "Tasuwab Ltd",
-    },
-    {
-      bank: "UBA",
-      accountNumber: "1122334455",
-      accountName: "Tasuwab Ltd",
-    },
-  ];
-  const sendingBankOptions = tasuwabBanks.map((acc) => ({
-    label: `${acc.bank} - ${acc.accountNumber} (${acc.accountName})`,
-    value: JSON.stringify(acc), // store full object as string
-  }));
-
+  // Fetch initial data
   useEffect(() => {
-    if (selectedSupplier) {
-      const loans = dummyLoans.filter(
-        (loan) =>
-          loan.Supplier === selectedSupplier.label && loan.status === "Approved"
-      );
-      setApprovedLoans(loans);
-      setSelectedLoanId(null);
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const [suppliersData, banksData, productsData, categoriesData] =
+          await Promise.all([
+            supplierService.getSuppliers(),
+            bankService.getBank(),
+            productService.getAllProducts(),
+            categoryService.getCategories(),
+          ]);
+        setSuppliers(suppliersData);
+        setBanks(banksData);
+        setAllProducts(productsData);
+        setAllCategories(categoriesData);
+      } catch (error) {
+        toast.error("Failed to load initial data");
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
-      // Get full supplier info from dummySuppliers
-      const allSuppliers = getSuppliers(); // comes from supplierService
-      const fullInfo = allSuppliers.find(
-        (s) => s.name === selectedSupplier.label
-      );
-      setSupplierInfo(fullInfo || null);
-    } else {
-      setApprovedLoans([]);
-      setSupplierInfo(null);
-    }
+  // Fetch loans when supplier changes
+  useEffect(() => {
+    if (!selectedSupplier) return;
+
+    const fetchSupplierLoans = async () => {
+      try {
+        const loans = await loanService.getLoans();
+        const filteredLoans = loans.filter(
+          (loan) =>
+            loan.supplierId === selectedSupplier.value &&
+            loan.status === "Approved"
+        );
+        setSupplierLoans(filteredLoans);
+      } catch (error) {
+        toast.error("Failed to load supplier loans");
+        console.error(error);
+      }
+    };
+
+    fetchSupplierLoans();
   }, [selectedSupplier]);
+
+  // Update form data when loan is selected
+  useEffect(() => {
+    if (!selectedLoan) return;
+
+    const findProductDetails = () => {
+      if (!selectedLoan.assetName) return { productId: "", categoryId: "" };
+
+      const product = allProducts.find(
+        (p) => p.name.toLowerCase() === selectedLoan.assetName.toLowerCase()
+      );
+
+      return {
+        productId: product ? product.id : "",
+        categoryId: product ? product.categoryId : "",
+      };
+    };
+
+    const productDetails = findProductDetails();
+
+    setFormData((prev) => ({
+      ...prev,
+      accountCode: selectedLoan.accountCode,
+      supplierId: selectedLoan.supplierId,
+      productId: productDetails.productId,
+      categoryId: productDetails.categoryId,
+      amount: selectedLoan.initialAmount,
+      fileNo: selectedLoan.fileNo,
+    }));
+  }, [selectedLoan, allProducts]);
+
+  const handleSupplierChange = (selectedOption) => {
+    setSelectedSupplier(selectedOption);
+    setSelectedLoan(null);
+    setSupplierLoans([]);
+    setFormData((prev) => ({
+      ...prev,
+      supplierId: selectedOption.value,
+      accountCode: "",
+      productId: "",
+      categoryId: "",
+      amount: 0,
+      fileNo: "",
+    }));
+  };
+
+  const handleLoanChange = (selectedOption) => {
+    setSelectedLoan(selectedOption.loan);
+  };
+
+  const handleBankChange = (selectedOption) => {
+    setFormData((prev) => ({
+      ...prev,
+      sendingBank: selectedOption.value,
+    }));
+  };
+
+  const handleCategoryChange = (selectedOption) => {
+    setFormData((prev) => ({
+      ...prev,
+      categoryId: selectedOption.value,
+    }));
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    if (name === "amount" && selectedLoan) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedLoanId || !invoiceFile || !sendingBank) {
-      toast.error("Please complete all required fields.");
-      return;
+    setIsSubmitting(true);
+
+    try {
+      await supplierTransactionService.createSupplierTransaction(formData);
+      toast.success("Supplier transaction created successfully!");
+      setFormData({
+        accountCode: "",
+        supplierId: "",
+        productId: "",
+        amount: 0,
+        sendingBank: "",
+        notes: "",
+        fileNo: "",
+        performedBy: user?.StaffCode || "",
+        categoryId: "",
+      });
+      setSelectedSupplier(null);
+      setSelectedLoan(null);
+      setSupplierLoans([]);
+      router.push("/Suppliers/Transactions");
+    } catch (error) {
+      toast.error(error.message || "Failed to create supplier transaction");
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // ⬇️ Parse the selected sending bank from string to object
-    const selectedBank = JSON.parse(sendingBank);
-
-    const transactionData = {
-      ...formData,
-      supplierId: selectedSupplier.value,
-      loanId: selectedLoanId,
-      invoiceFileName: invoiceFile.name,
-      amount: approvedLoans.find((l) => l.loanId === selectedLoanId).assetPrice,
-      status: "Pending",
-      date: new Date().toISOString().split("T")[0],
-
-      // ✅ Use parsed bank details
-      sendingBank: selectedBank.bank,
-      sendingAccountNumber: selectedBank.accountNumber,
-      sendingAccountName: selectedBank.accountName,
-
-      supplierBank: supplierInfo?.bank,
-      supplierAccountNumber: supplierInfo?.accountNumber,
-      supplierAccountName: supplierInfo?.accountName,
-    };
-
-    console.log("Transaction Data:", transactionData);
-
-    toast.success("Supplier transaction submitted!");
-    router.push("/Supplier/Transactions");
   };
+
+  // Prepare dropdown options
+  const supplierOptions = suppliers.map((supplier) => ({
+    value: supplier.id,
+    label: `${supplier.name}`,
+    supplier,
+  }));
+
+  const loanOptions = supplierLoans.map((loan) => ({
+    value: loan.id,
+    label: `File No: ${loan.fileNo} - ${loan.businessName} (${formatCurrency(
+      loan.initialAmount
+    )})`,
+    loan,
+  }));
+
+  const bankOptions = banks.map((bank) => ({
+    value: bank.id,
+    label: `${bank.bankName} - ${bank.accountNumber} - ${bank.accountName}`,
+  }));
+
+  const categoryOptions = allCategories.map((category) => ({
+    value: category.id,
+    label: category.name,
+  }));
 
   return (
     <Layout>
-      <div className=" mx-auto p-4 bg-white rounded shadow-md">
-        <h2 className="text-2xl font-bold mb-6">Add Supplier Transaction</h2>
+      <div className="w-full">
+        <h1 className="text-2xl font-bold mb-6">Add Supplier Transaction</h1>
+
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block font-semibold mb-1">Select Supplier</label>
-            <CreatableSelect
-              isClearable
-              placeholder="Select or type supplier name"
-              options={supplierOptions}
-              value={selectedSupplier}
-              onChange={(option) => setSelectedSupplier(option)}
-            />
-            {supplierInfo && (
-              <div className="mt-4 border p-4 bg-gray-50 rounded">
-                <h3 className="font-semibold mb-2">Supplier Bank Info</h3>
+          {/* Supplier Selection */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Supplier <span className="text-red-500">*</span>
+              </label>
+              <Select
+                options={supplierOptions}
+                value={selectedSupplier}
+                onChange={handleSupplierChange}
+                placeholder="Select supplier"
+                isLoading={isLoading}
+                required
+              />
+            </div>
+
+            {selectedSupplier && (
+              <div className="bg-[#3D873B]/90 text-white p-4 rounded-md">
+                <h3 className="font-medium">Supplier Information</h3>
                 <p>
-                  <strong>Bank:</strong> {supplierInfo.bank}
+                  Account: {selectedSupplier.supplier.supplierAccountNumber}
                 </p>
-                <p>
-                  <strong>Account Number:</strong> {supplierInfo.accountNumber}
-                </p>
-                <p>
-                  <strong>Account Name:</strong> {supplierInfo.accountName}
-                </p>
+                <p>Bank: {selectedSupplier.supplier.supplierBankName}</p>
+                <p>Phone: {selectedSupplier.supplier.phone}</p>
+                <p>Email: {selectedSupplier.supplier.email}</p>
               </div>
             )}
           </div>
 
-          {approvedLoans.length > 0 && (
+          {/* Approved Loans */}
+          {selectedSupplier && (
             <div>
-              <h3 className="font-bold text-lg mb-2">Approved Loans</h3>
-              <table className="w-full border">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="p-2 text-center">Loan ID</th>
-                    <th className="p-2 text-center">Client</th>
-                    <th className="p-2 text-center">Asset</th>
-                    <th className="p-2 text-center">Quantity</th>
-                    <th className="p-2 text-center">Amount</th>
-                    <th className="p-2 text-center">Select</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {approvedLoans.map((loan) => (
-                    <tr key={loan.loanId} className="border-t">
-                      <td className="p-2 text-center">{loan.loanId}</td>
-                      <td className="p-2 text-center">{loan.name}</td>
-                      <td className="p-2 text-center">{loan.asset}</td>
-                      <td className="p-2 text-center">{loan.assetQuantity}</td>
-                      <td className="p-2 text-center">
-                        ₦{Number(loan.assetPrice).toLocaleString()}
-                      </td>
-                      <td className="p-2 text-center">
-                        <input
-                          type="radio"
-                          name="selectedLoan"
-                          value={loan.loanId}
-                          checked={selectedLoanId === loan.loanId}
-                          onChange={() => setSelectedLoanId(loan.loanId)}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Approved Loans <span className="text-red-500">*</span>
+              </label>
+              <Select
+                options={loanOptions}
+                value={loanOptions.find(
+                  (option) => option.value === selectedLoan?.id
+                )}
+                onChange={handleLoanChange}
+                placeholder="Select approved loan"
+                required
+              />
             </div>
           )}
 
-          {selectedLoanId && (
-            <div className="space-y-4">
-              <div>
-                <label className="block font-semibold mb-1">
-                  Upload Supplier Invoice
-                </label>
-                <input
-                  type="file"
-                  accept=".pdf,.jpg,.png"
-                  onChange={(e) => setInvoiceFile(e.target.files[0])}
-                  className="border p-2 rounded w-full"
-                />
-              </div>
-              <div>
-                <label className="block font-semibold mb-1">Sending Bank</label>
-                <select
-                  value={sendingBank}
-                  onChange={(e) => setSendingBank(e.target.value)}
-                  className="border p-2 rounded w-full"
-                >
-                  <option value="">Select Bank</option>
-                  {sendingBankOptions.map((option, index) => (
-                    <option key={index} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          {/* Selected Loan Info */}
+          {selectedLoan && (
+            <div className="bg-gray-100 p-4 rounded-md space-y-2">
+              <h3 className="font-medium">Loan Information</h3>
+              <p>File No: {selectedLoan.fileNo}</p>
+              <p>Business: {selectedLoan.businessName}</p>
+              <p>Amount: {formatCurrency(selectedLoan.initialAmount)}</p>
+              <p>Product: {selectedLoan.assetName || "N/A"}</p>
             </div>
           )}
 
-          <div className="text-right">
+          {/* Transaction Details */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                File Number
+              </label>
+              <input
+                type="text"
+                name="fileNo"
+                value={formData.fileNo}
+                onChange={handleInputChange}
+                className="w-full border rounded-md px-3 py-2"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Amount <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                name="amount"
+                value={formData.amount}
+                onChange={handleInputChange}
+                className="w-full border rounded-md px-3 py-2 bg-gray-100"
+                required
+                min="0"
+                disabled={!!selectedLoan}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Sending Bank <span className="text-red-500">*</span>
+              </label>
+              <Select
+                options={bankOptions}
+                onChange={handleBankChange}
+                placeholder="Select bank"
+                required
+              />
+            </div>
+
+            <div className="hidden">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Category
+              </label>
+              <Select
+                options={categoryOptions}
+                value={categoryOptions.find(
+                  (opt) => opt.value === formData.categoryId
+                )}
+                onChange={handleCategoryChange}
+                placeholder="Select category"
+              />
+            </div>
+          </div>
+
+          {/* Hidden Product ID */}
+          <div className="hidden">
+            <input
+              type="text"
+              name="productId"
+              value={formData.productId}
+              onChange={handleInputChange}
+              disabled
+            />
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notes
+            </label>
+            <textarea
+              name="notes"
+              value={formData.notes}
+              onChange={handleInputChange}
+              className="w-full border rounded-md px-3 py-2"
+              rows={3}
+            />
+          </div>
+
+          {/* Submit Button */}
+          <div className="flex justify-end">
             <button
               type="submit"
-              className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 cursor-pointer"
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400"
             >
-              Submit Transaction
+              {isSubmitting ? "Submitting..." : "Submit Transaction"}
             </button>
           </div>
         </form>

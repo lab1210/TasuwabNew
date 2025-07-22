@@ -42,10 +42,13 @@ const menuStructure = {
     "/Loan": "Loan Requests",
     "/Loan/Request-Form": "Request Form",
     "/Loan/Accounts": "Loan Accounts",
+    "/Loan/Accounts/TopUp": "Top Up History",
+    "/Loan/Accounts/Transactions": "Loan Transactions",
     "/Loan/Update-Request-Form": "Update Request Form",
   },
-  Approved: {
-    "/Approved/Loans": "Approved Request Forms",
+  Approval: {
+    "/Approval": "Approvals",
+    "/Approval/Configuration": "Approval Configuration",
     "/Approved/Loan-Transactions": "Loan Transactions",
   },
   Active: {

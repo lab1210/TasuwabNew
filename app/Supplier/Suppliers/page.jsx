@@ -205,7 +205,7 @@ const Suppliers = () => {
                           }
                           title="Edit"
                         />
-                        <button
+                        {/* <button
                           onClick={() => handleStatusToggle(supplier.id)}
                           className="text-white p-1 rounded-lg cursor-pointer hover:bg-gray-50"
                           style={
@@ -215,7 +215,7 @@ const Suppliers = () => {
                           }
                         >
                           {supplier.status ? "Deactivate" : "Activate"}
-                        </button>
+                        </button> */}
                       </div>
                     </td>
                   </tr>

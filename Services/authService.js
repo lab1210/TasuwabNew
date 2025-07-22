@@ -8,7 +8,7 @@ import {
   useContext,
   useCallback,
 } from "react";
-import Cookies from "js-cookie"; // Import js-cookie
+import Cookies from "js-cookie";
 
 const API_URL = `${process.env.NEXT_PUBLIC_API_URL}/Authentication`;
 
@@ -56,15 +56,92 @@ const isTokenExpiringSoon = (token, thresholdSeconds = 60) => {
 // Create the AuthContext
 const AuthContext = createContext();
 
+// Modal Component
+const SessionExpiryModal = ({
+  onRefresh,
+  onLogout,
+  isRefreshing,
+  timeLeft,
+}) => {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0,0,0,0.5)",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 9999,
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: "white",
+          padding: "20px",
+          borderRadius: "8px",
+          maxWidth: "400px",
+          width: "100%",
+          textAlign: "center",
+        }}
+      >
+        <h3>Session About to Expire</h3>
+        <p>
+          Your session will expire in {Math.floor(timeLeft / 1000)} seconds.
+          Would you like to continue?
+        </p>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: "10px",
+            marginTop: "20px",
+          }}
+        >
+          <button
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            style={{
+              padding: "8px 16px",
+              backgroundColor: "#4CAF50",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            {isRefreshing ? "Refreshing..." : "Continue Session"}
+          </button>
+          <button
+            onClick={onLogout}
+            style={{
+              padding: "8px 16px",
+              backgroundColor: "#f44336",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Auth Provider
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [refreshNeeded, setRefreshNeeded] = useState(false);
-  const [isTokenExpiringWarningVisible, setIsTokenExpiringWarningVisible] =
-    useState(false);
+  const [showSessionModal, setShowSessionModal] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(0);
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -72,11 +149,9 @@ export const AuthProvider = ({ children }) => {
       const userDetails = JSON.parse(localStorage.getItem("user"));
 
       if (token && userDetails) {
-        // Verify token is still valid
         if (!checkTokenExpiry(token)) {
           setUser({ token, ...userDetails });
         } else {
-          // Token is expired, clear it
           localStorage.removeItem("accessToken");
           localStorage.removeItem("user");
           Cookies.remove("refreshToken", { path: "/" });
@@ -87,28 +162,28 @@ export const AuthProvider = ({ children }) => {
 
     initializeAuth();
   }, []);
+
   const logout = useCallback(
     async (isExpired = false) => {
       try {
-        // Only try to call logout API if token isn't expired
         if (!isExpired) {
           await axios.post(`${API_URL}/logout`);
         }
 
-        // Clear client-side state regardless
         localStorage.removeItem("accessToken");
         localStorage.removeItem("user");
         Cookies.remove("refreshToken", { path: "/" });
 
         setUser(null);
+        setShowSessionModal(false);
         router.push("/");
       } catch (error) {
         console.error("Logout API Error:", error);
-        // Even if API fails, clear client-side state
         localStorage.removeItem("accessToken");
         localStorage.removeItem("user");
         Cookies.remove("refreshToken", { path: "/" });
         setUser(null);
+        setShowSessionModal(false);
         router.push("/");
       }
     },
@@ -125,18 +200,14 @@ export const AuthProvider = ({ children }) => {
       setUser((prevUser) =>
         prevUser ? { ...prevUser, token: newToken } : { token: newToken }
       );
-      setIsRefreshing(false);
-      setRefreshNeeded(false); // Reset the flag
-      setIsTokenExpiringWarningVisible(false); // Hide the warning on successful refresh
+      setShowSessionModal(false);
       return newToken;
     } catch (error) {
       console.error("Token refresh failed:", error);
-      console.error("Refresh Error Response:", error.response?.data);
-      setIsRefreshing(false);
-      setRefreshNeeded(false);
-      setIsTokenExpiringWarningVisible(false); // Hide warning on failure as well
-      logout(); // Force logout on refresh failure
+      logout();
       throw error.response?.data?.message || "Token refresh failed";
+    } finally {
+      setIsRefreshing(false);
     }
   }, [isRefreshing, logout]);
 
@@ -151,30 +222,34 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    const intervalId = setInterval(() => {
+    const checkToken = () => {
       const token = localStorage.getItem("accessToken");
-      if (token && isTokenExpiringSoon(token) && !isRefreshing) {
-        setIsTokenExpiringWarningVisible(true);
-        setTimeout(() => setRefreshNeeded(true), 3000);
-      } else if (token && checkTokenExpiry(token)) {
-        logout(true); // Pass true to indicate token is expired
-      } else {
-        setIsTokenExpiringWarningVisible(false);
+      if (!token) return;
+
+      const decodedToken = decodeJwt(token);
+      if (!decodedToken || !decodedToken.exp) return;
+
+      const expiryTime = decodedToken.exp * 1000;
+      const currentTime = Date.now();
+      const remainingTime = expiryTime - currentTime;
+
+      // Show modal when token is about to expire (last 60 seconds)
+      if (remainingTime > 0 && remainingTime <= 60000) {
+        setTimeLeft(remainingTime);
+        setShowSessionModal(true);
+      } else if (remainingTime <= 0) {
+        logout(true);
       }
-    }, 3000);
-
-    return () => clearInterval(intervalId);
-  }, [isRefreshing, logout]);
-
-  useEffect(() => {
-    let isMounted = true;
-    if (refreshNeeded && isMounted) {
-      refreshTokenFn();
-    }
-    return () => {
-      isMounted = false;
     };
-  }, [refreshNeeded, refreshTokenFn]);
+
+    // Check immediately
+    checkToken();
+
+    // Then check every 5 seconds
+    const interval = setInterval(checkToken, 5000);
+
+    return () => clearInterval(interval);
+  }, [logout]);
 
   const login = async (emailOrStaffCode, password) => {
     try {
@@ -194,7 +269,6 @@ export const AuthProvider = ({ children }) => {
       const BranchCode = response.data.branchCode;
       const StaffPersonalInformation = response.data.staffPersonalInformation;
 
-      // Save the data in localStorage
       localStorage.setItem("accessToken", token);
       localStorage.setItem(
         "user",
@@ -238,20 +312,11 @@ export const AuthProvider = ({ children }) => {
         staffImage: StaffPersonalInformation?.staffImage,
       });
 
-      // **Always redirect to the common dashboard after login**
       router.push("/Dashboard");
     } catch (error) {
       console.error("Login Error:", error);
       throw error.response?.data?.message || "Login failed";
     }
-  };
-
-  const handleRefreshButtonClick = () => {
-    refreshTokenFn();
-  };
-
-  const handleCancelButtonClick = () => {
-    setIsTokenExpiringWarningVisible(false);
   };
 
   const resetPassword = async (email) => {
@@ -304,7 +369,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Exposed functions
   return (
     <AuthContext.Provider
       value={{
@@ -318,62 +382,21 @@ export const AuthProvider = ({ children }) => {
         resetForgottenPassword,
       }}
     >
-      {isTokenExpiringWarningVisible && (
-        <div
-          style={{
-            position: "fixed",
-            top: "20px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            backgroundColor: "#f9a825", // Yellow for warning
-            color: "#000000",
-            padding: "15px 20px",
-            borderRadius: "5px",
-            zIndex: 1000,
-            display: "flex",
-            gap: "10px",
-            alignItems: "center",
-          }}
-        >
-          <span>Your session is about to expire.</span>
-          <button
-            style={{
-              backgroundColor: "#4caf50",
-              color: "white",
-              border: "none",
-              padding: "8px 12px",
-              borderRadius: "3px",
-              cursor: "pointer",
-            }}
-            onClick={handleRefreshButtonClick}
-            disabled={isRefreshing}
-          >
-            {isRefreshing ? "Refreshing..." : "Refresh"}
-          </button>
-          <button
-            style={{
-              backgroundColor: "#f44336",
-              color: "white",
-              border: "none",
-              padding: "8px 12px",
-              borderRadius: "3px",
-              cursor: "pointer",
-            }}
-            onClick={handleCancelButtonClick}
-          >
-            Cancel
-          </button>
-        </div>
+      {showSessionModal && (
+        <SessionExpiryModal
+          onRefresh={refreshTokenFn}
+          onLogout={() => logout(false)}
+          isRefreshing={isRefreshing}
+          timeLeft={timeLeft}
+        />
       )}
       {children}
     </AuthContext.Provider>
   );
 };
 
-// Hook to use authentication context
 export const useAuth = () => useContext(AuthContext);
 
-// Axios Interceptors
 axios.interceptors.request.use(
   async (config) => {
     const token = localStorage.getItem("accessToken");

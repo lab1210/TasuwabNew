@@ -31,6 +31,12 @@ const AddTransaction = () => {
   const [transactionType, setTransactionType] = useState([]);
   const [Accounts, setAccounts] = useState([]);
 
+  const formatCurrency = (value) =>
+    new Intl.NumberFormat("en-NG", {
+      style: "currency",
+      currency: "NGN",
+    }).format(Number(value) || 0);
+
   useEffect(() => {
     if (user) {
       setFormData((prev) => ({
@@ -333,6 +339,9 @@ const AddTransaction = () => {
                 required
                 className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#3D873B] focus:border-transparent transition-all"
               />
+              <span className="text-right font-bold">
+                {formatCurrency(formData.Amount)}
+              </span>
             </div>
             <div className="flex flex-col gap-2">
               <label className="font-bold text-sm" htmlFor="Narration">

@@ -1,213 +1,374 @@
 "use client";
+import React, { useState, useEffect } from "react";
+import { Download, Calendar, ChevronDown, ChevronUp } from "lucide-react";
+import { useAuth } from "@/Services/authService";
+import loanService from "@/Services/loanService"; // Assuming you have a loanService
+import formatDate from "@/app/components/formatdate";
 import Layout from "@/app/components/Layout";
-import dummyLoans from "@/app/Loan/DummyLoan";
-import React, { useState } from "react";
-import { jsPDF } from "jspdf";
+import toast from "react-hot-toast";
 
-const LoanEnquiryPage = () => {
-  const [selectedClient, setSelectedClient] = useState("");
-  const [selectedLoanId, setSelectedLoanId] = useState("");
+const LoanStatementPage = () => {
+  const { user } = useAuth();
+  const [loanAccounts, setLoanAccounts] = useState([]);
+  const [selectedLoan, setSelectedLoan] = useState("");
+  const [transactions, setTransactions] = useState([]);
+  const [filteredTransactions, setFilteredTransactions] = useState([]);
+  const [expandedRows, setExpandedRows] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [dateRange, setDateRange] = useState({
+    startDate: "",
+    endDate: "",
+  });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [loanDetails, setLoanDetails] = useState(null);
 
-  const uniqueClients = [...new Set(dummyLoans.map((loan) => loan.name))];
-  const clientLoans = dummyLoans.filter((loan) => loan.name === selectedClient);
-  const selectedLoan = clientLoans.find(
-    (loan) => loan.loanId === selectedLoanId
-  );
-
-  // Function to generate PDF
-  const generatePDF = () => {
-    if (!selectedLoan) return;
-
-    const doc = new jsPDF();
-
-    doc.setFontSize(18);
-    doc.text("Loan Enquiry Report", 14, 22);
-
-    doc.setFontSize(12);
-    let y = 35;
-
-    const addLine = (label, value) => {
-      doc.text(`${label}: ${value}`, 14, y);
-      y += 8;
+  // Fetch loan accounts on component mount
+  useEffect(() => {
+    const fetchLoanAccounts = async () => {
+      try {
+        setLoading(true);
+        const loans = await loanService.getLoanAccounts();
+        setLoanAccounts(loans);
+      } catch (err) {
+        toast.error("Failed to load loan accounts");
+      } finally {
+        setLoading(false);
+      }
     };
 
-    addLine("Client ID", selectedLoan.clientId);
-    addLine("Loan ID", selectedLoan.loanId);
-    addLine("Business Name", selectedLoan.businessName);
-    addLine("Purpose", selectedLoan.purpose);
-    addLine("Loan Amount", `₦${selectedLoan.loanAmount.toLocaleString()}`);
-    addLine("Status", selectedLoan.status);
-    addLine("Date", selectedLoan.date);
-    addLine("Installment Period", `${selectedLoan.InstallmentPeriod} months`);
-    addLine(
-      "Equity Contribution",
-      `₦${selectedLoan.equityContribution.toLocaleString()}`
-    );
-    addLine("Asset", selectedLoan.asset);
-    addLine("Supplier", selectedLoan.Supplier);
+    fetchLoanAccounts();
+  }, []);
 
-    if (selectedLoan.repayment) {
-      y += 8;
-      doc.setFontSize(14);
-      doc.text("Repayment Info", 14, y);
-      y += 8;
-      doc.setFontSize(12);
+  // Fetch transactions and details when loan is selected
+  useEffect(() => {
+    if (!selectedLoan) return;
 
-      addLine("Repayment Date", selectedLoan.repayment.RepaymentDate);
-      addLine(
-        "Repaid Amount",
-        `₦${selectedLoan.repayment.Repaidamount.toLocaleString()}`
-      );
-      addLine("Months Remaining", selectedLoan.repayment.MonthsRemaining);
-      addLine(
-        "Opening Balance",
-        `₦${(
-          selectedLoan.repayment.amountRemaining +
-          selectedLoan.repayment.Repaidamount
-        ).toLocaleString()}`
-      );
-      addLine(
-        "Closing Balance",
-        `₦${selectedLoan.repayment.amountRemaining.toLocaleString()}`
-      );
+    const fetchLoanData = async () => {
+      try {
+        setLoading(true);
+
+        // Fetch loan details
+        const details = loanAccounts.find(
+          (loan) => loan.loanId === selectedLoan
+        );
+        setLoanDetails(details);
+
+        // Fetch transactions for the loan
+        const transactions = await loanService.getLoanTransactions(
+          selectedLoan
+        );
+
+        // Sort transactions by date in descending order (newest first)
+        const sortedTransactions = [...transactions].sort(
+          (a, b) => new Date(b.transactionDate) - new Date(a.transactionDate)
+        );
+
+        setTransactions(sortedTransactions);
+        setFilteredTransactions(sortedTransactions);
+      } catch (err) {
+        toast.error("Failed to load loan data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLoanData();
+  }, [selectedLoan, loanAccounts]);
+
+  useEffect(() => {
+    if (!dateRange.startDate && !dateRange.endDate) {
+      setFilteredTransactions(transactions);
+      return;
     }
 
-    doc.save(`LoanEnquiry_${selectedLoan.loanId}.pdf`);
+    const filtered = transactions.filter((tx) => {
+      const txDate = new Date(tx.transactionDate);
+      const start = dateRange.startDate ? new Date(dateRange.startDate) : null;
+      const end = dateRange.endDate ? new Date(dateRange.endDate) : null;
+
+      if (start && txDate < start) return false;
+      if (end && txDate > end) return false;
+      return true;
+    });
+
+    setFilteredTransactions(filtered);
+  }, [dateRange, transactions]);
+
+  const toggleRow = (id) => {
+    setExpandedRows((prev) =>
+      prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]
+    );
   };
 
   return (
-    <Layout className="max-w-3xl mx-auto p-6 bg-white rounded shadow">
-      <h2 className="text-2xl font-bold mb-6">Loan Enquiry</h2>
+    <Layout>
+      <div className="w-full">
+        <h1 className="text-2xl font-bold mb-6">Loan Statement of Account</h1>
 
-      {/* Select Client */}
-      <div className="mb-4">
-        <label className="block font-semibold mb-1">Select Client</label>
-        <select
-          className="w-full border p-2 rounded"
-          value={selectedClient}
-          onChange={(e) => {
-            setSelectedClient(e.target.value);
-            setSelectedLoanId("");
-          }}
-        >
-          <option value="">-- Choose a Client --</option>
-          {uniqueClients.map((client) => (
-            <option key={client} value={client}>
-              {client}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Select Loan */}
-      {selectedClient && (
-        <div className="mb-4">
-          <label className="block font-semibold mb-1">Select Loan</label>
+        {/* Loan Account Selection */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Select Loan Account
+          </label>
           <select
-            className="w-full border p-2 rounded"
-            value={selectedLoanId}
-            onChange={(e) => setSelectedLoanId(e.target.value)}
+            value={selectedLoan}
+            onChange={(e) => setSelectedLoan(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded-md"
+            disabled={loading}
           >
-            <option value="">-- Choose a Loan --</option>
-            {clientLoans.map((loan) => (
+            <option value="">Select a loan account</option>
+            {loanAccounts.map((loan) => (
               <option key={loan.loanId} value={loan.loanId}>
-                {loan.loanId} - {loan.loanDetails} ({loan.status})
+                {loan.fileNo} - {loan.loanTypeCode} (₦
+                {loan.loanBorrowed.toLocaleString()})
               </option>
             ))}
           </select>
         </div>
-      )}
 
-      {/* Display Loan Details */}
-      {selectedLoan && (
-        <>
-          {/* Download PDF Button */}
-          <div className="flex justify-end">
-            <button
-              onClick={generatePDF}
-              className="mt-6 bg-green-600 text-white px-4 py-2 rounded hover:opacity-90"
-            >
-              Download PDF
-            </button>
-          </div>
-
-          <div className="mt-6 border-t pt-4">
-            <h3 className="text-lg font-bold mb-3 underline">Loan Details</h3>
-            <div className="space-y-2">
-              <p>
-                <strong>Client ID:</strong> {selectedLoan.clientId}
-              </p>
-              <p>
-                <strong>Loan ID:</strong> {selectedLoan.loanId}
-              </p>
-              <p>
-                <strong>Business Name:</strong> {selectedLoan.businessName}
-              </p>
-              <p>
-                <strong>Purpose:</strong> {selectedLoan.purpose}
-              </p>
-              <p>
-                <strong>Loan Amount:</strong> ₦
-                {selectedLoan.loanAmount.toLocaleString()}
-              </p>
-              <p>
-                <strong>Status:</strong> {selectedLoan.status}
-              </p>
-              <p>
-                <strong>Date:</strong> {selectedLoan.date}
-              </p>
-              <p>
-                <strong>Installment Period:</strong>{" "}
-                {selectedLoan.InstallmentPeriod} months
-              </p>
-              <p>
-                <strong>Equity Contribution:</strong> ₦
-                {selectedLoan.equityContribution.toLocaleString()}
-              </p>
-              <p>
-                <strong>Asset:</strong> {selectedLoan.asset}
-              </p>
-              <p>
-                <strong>Supplier:</strong> {selectedLoan.Supplier}
+        {/* Loan Summary */}
+        {loanDetails && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-gray-100 p-4 rounded-md">
+              <h3 className="text-sm font-medium text-gray-700">Loan Amount</h3>
+              <p className="text-xl font-bold text-[#3D873B]">
+                ₦{loanDetails.loanBorrowed.toLocaleString()}
               </p>
             </div>
-
-            {/* Repayment Details */}
-            {selectedLoan.repayment && (
-              <div className="mt-6">
-                <h4 className="text-lg underline font-semibold mb-2">
-                  Repayment Info
-                </h4>
-                <p>
-                  <strong>Repayment Date:</strong>{" "}
-                  {selectedLoan.repayment.RepaymentDate}
-                </p>
-                <p>
-                  <strong>Repaid Amount:</strong> ₦
-                  {selectedLoan.repayment.Repaidamount.toLocaleString()}
-                </p>
-                <p>
-                  <strong>Months Remaining:</strong>{" "}
-                  {selectedLoan.repayment.MonthsRemaining}
-                </p>
-                <p>
-                  <strong>Opening Balance:</strong> ₦
-                  {(
-                    selectedLoan.repayment.amountRemaining +
-                    selectedLoan.repayment.Repaidamount
-                  ).toLocaleString()}
-                </p>
-                <p>
-                  <strong>Closing Balance:</strong> ₦
-                  {selectedLoan.repayment.amountRemaining.toLocaleString()}
-                </p>
-              </div>
-            )}
+            <div className="bg-gray-100 p-4 rounded-md">
+              <h3 className="text-sm font-medium text-gray-700">
+                Outstanding Balance
+              </h3>
+              <p className="text-xl font-bold text-red-600">
+                ₦{loanDetails.loanUnpaid.toLocaleString()}
+              </p>
+            </div>
+            <div className="bg-gray-100 p-4 rounded-md">
+              <h3 className="text-sm font-medium text-gray-700">Status</h3>
+              <p
+                className={`text-xl font-bold ${
+                  loanDetails.fullyPaid ? "text-[#3D873B]" : "text-yellow-600"
+                }`}
+              >
+                {loanDetails.fullyPaid
+                  ? "Fully Paid"
+                  : loanDetails.statusMessage}
+              </p>
+            </div>
           </div>
-        </>
-      )}
+        )}
+
+        {/* Date Range Filter */}
+        <div className="mb-6 relative">
+          <button
+            onClick={() => setShowDatePicker(!showDatePicker)}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-md hover:bg-gray-200"
+          >
+            <Calendar className="w-5 h-5" />
+            {dateRange.startDate || dateRange.endDate ? (
+              <span>
+                {dateRange.startDate || "Start"} to {dateRange.endDate || "End"}
+              </span>
+            ) : (
+              <span>Filter by date range</span>
+            )}
+            {showDatePicker ? <ChevronUp /> : <ChevronDown />}
+          </button>
+
+          {showDatePicker && (
+            <div className="absolute z-10 mt-2 bg-white p-4 border rounded-md shadow-lg">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Start Date
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={dateRange.startDate}
+                    onChange={(e) =>
+                      setDateRange({ ...dateRange, startDate: e.target.value })
+                    }
+                    className="w-full p-2 border rounded-md"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    End Date
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={dateRange.endDate}
+                    onChange={(e) =>
+                      setDateRange({ ...dateRange, endDate: e.target.value })
+                    }
+                    className="w-full p-2 border rounded-md"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setDateRange({ startDate: "", endDate: "" });
+                    setShowDatePicker(false);
+                  }}
+                  className="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded"
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={() => setShowDatePicker(false)}
+                  className="px-3 py-1 text-sm bg-[#3D873B] text-white rounded hover:bg-[#2d6e2b]"
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Loading Indicator */}
+        {loading && (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#3D873B]"></div>
+          </div>
+        )}
+
+        {/* Transactions Table */}
+        {selectedLoan && !loading && (
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Reference
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Description
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Amount
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Type
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Balance
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredTransactions.length > 0 ? (
+                    filteredTransactions.map((transaction) => (
+                      <React.Fragment key={transaction.transactionId}>
+                        <tr className="hover:bg-gray-50 cursor-pointer">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {formatDate(transaction.transactionDate)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {transaction.reference || "N/A"}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {transaction.narration}
+                          </td>
+                          <td
+                            className="px-6 py-4 whitespace-nowrap text-sm font-bold"
+                            style={{
+                              color:
+                                transaction.transactionType === "DEBIT"
+                                  ? "red"
+                                  : "green",
+                            }}
+                          >
+                            ₦{transaction.amount.toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {transaction.transactionType}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ₦{transaction.balanceAfter.toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button
+                              onClick={() =>
+                                toggleRow(transaction.transactionId)
+                              }
+                              className="text-gray-400 hover:text-gray-600"
+                            >
+                              {expandedRows.includes(
+                                transaction.transactionId
+                              ) ? (
+                                <ChevronUp />
+                              ) : (
+                                <ChevronDown />
+                              )}
+                            </button>
+                          </td>
+                        </tr>
+                        {expandedRows.includes(transaction.transactionId) && (
+                          <tr className="bg-gray-50">
+                            <td colSpan="7" className="px-6 py-4">
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <p className="font-medium text-gray-900">
+                                    Transaction ID:
+                                  </p>
+                                  <p className="text-gray-500">
+                                    {transaction.transactionId}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="font-medium text-gray-900">
+                                    Loan ID:
+                                  </p>
+                                  <p className="text-gray-500">
+                                    {transaction.loanId}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="font-medium text-gray-900">
+                                    Payment Method:
+                                  </p>
+                                  <p className="text-gray-500">
+                                    {transaction.paymentMethod || "N/A"}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="font-medium text-gray-900">
+                                    Status:
+                                  </p>
+                                  <p className="text-gray-500">
+                                    {transaction.status}
+                                  </p>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan="7"
+                        className="px-6 py-4 text-center text-gray-500"
+                      >
+                        No transactions found for the selected loan
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
     </Layout>
   );
 };
 
-export default LoanEnquiryPage;
+export default LoanStatementPage;
