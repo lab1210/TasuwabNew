@@ -748,7 +748,10 @@ const TransactionPage = () => {
 
             <div className="mt-6 flex justify-end gap-3">
               <button
-                onClick={() => setShowExportPopup(false)}
+                onClick={() => {
+                  setShowExportPopup(false);
+                  resetFilters();
+                }}
                 className="px-4 py-2 text-gray-700 hover:text-gray-900"
               >
                 Cancel

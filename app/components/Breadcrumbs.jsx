@@ -51,22 +51,14 @@ const menuStructure = {
     "/Approval/Configuration": "Approval Configuration",
     "/Approved/Loan-Transactions": "Loan Transactions",
   },
-  Active: {
-    "/Active": "View Active Loans",
-  },
-  Pending: {
-    "/Pending/Loans": "Pending Request Forms",
-    "/Pending/Loan-Transactions": "Loan Transactions",
-  },
+
   Enquiries: {
     "/Enquiries/Statement-of-account": "Statement of Account",
     "/Enquiries/loan": "Loan Enquiry",
+    "/Enquiries/SupplierPaymentHistory": "Supplier Payment History",
+
     "/Enquiries/Deposit": "Deposit Enquiry",
     "/Enquiries/Loan-Interest-Income": "Loan Interest Income ",
-  },
-  "Approval Route": {
-    "/Approver": "Pricing Model Approval",
-    "/Approver/Supplier-Payments": "Supplier Payments Approval",
   },
   Suppliers: {
     "/Supplier/Suppliers": "View Suppliers",

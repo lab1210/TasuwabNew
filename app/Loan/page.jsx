@@ -339,7 +339,7 @@ const LoanRequestsPage = () => {
                       <div className="text-right">
                         <p className="text-sm text-gray-500">Amount</p>
                         <p className="font-bold">
-                          {formatCurrency(selectedLoan.initialAmount)}
+                          {formatCurrency(selectedLoan.minimumAssetFinancing)}
                         </p>
                       </div>
                     </div>
@@ -434,7 +434,9 @@ const LoanRequestsPage = () => {
                         </h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <p className="text-sm text-gray-500">Loan Amount</p>
+                            <p className="text-sm text-gray-500">
+                              Initial Cost of Asset
+                            </p>
                             <p className="font-medium">
                               {formatCurrency(selectedLoan.initialAmount)}
                             </p>
@@ -1089,7 +1091,7 @@ const LoanRequestsPage = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {formatCurrency(loan.initialAmount)}
+                            {formatCurrency(loan.minimumAssetFinancing)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {loan.loanTypeCode}

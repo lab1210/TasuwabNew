@@ -8,6 +8,12 @@ import depositTypeService from "@/Services/depositTypeService";
 import InterestService from "@/Services/InterestService";
 import Select from "react-select";
 
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
+  }).format(Number(value));
+
 const DepositTypeConfiguration = () => {
   const [loading, setLoading] = useState(false);
   const [depositTypes, setDepositTypes] = useState([]);
@@ -129,7 +135,6 @@ const DepositTypeConfiguration = () => {
       }
       const updatedTypes = await depositTypeService.getallDepositTypes();
       setDepositTypes(Array.isArray(updatedTypes) ? updatedTypes : []);
-
       clearForm();
     } catch (err) {
       console.error("Failed to process deposit type", err);
@@ -173,7 +178,7 @@ const DepositTypeConfiguration = () => {
   };
 
   return (
-    <div className="p-6">
+    <div className="px-3 py-5">
       <div className="flex flex-col mb-4">
         <h3 className="font-bold text-[#333] ">
           {isEditing ? "Edit Deposit Type" : "Add Deposit Type"}
@@ -205,25 +210,36 @@ const DepositTypeConfiguration = () => {
             onChange={handleInputChange}
             required
           />
-          <input
-            name="minimumBalance"
-            type="number"
-            className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
-            placeholder="Minimum Balance"
-            value={formData.minimumBalance}
-            onChange={handleInputChange}
-          />
-          <div className="col-span-1">
+          <div className="flex flex-col relative">
             <input
-              name="maximumBalance"
+              name="minimumBalance"
               type="number"
-              className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0 w-full"
-              placeholder="Maximum Balance"
-              value={noLimitMaxBalance ? "" : formData.maximumBalance}
+              className="border border-gray-400 text-white shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
+              placeholder="Minimum Balance"
+              value={formData.minimumBalance}
               onChange={handleInputChange}
-              disabled={noLimitMaxBalance}
             />
-            <div className="flex items-center mt-1">
+            <span className="absolute left-0 translate-y-1/2 ml-2       font-bold">
+              {formatCurrency(formData.minimumBalance)}
+            </span>
+          </div>
+
+          <div className="flex gap-2">
+            <div className=" relative">
+              <input
+                name="maximumBalance"
+                type="number"
+                className="  border text-white border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0 w-full"
+                style={noLimitMaxBalance ? { backgroundColor: "#f2f2f2" } : {}}
+                value={noLimitMaxBalance ? "" : formData.maximumBalance}
+                onChange={handleInputChange}
+                disabled={noLimitMaxBalance}
+              />
+              <span className="absolute left-0 translate-y-1/2 ml-2       font-bold">
+                {formatCurrency(formData.maximumBalance)}
+              </span>
+            </div>
+            <div className="flex items-center ">
               <input
                 type="checkbox"
                 id="noLimitMax"
@@ -363,20 +379,20 @@ const DepositTypeConfiguration = () => {
             className="hover:text-gray-500 cursor-pointer"
             onClick={() => handleEditClick(dt)}
           />,
-          <button
-            key={`delete-${dt.code}`}
-            disabled={deletingId === dt.code}
-            onClick={() => handleDelete(dt.code)}
-          >
-            <FaTrash
-              size={20}
-              className={`${
-                deletingId === dt.code
-                  ? "text-gray-400 cursor-not-allowed"
-                  : "text-red-500 hover:text-red-600 cursor-pointer"
-              }`}
-            />
-          </button>,
+          // <button
+          //   key={`delete-${dt.code}`}
+          //   disabled={deletingId === dt.code}
+          //   onClick={() => handleDelete(dt.code)}
+          // >
+          //   <FaTrash
+          //     size={20}
+          //     className={`${
+          //       deletingId === dt.code
+          //         ? "text-gray-400 cursor-not-allowed"
+          //         : "text-red-500 hover:text-red-600 cursor-pointer"
+          //     }`}
+          //   />
+          // </button>,
         ])}
       />
     </div>

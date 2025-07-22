@@ -6,7 +6,7 @@ import LoanTypeService from "@/Services/loanTypeService";
 import supplierService from "@/Services/supplierService";
 import productService from "@/Services/productService";
 import { useRouter } from "next/navigation";
-import React, { act, useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import Select from "react-select";
 import useAccountService from "@/Services/accountService";
@@ -342,6 +342,18 @@ const RequestForm = () => {
         "Guarantor2Address",
         "Guarantor2Relationship",
         "OtherInformation",
+        "MinimumEquityContribution",
+        "CostOfAssetFinanced",
+        "AvgInflationRate",
+        "InflationMultiplier",
+        "PostInflationCost",
+        "MarketRiskPremium",
+        "OperationExpenses",
+        "TotalRealOperationalCost",
+        "ProfitMargin",
+        "MinimumAssetFinancing",
+        "EstimatedProfit",
+        "PercentOfProfit",
       ];
 
       const basicValidation = requiredFields.every((field) => {
@@ -575,6 +587,7 @@ const RequestForm = () => {
         {label} {required && <span className="text-red-500">*</span>}
       </label>
       <Select
+        instanceId={name}
         name={name}
         options={options}
         value={options.find((opt) => opt.value === value)}
@@ -683,38 +696,37 @@ const RequestForm = () => {
             <label className="font-medium text-sm text-gray-700">
               Product <span className="text-red-500">*</span>
             </label>
-            <Select
-              options={products.map((p) => ({
-                label: `${p.name} - ${formatCurrency(p.price)}`,
-                value: p.id,
-                product: p,
-              }))}
-              value={products.find(
-                (p) => p.name === formData.LoanRequest.AssetName
-              )}
-              onChange={(option) => {
-                setFormData((prev) => ({
-                  ...prev,
-                  LoanRequest: {
-                    ...prev.LoanRequest,
-                    AssetName: option?.product?.name || "",
-                    AssetPricePerUnit: option?.product?.price || 0,
-                  },
-                }));
-              }}
-              placeholder={
-                isLoadingProducts ? "Loading products..." : "Select product"
-              }
-              isLoading={isLoadingProducts}
-              className="text-sm"
-              isClearable
-              required
-            />
-            <div className="text-sm font-bold text-[#3D873B] mb-1">
-              Selected Product:{" "}
-              {formData.LoanRequest.AssetName +
-                " - " +
-                formatCurrency(formData.LoanRequest.AssetPricePerUnit)}
+            <div className="relative">
+              <Select
+                options={products.map((p) => ({
+                  label: `${p.name} - ${formatCurrency(p.price)}`,
+                  value: p.id,
+                  product: p,
+                }))}
+                value={products.find(
+                  (p) => p.name === formData.LoanRequest.AssetName
+                )}
+                onChange={(option) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    LoanRequest: {
+                      ...prev.LoanRequest,
+                      AssetName: option?.product?.name || "",
+                      AssetPricePerUnit: option?.product?.price || 0,
+                    },
+                  }));
+                }}
+                placeholder={
+                  isLoadingProducts ? "Loading products..." : "Select product"
+                }
+                isLoading={isLoadingProducts}
+                className="text-sm"
+                isClearable
+                required
+              />
+              <div className="text-sm absolute top-0 translate-y-1/2 ml-2   font-bold">
+                {formData.LoanRequest.AssetName}
+              </div>
             </div>
           </div>
         )}

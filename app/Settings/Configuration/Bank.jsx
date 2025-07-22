@@ -298,6 +298,7 @@ const Bank = () => {
             onClick={() => handleEdit(idx)}
           />,
           <FaTrash
+            size={20}
             key={bank.id || idx}
             onClick={() => handleDelete(bank.id)}
             className="hover:text-gray-500 text-red-500 cursor-pointer"

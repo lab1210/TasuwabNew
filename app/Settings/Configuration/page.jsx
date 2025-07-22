@@ -89,7 +89,6 @@ const SettingsTabs = () => {
       <div className="tab-content">
         {activeTab === "Bank Toggle" && <Bank />}
 
-        {/* {activeTab === "Interest Type Toggle" && <EquitySettings />} */}
         {activeTab === "Deposit Type Configuration" && (
           <DepositTypeConfiguration />
         )}

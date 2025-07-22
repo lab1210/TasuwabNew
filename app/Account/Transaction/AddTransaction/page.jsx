@@ -326,22 +326,24 @@ const AddTransaction = () => {
               />
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col w-full">
               <label className="font-bold text-sm" htmlFor="Amount">
                 Amount <span className="text-red-500">*</span>
               </label>
-              <input
-                type="number"
-                min={1}
-                name="Amount"
-                value={formData.Amount}
-                onChange={handleChange}
-                required
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#3D873B] focus:border-transparent transition-all"
-              />
-              <span className="text-right font-bold">
-                {formatCurrency(formData.Amount)}
-              </span>
+              <div className="relative">
+                <input
+                  type="number"
+                  min={1}
+                  name="Amount"
+                  value={formData.Amount}
+                  onChange={handleChange}
+                  required
+                  className="px-3 py-2 border text-white border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#3D873B] focus:border-transparent transition-all w-full"
+                />
+                <span className="absolute left-0 translate-y-1/2 ml-2       font-bold">
+                  {formatCurrency(formData.Amount)}
+                </span>
+              </div>
             </div>
             <div className="flex flex-col gap-2">
               <label className="font-bold text-sm" htmlFor="Narration">

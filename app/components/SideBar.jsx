@@ -260,6 +260,12 @@ const SideBar = () => {
               privilege: "ViewLoanTransactions",
             },
             {
+              label: "Supplier Payment History",
+              href: "/Enquiries/SupplierPaymentHistory",
+              privilege: "ViewSupplierReports",
+            },
+
+            {
               label: "Client Deposit Enquiry",
               href: "/Enquiries/Deposit",
               privilege: "ViewEnquiry",
@@ -275,7 +281,10 @@ const SideBar = () => {
               privilege: "ViewEnquiry",
             },
           ],
-          privilege: "ViewAccountReports" || "ViewLoanTransactions",
+          privilege:
+            "ViewAccountReports" ||
+            "ViewLoanTransactions" ||
+            "ViewSupplierReports",
         },
 
         {

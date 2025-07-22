@@ -223,20 +223,20 @@ const EntityTypeTab = () => {
             className="hover:text-gray-500 cursor-pointer"
             onClick={() => handleEditClick(dt)}
           />,
-          <button
-            key={`delete-${dt.code}`}
-            disabled={deletingId === dt.code}
-            onClick={() => handleDelete(dt.code)}
-          >
-            <FaTrash
-              size={20}
-              className={`${
-                deletingId === dt.code
-                  ? "text-gray-400 cursor-not-allowed"
-                  : "text-red-500 hover:text-red-600 cursor-pointer"
-              }`}
-            />
-          </button>,
+          // <button
+          //   key={`delete-${dt.code}`}
+          //   disabled={deletingId === dt.code}
+          //   onClick={() => handleDelete(dt.code)}
+          // >
+          //   <FaTrash
+          //     size={20}
+          //     className={`${
+          //       deletingId === dt.code
+          //         ? "text-gray-400 cursor-not-allowed"
+          //         : "text-red-500 hover:text-red-600 cursor-pointer"
+          //     }`}
+          //   />
+          // </button>,
         ])}
       />
     </div>

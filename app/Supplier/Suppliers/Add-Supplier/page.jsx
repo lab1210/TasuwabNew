@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import bankService from "@/Services/bankService";
 import dynamic from "next/dynamic";
 import supplierService from "@/Services/supplierService";
+import formatCurrency from "@/app/components/formatCurrency";
 
 const Select = dynamic(() => import("react-select"), {
   ssr: false,
@@ -431,22 +432,28 @@ const AddSupplierPage = () => {
                                 <label className="block text-sm text-gray-700 mb-1">
                                   Price
                                 </label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  step="0.01"
-                                  value={
-                                    formData.productPrices[product.id] || ""
-                                  }
-                                  onChange={(e) =>
-                                    handlePriceChange(
-                                      product.id,
-                                      e.target.value
-                                    )
-                                  }
-                                  className="w-full p-2 border border-gray-300 rounded-md"
-                                  placeholder="0.00"
-                                />
+                                <div className="relative">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={
+                                      formData.productPrices[product.id] || ""
+                                    }
+                                    onChange={(e) =>
+                                      handlePriceChange(
+                                        product.id,
+                                        e.target.value
+                                      )
+                                    }
+                                    className="w-full text-white p-2 border border-gray-300 rounded-md"
+                                  />
+                                  <span className="absolute left-0 translate-y-1/2 ml-2       font-bold">
+                                    {formatCurrency(
+                                      formData.productPrices[product.id] || 0
+                                    )}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           ))}

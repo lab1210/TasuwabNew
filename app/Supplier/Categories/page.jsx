@@ -49,7 +49,9 @@ export default function CategoryManager() {
       await categoryService.addCategory({ name: newCategoryName.trim() });
       const updatedCategories = await categoryService.getCategories();
       setCategories(updatedCategories);
-      toast.success(`Category "${newCategoryName}" added!`);
+      toast.success(
+        `Category "${newCategoryName}" added click dropdown below to view!`
+      );
       setNewCategoryName("");
     } catch (e) {
       toast.error(e.message);

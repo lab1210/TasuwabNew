@@ -6,6 +6,12 @@ import { MdModeEditOutline } from "react-icons/md";
 import { FaTrash } from "react-icons/fa";
 import toast from "react-hot-toast";
 
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
+  }).format(Number(value));
+
 const Charges = () => {
   const [loading, setLoading] = useState(false);
   const [chargeCodes, setchargeCodes] = useState([]);
@@ -165,16 +171,21 @@ const Charges = () => {
             onChange={handleInputChange}
             required
           />
-          <input
-            type="number"
-            name="amount"
-            min={0}
-            className="border border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
-            placeholder="Charge Amount"
-            value={formData.amount}
-            onChange={handleInputChange}
-            required
-          />
+          <div className="relative">
+            <input
+              type="number"
+              name="amount"
+              min={0}
+              className="border border-gray-400 text-white shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
+              value={formData.amount}
+              onChange={handleInputChange}
+              required
+            />
+            <span className="absolute left-0 translate-y-1/2 ml-2       font-bold">
+              {formatCurrency(formData.amount)}
+            </span>
+          </div>
+
           <textarea
             name="description"
             className="border w-full border-gray-400 shadow-md p-2 rounded-md focus:border-[#3D873B] outline-0"
@@ -254,20 +265,20 @@ const Charges = () => {
             className="hover:text-gray-500 cursor-pointer"
             onClick={() => handleEditClick(dt)}
           />,
-          <button
-            key={`delete-${dt.code}`}
-            disabled={deletingId === dt.code}
-            onClick={() => handleDelete(dt.code)}
-          >
-            <FaTrash
-              size={20}
-              className={`${
-                deletingId === dt.code
-                  ? "text-gray-400 cursor-not-allowed"
-                  : "text-red-500 hover:text-red-600 cursor-pointer"
-              }`}
-            />
-          </button>,
+          // <button
+          //   key={`delete-${dt.code}`}
+          //   disabled={deletingId === dt.code}
+          //   onClick={() => handleDelete(dt.code)}
+          // >
+          //   <FaTrash
+          //     size={20}
+          //     className={`${
+          //       deletingId === dt.code
+          //         ? "text-gray-400 cursor-not-allowed"
+          //         : "text-red-500 hover:text-red-600 cursor-pointer"
+          //     }`}
+          //   />
+          // </button>,
         ])}
       />
     </div>
