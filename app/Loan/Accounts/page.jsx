@@ -48,6 +48,7 @@ const LoanAccountPage = () => {
     narration: "",
     reference: "",
     branchId: user?.BranchCode,
+    fileNo:""
   });
 
   const [showTopUpModal, setShowTopUpModal] = useState(false);
@@ -57,6 +58,7 @@ const LoanAccountPage = () => {
     topUpAmount: 0,
     newPaymentPeriodDays: 0,
     performedBy: user?.StaffCode || "",
+
   });
 
   useEffect(() => {
@@ -208,6 +210,20 @@ const LoanAccountPage = () => {
       toast.error(errors);
       return;
     }
+      const selectedLoan = loans.find(
+    (loan) => loan.loanId === repaymentForm.loanId
+  );
+
+  if (!selectedLoan) {
+    toast.error("Selected loan not found.");
+    return;
+  }
+
+  if (selectedLoan.supplierStatus?.toLowerCase() !== "approved") {
+    toast.error("Supplier status must be 'Approved' to record a payment.");
+    return;
+  }
+
 
     try {
       await loanService.postLoanRepayment(repaymentForm);
@@ -282,8 +298,9 @@ const LoanAccountPage = () => {
       const loansResponse = await loanService.getLoanAccounts();
       setLoans(loansResponse || []);
     } catch (error) {
-      console.error("Failed to process top-up:", error);
-      toast.error(error.message || "Failed to process top-up");
+      // console.error("Failed to process top-up:", error);
+      console.log("Failed to process top-up:", error);
+      toast.error(error || "Failed to process top-up");
     }
   };
 
@@ -294,6 +311,7 @@ const LoanAccountPage = () => {
       topUpAmount: 0,
       newPaymentPeriodDays: loan.paymentPeriodDays || 0,
       performedBy: user?.StaffCode || "",
+      fileNo: loan.fileNo || "",
     });
     setShowTopUpModal(true);
   };
@@ -863,6 +881,24 @@ const LoanAccountPage = () => {
                     </select>
                   </div>
 
+<div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      File Number
+                    </label>
+                    <select
+                      name="fileNo"
+                      value={topUpForm.fileNo}
+                      onChange={handleTopUpInputChange}
+                      className="w-full p-2 border border-gray-300 rounded-md"
+                    >
+                      <option value="">Select File Number</option>
+                      {loans.map((loan) => (
+                        <option key={loan.loanId} value={loan.fileNo}>
+                          {loan.fileNo}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Account Code

@@ -59,6 +59,7 @@ const AddSupplierTransaction = () => {
         setSuppliers(suppliersData);
         setBanks(banksData);
         setAllProducts(productsData);
+        console.log("Fetched all products:", productsData);
         setAllCategories(categoriesData);
       } catch (error) {
         toast.error("Failed to load initial data");
@@ -99,9 +100,13 @@ const AddSupplierTransaction = () => {
     const findProductDetails = () => {
       if (!selectedLoan.assetName) return { productId: "", categoryId: "" };
 
-      const product = allProducts.find(
-        (p) => p.name.toLowerCase() === selectedLoan.assetName.toLowerCase()
-      );
+const product = allProducts.find((p) =>
+  p.name.toLowerCase().includes(selectedLoan.assetName.toLowerCase())
+);
+
+console.log("🔍 Selected Loan Asset:", selectedLoan.assetName);
+  console.log("📦 Available Products:", allProducts.map(p => p.name));
+  console.log("✅ Matched Product:", product);
 
       return {
         productId: product ? product.id : "",

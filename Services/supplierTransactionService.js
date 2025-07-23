@@ -26,6 +26,18 @@ const supplierTransactionService = {
       );
     }
   },
+   getSupplierTransactionsbyStatus: async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/by-status`);
+      return response.data.items;
+    } catch (error) {
+      throw (
+        error.response?.data ||
+        error.message ||
+        "Failed to get supplier transactions"
+      );
+    }
+  },
   getSupplierTransactionbyId: async (id) => {
     try {
       const response = await axios.get(`${API_BASE_URL}/${id}`);

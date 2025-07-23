@@ -15,10 +15,12 @@ import supplierTransactionService from "@/Services/supplierTransactionService";
 import roleService from "@/Services/roleService";
 import formatDate from "@/app/components/formatdate";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import bankService from "@/Services/bankService";
 import supplierService from "@/Services/supplierService";
+import toast from "react-hot-toast";
+import categoryService from "@/Services/categoryService";
+import productService from "@/Services/productService";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -44,6 +46,11 @@ const SupplierTransactionsPage = () => {
   const [showDetails, setShowDetails] = useState(false);
   const [suppliers, setSuppliers] = useState([]);
   const [banks, setBanks] = useState({});
+  const [categories, setCategories] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [supplierName,setSupplierName]=useState({})
+  const [categoryName,setCategoryName]=useState({})
+  const [productName,setProductName]=useState({})
 
   const formatCurrency = (value) =>
     new Intl.NumberFormat("en-NG", {
@@ -92,25 +99,48 @@ const SupplierTransactionsPage = () => {
     );
   };
 
+  
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [transactionsResponse, suppliersResponse, banksResponse] =
+        const [transactionsResponse, suppliersResponse, banksResponse,categoryResponse,productResponse] =
           await Promise.all([
-            supplierTransactionService.getSupplierTransactions(),
+            supplierTransactionService.getSupplierTransactionsbyStatus(),
             supplierService.getSuppliers(),
             bankService.getBank(),
+            categoryService.getCategories(),
+            productService.getAllProducts()
           ]);
 
         setTransactions(transactionsResponse || []);
         setSuppliers(suppliersResponse || []);
+        setCategories(categoryResponse || []);
+        setProducts(productResponse || []);
+        const supplierMap={}
+        suppliersResponse.forEach(supplier=>{
+          supplierMap[supplier.id]=supplier.name
+        })
+        setSupplierName(supplierMap)
 
         // Create a map of bank IDs to bank names
         const banksMap = {};
         banksResponse.forEach((bank) => {
-          banksMap[bank.id] = bank.name;
+          banksMap[bank.id] = bank.bankName;
         });
         setBanks(banksMap);
+
+        const categoryMap = {};
+        categoryResponse.forEach((category) => {
+          categoryMap[category.id] = category.name;
+        });
+        setCategoryName(categoryMap);
+
+        const productMap = {};
+        productResponse.forEach((product) => {
+          productMap[product.id] = product.name;
+        });
+        setProductName(productMap);
 
         setLoading(false);
       } catch (err) {
@@ -287,7 +317,7 @@ const SupplierTransactionsPage = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1  gap-6">
                     {/* Left Column - Main Information */}
                     <div className="lg:col-span-2 space-y-6">
                       {/* Transaction Information */}
@@ -307,19 +337,19 @@ const SupplierTransactionsPage = () => {
                           <div>
                             <p className="text-sm text-gray-500">Supplier</p>
                             <p className="font-medium">
-                              {selectedTransaction.supplierName}
+                              {supplierName[selectedTransaction.supplierId]}
                             </p>
                           </div>
                           <div>
                             <p className="text-sm text-gray-500">Product</p>
                             <p className="font-medium">
-                              {selectedTransaction.productName || "N/A"}
+                              {productName[selectedTransaction.productId] || "N/A"}
                             </p>
                           </div>
                           <div>
                             <p className="text-sm text-gray-500">Category</p>
                             <p className="font-medium">
-                              {selectedTransaction.categoryName || "N/A"}
+                              {categoryName[selectedTransaction.categoryId] || "N/A"}
                             </p>
                           </div>
                           <div>
@@ -347,7 +377,7 @@ const SupplierTransactionsPage = () => {
                               Performed By
                             </p>
                             <p className="font-medium">
-                              {selectedTransaction.performedByName || "N/A"}
+                              {selectedTransaction.performedBy || "N/A"}
                             </p>
                           </div>
                           <div className="md:col-span-2">
@@ -360,92 +390,6 @@ const SupplierTransactionsPage = () => {
                       </div>
                     </div>
 
-                    {/* Right Column - Sidebar Information */}
-                    <div className="space-y-6">
-                      {/* Approval Process */}
-                      {selectedTransaction.approvalRequest && (
-                        <div className="bg-gray-50 rounded-lg p-6">
-                          <h2 className="text-lg font-semibold mb-4">
-                            Approval Process
-                          </h2>
-                          <div className="space-y-4">
-                            <div>
-                              <p className="text-sm text-gray-500">
-                                Requested By
-                              </p>
-                              <p className="font-medium">
-                                {selectedTransaction.approvalRequest
-                                  .requestedByName || "N/A"}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">
-                                Request Date
-                              </p>
-                              <p className="font-medium">
-                                {formatDate(
-                                  selectedTransaction.approvalRequest
-                                    .requestDate
-                                )}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">
-                                Current Status
-                              </p>
-                              <p className="font-medium">
-                                {getApprovalStatusText(
-                                  selectedTransaction.approvalRequest.status
-                                )}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">Notes</p>
-                              <p className="font-medium">
-                                {selectedTransaction.approvalRequest.notes ||
-                                  "No notes provided"}
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Approval History */}
-                          {selectedTransaction.approvalRequest.history?.length >
-                            0 && (
-                            <div className="mt-6">
-                              <h3 className="font-medium mb-3">
-                                Approval History
-                              </h3>
-                              <div className="space-y-3">
-                                {selectedTransaction.approvalRequest.history.map(
-                                  (item, index) => (
-                                    <div
-                                      key={index}
-                                      className="border-l-2 border-gray-300 pl-3 py-1"
-                                    >
-                                      <div className="flex justify-between">
-                                        <span className="font-medium">
-                                          {item.actionedByName}
-                                        </span>
-                                        <span className="text-sm text-gray-500">
-                                          {formatDate(item.actionDate)}
-                                        </span>
-                                      </div>
-                                      <p className="text-sm">
-                                        {item.comments || "No comments"}
-                                      </p>
-                                      <p className="text-xs text-gray-500">
-                                        Status:{" "}
-                                        {getApprovalStatusText(item.status)}
-                                      </p>
-                                    </div>
-                                  )
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
                   </div>
                 </div>
               </div>
@@ -598,8 +542,11 @@ const SupplierTransactionsPage = () => {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
+                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Account Number
+                        </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Transaction ID
+                          File No
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Supplier
@@ -607,9 +554,7 @@ const SupplierTransactionsPage = () => {
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Amount
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Product
-                        </th>
+                        
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Status
                         </th>
@@ -623,25 +568,20 @@ const SupplierTransactionsPage = () => {
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {paginatedTransactions.map((transaction) => (
-                        <tr key={transaction.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              {transaction.transactionId}
-                            </div>
+                        <tr key={transaction.transactionId} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {transaction.accountCode}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">
-                              {transaction.supplierName}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {transaction.supplierId}
+                              {transaction.fileNo}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {formatCurrency(transaction.amount)}
+                            {supplierName[transaction.supplierId]}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {transaction.productName || "N/A"}
+                            {formatCurrency(transaction.amount)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             {renderStatusBadge(transaction.status)}

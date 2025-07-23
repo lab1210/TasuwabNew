@@ -12,6 +12,7 @@ import loanService from "@/Services/loanService";
 import formatDate from "@/app/components/formatdate";
 import Layout from "@/app/components/Layout";
 import toast from "react-hot-toast";
+import formatCurrency from "@/app/components/formatCurrency";
 
 const LoanTopUpHistoryPage = () => {
   const { user } = useAuth();
@@ -21,6 +22,7 @@ const LoanTopUpHistoryPage = () => {
   const [filteredHistory, setFilteredHistory] = useState([]);
   const [expandedRows, setExpandedRows] = useState([]);
   const [loading, setLoading] = useState(false);
+
 
   const [searchTerm, setSearchTerm] = useState("");
   const [loanDetails, setLoanDetails] = useState(null);
@@ -138,7 +140,7 @@ const LoanTopUpHistoryPage = () => {
             {loanAccounts.map((loan) => (
               <option key={loan.fileNo} value={loan.fileNo}>
                 {loan.fileNo} - {loan.loanTypeCode} (₦
-                {loan.loanBorrowed.toLocaleString()})
+                {formatCurrency(loan.loanBorrowed)})
               </option>
             ))}
           </select>
@@ -151,7 +153,7 @@ const LoanTopUpHistoryPage = () => {
                 Original Loan Amount
               </h3>
               <p className="text-xl font-bold text-[#3D873B]">
-                ₦{loanDetails.loanBorrowed.toLocaleString()}
+                {formatCurrency(loanDetails.loanBorrowed)}
               </p>
             </div>
             <div className="bg-gray-100 p-4 rounded-md">
@@ -159,7 +161,7 @@ const LoanTopUpHistoryPage = () => {
                 Current Balance
               </h3>
               <p className="text-xl font-bold text-red-600">
-                ₦{loanDetails.loanUnpaid.toLocaleString()}
+                {formatCurrency(loanDetails.loanUnpaid)}
               </p>
             </div>
             <div className="bg-gray-100 p-4 rounded-md">
@@ -212,7 +214,13 @@ const LoanTopUpHistoryPage = () => {
                       Amount
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      New Payment Period Days
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       New Total
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      New Tenure Date
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Performed By
@@ -232,10 +240,16 @@ const LoanTopUpHistoryPage = () => {
                             {formatDate(topUp.topUpDate)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-[#3D873B]">
-                            ₦{topUp.amount.toLocaleString()}
+                            {formatCurrency(topUp.amount)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-500">
+                            {topUp.newPaymentPeriodDays}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            ₦{topUp.newTotalBorrowed.toLocaleString()}
+                            {formatCurrency(topUp.newTotalBorrowed)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-500">
+                            {formatDate(topUp.newTenureEndingDate)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {topUp.performedBy}
@@ -258,7 +272,7 @@ const LoanTopUpHistoryPage = () => {
                         </tr>
                         {expandedRows.includes(index) && (
                           <tr className="bg-gray-50">
-                            <td colSpan="6" className="px-6 py-4">
+                            <td colSpan="7" className="px-6 py-4">
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                 <div>
                                   <p className="font-medium text-gray-900">
